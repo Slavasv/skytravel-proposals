@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProposalForm from './proposal-form'
+import ProposalActions from './proposal-actions'
 
 export default async function EditProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -33,7 +34,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <ProposalForm proposal={proposal} />
+      <ProposalForm proposal={proposal} actions={<ProposalActions slug={proposal.slug} />} />
     </div>
   )
 }

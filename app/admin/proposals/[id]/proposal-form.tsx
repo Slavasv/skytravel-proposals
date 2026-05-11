@@ -54,7 +54,7 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-export default function ProposalForm({ proposal }: { proposal: Proposal }) {
+export default function ProposalForm({ proposal, actions }: { proposal: Proposal; actions?: React.ReactNode }) {
   const router = useRouter()
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -389,11 +389,13 @@ export default function ProposalForm({ proposal }: { proposal: Proposal }) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         gap: '16px',
         paddingTop: '24px',
         borderTop: '1px solid #2A2A28',
+        flexWrap: 'wrap',
       }}>
+        <div>{actions}</div>
         <button
           onClick={handleDone}
           disabled={saveState === 'saving'}
