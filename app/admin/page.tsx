@@ -1,8 +1,15 @@
-import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { createProposal } from './actions'
+import ProposalCard from './proposal-card'
+import StatusFilter from './status-filter'
 
-export default async function AdminHome() {
-  const { data: proposals, error } = await supabase
+type SearchParams = { status?: string }
+
+export default async function AdminHome({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const { status } = await searchParams
+  const activeStatus = status ?? null
+
+  const { data: allProposals, error } = await supabase
     .from('proposals')
     .select('*')
     .order('updated_at', { ascending: false })
@@ -11,40 +18,62 @@ export default async function AdminHome() {
     return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
   }
 
+  const counts: Record<string, number> = {}
+  for (const p of allProposals ?? []) {
+    const s = p.status || 'draft'
+    counts[s] = (counts[s] ?? 0) + 1
+  }
+
+  const proposals = activeStatus
+    ? (allProposals ?? []).filter((p) => p.status === activeStatus)
+    : allProposals ?? []
+
   return (
     <div style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
-      <div style={{ fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888780', marginBottom: '8px', fontWeight: 500 }}>
-        Sky Travel · Admin
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Proposals</h1>
+          <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+            {proposals.length} {proposals.length === 1 ? 'proposal' : 'proposals'}
+            {activeStatus && ` · filtered by ${activeStatus}`}
+          </p>
+        </div>
+        <form action={createProposal}>
+          <button
+            type="submit"
+            style={{
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: 500,
+              letterSpacing: '0.03em',
+              background: '#FAF8F4',
+              color: '#2C2C2A',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            + New proposal
+          </button>
+        </form>
       </div>
-      <h1 style={{ fontSize: '24px', fontWeight: 500, marginBottom: '8px', letterSpacing: '-0.01em' }}>Proposals</h1>
-      <p style={{ color: '#888780', marginBottom: '32px', fontSize: '14px' }}>
-        {proposals?.length ?? 0} {proposals?.length === 1 ? 'proposal' : 'proposals'}
-      </p>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {proposals?.map((p) => (
-          <li key={p.id} style={{ marginBottom: '12px' }}>
-            <Link
-              href={`/p/${p.slug}`}
-              style={{
-                display: 'block',
-                padding: '16px',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                color: 'inherit',
-              }}
-            >
-              <div style={{ fontWeight: 500 }}>{p.trip_title_ru}</div>
-              <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-                {p.client_name} · {p.guest_count} гостей · {p.start_date} → {p.end_date}
-              </div>
-              <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
-                Slug: {p.slug} · Status: {p.status}
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
+
+      <StatusFilter current={activeStatus} counts={counts} />
+
+      {proposals.length === 0 ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#888780', border: '1px dashed #555', borderRadius: '8px', fontSize: '14px' }}>
+          {activeStatus
+            ? `No proposals with status "${activeStatus}".`
+            : 'No proposals yet. Click + New proposal to create one.'}
+        </div>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {proposals.map((p) => (
+            <ProposalCard key={p.id} proposal={p} />
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
