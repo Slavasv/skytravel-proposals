@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 type Params = { slug: string }
 
-export default async function ProposalPage({ params }: { params: Promise<Params> }) {
+export default async function ProposalPageEN({ params }: { params: Promise<Params> }) {
   const { slug } = await params
 
   const { data: proposal, error } = await supabase
@@ -54,24 +54,24 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
               Sky Travel
             </div>
             <h1 style={{ fontSize: '32px', fontWeight: 400, margin: 0, lineHeight: 1.2 }}>
-              {proposal.trip_title_ru}
+              {proposal.trip_title_en}
             </h1>
           </div>
         </div>
       )}
 
       <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px' }}>
-        Для {proposal.client_name} · {proposal.guest_count} гостей · {proposal.start_date} → {proposal.end_date}
+        For {proposal.client_name} · {proposal.guest_count} guests · {proposal.start_date} → {proposal.end_date}
       </div>
 
-      {proposal.intro_text_ru && (
+      {proposal.intro_text_en && (
         <p style={{ fontSize: '17px', lineHeight: 1.7, marginBottom: '48px', color: '#444441' }}>
-          {proposal.intro_text_ru}
+          {proposal.intro_text_en}
         </p>
       )}
 
       <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
-        Программа путешествия
+        Your Itinerary
       </h2>
 
       {days?.map((day) => {
@@ -82,18 +82,18 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         return (
           <div key={day.id} style={{ marginBottom: '48px' }}>
             <div style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888780', marginBottom: '4px' }}>
-              День {day.day_number} · {day.date}
+              Day {day.day_number} · {day.date}
             </div>
             <h3 style={{ fontSize: '24px', fontWeight: 400, margin: '0 0 12px', color: '#2C2C2A' }}>
-              {day.title_ru}
+              {day.title_en}
             </h3>
-            {day.intro_text_ru && (
+            {day.intro_text_en && (
               <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#5F5E5A', marginBottom: '24px' }}>
-                {day.intro_text_ru}
+                {day.intro_text_en}
               </p>
             )}
 
-            {sortedBlocks.map((db: { content_blocks: { id: string, type: string, title_ru: string, description_ru: string, image_url: string, location: string }, custom_note_ru: string | null }) => {
+            {sortedBlocks.map((db: { content_blocks: { id: string, type: string, title_en: string, description_en: string, image_url: string, location: string }, custom_note_en: string | null }) => {
               const block = db.content_blocks
               return (
                 <div key={block.id} style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>
@@ -114,14 +114,14 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
                       {block.type}
                     </div>
                     <div style={{ fontSize: '17px', fontWeight: 500, marginBottom: '6px' }}>
-                      {block.title_ru}
+                      {block.title_en}
                     </div>
                     <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#5F5E5A', margin: 0 }}>
-                      {block.description_ru}
+                      {block.description_en}
                     </p>
-                    {db.custom_note_ru && (
+                    {db.custom_note_en && (
                       <div style={{ fontSize: '13px', color: '#854F0B', backgroundColor: '#FAEEDA', padding: '8px 12px', borderRadius: '4px', marginTop: '10px' }}>
-                        {db.custom_note_ru}
+                        {db.custom_note_en}
                       </div>
                     )}
                   </div>
