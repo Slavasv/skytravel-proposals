@@ -1,0 +1,107 @@
+'use server'
+
+import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+
+export type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
+
+export type BlockUpdate = {
+  type?: BlockType
+  title_ru?: string | null
+  title_en?: string | null
+  description_ru?: string | null
+  description_en?: string | null
+  image_url?: string | null
+  location?: string | null
+  tags?: string[]
+  // hotel
+  notable_amenities_ru?: string | null
+  notable_amenities_en?: string | null
+  // activity
+  duration_hours?: number | null
+  best_season_ru?: string | null
+  best_season_en?: string | null
+  // transfer
+  vehicle_ru?: string | null
+  vehicle_en?: string | null
+  duration_min?: number | null
+  max_passengers?: number | null
+  // city
+  notable_ru?: string | null
+  notable_en?: string | null
+}
+
+export async function createBlock() {
+  const { data, error } = await supabase
+    .from('content_blocks')
+    .insert({
+      type: 'hotel',
+      title_ru: 'Новый блок',
+      title_en: 'New block',
+      tags: [],
+    })
+    .select()
+    .single()
+
+  if (error || !data) {
+    throw new Error(error?.message || 'Failed to create block')
+  }
+
+  revalidatePath('/admin/library')
+  redirect(`/admin/library/${data.id}`)
+}
+
+export async function updateBlock(id: string, updates: BlockUpdate) {
+  const { error } = await supabase
+    .from('content_blocks')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/library')
+  revalidatePath(`/admin/library/${id}`)
+}
+
+export async function deleteBlock(id: string) {
+  // Проверяем, используется ли блок в proposals
+  const { count, error: countError } = await supabase
+    .from('day_blocks')
+    .select('*', { count: 'exact', head: true })
+    .eq('block_id', id)
+
+  if (countError) {
+    throw new Error(countError.message)
+  }
+
+  if (count && count > 0) {
+    throw new Error(`Cannot delete: this block is used in ${count} day(s) across proposals`)
+  }
+
+  const { error } = await supabase
+    .from('content_blocks')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/library')
+}
+
+export async function getBlockUsage(id: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('day_blocks')
+    .select('*', { count: 'exact', head: true })
+    .eq('block_id', id)
+
+  if (error) {
+    return 0
+  }
+
+  return count ?? 0
+}
