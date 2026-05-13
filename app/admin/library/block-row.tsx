@@ -90,6 +90,17 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           </div>
           <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {block.location || '—'}
+            {block.tags && block.tags.length > 0 && (
+              <>
+                {' · '}
+                {block.tags.slice(0, 3).map((t, i) => (
+                  <span key={t} style={{ marginRight: '6px' }}>
+                    #{t}{i < Math.min(block.tags!.length, 3) - 1 ? '' : ''}
+                  </span>
+                ))}
+                {block.tags.length > 3 && <span>+{block.tags.length - 3}</span>}
+              </>
+            )}
           </div>
         </div>
 

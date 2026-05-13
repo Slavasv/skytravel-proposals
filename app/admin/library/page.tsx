@@ -42,6 +42,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         `description_ru.ilike.%${safe}%`,
         `description_en.ilike.%${safe}%`,
         `location.ilike.%${safe}%`,
+        `tags.cs.{${safe.toLowerCase()}}`,
       ].join(',')
     )
   }

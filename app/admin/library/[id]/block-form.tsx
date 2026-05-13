@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
+import TagsInput from './tags-input'
 
 type Block = {
   id: string
@@ -326,6 +327,16 @@ export default function BlockForm({ block }: { block: Block }) {
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>File upload coming in Sprint 5</p>
           </div>
         </div>
+      </section>
+      <section>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Tags</h2>
+        <TagsInput
+          value={form.tags}
+          onChange={(tags) => set('tags', tags)}
+        />
+        <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+          Press Enter or comma to add. Used for search. Same for both languages.
+        </p>
       </section>
 
       {/* Type-specific fields */}
