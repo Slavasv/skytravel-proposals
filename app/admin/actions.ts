@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 type ProposalUpdate = {
-  client_name?: string
+  client_name_ru?: string | null
+  client_name_en?: string | null
   trip_title_ru?: string | null
   trip_title_en?: string | null
   guest_count?: number | null
@@ -27,7 +28,8 @@ export async function createProposal() {
     .from('proposals')
     .insert({
       slug,
-      client_name: 'New Client',
+      client_name_ru: 'Новый клиент',
+      client_name_en: 'New client',
       trip_title_ru: 'Новый proposal',
       trip_title_en: 'New proposal',
       guest_count: 1,
@@ -73,8 +75,9 @@ export async function duplicateProposal(id: string) {
     .from('proposals')
     .insert({
       slug: `${original.slug}-copy-${Date.now().toString(36)}`,
-      client_name: original.client_name,
-      trip_title_ru: `${original.trip_title_ru} (копия)`,
+      client_name_ru: original.client_name_ru,
+      client_name_en: original.client_name_en,
+      trip_title_ru: original.trip_title_ru ? `${original.trip_title_ru} (копия)` : null,
       trip_title_en: original.trip_title_en ? `${original.trip_title_en} (copy)` : null,
       guest_count: original.guest_count,
       start_date: original.start_date,

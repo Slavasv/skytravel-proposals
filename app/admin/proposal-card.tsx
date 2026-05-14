@@ -7,7 +7,8 @@ import { deleteProposal, duplicateProposal } from './actions'
 type Proposal = {
   id: string
   slug: string
-  client_name: string
+  client_name_ru: string | null
+  client_name_en: string | null
   trip_title_ru: string | null
   guest_count: number | null
   start_date: string | null
@@ -65,7 +66,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
       >
         <div style={{ fontWeight: 500 }}>{proposal.trip_title_ru || 'Untitled'}</div>
         <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-          {proposal.client_name} · {proposal.guest_count ?? 1} гостей · {proposal.start_date || '—'} → {proposal.end_date || '—'}
+          {proposal.client_name_ru || '—'} · {proposal.guest_count ?? 1} гостей · {proposal.start_date || '—'} → {proposal.end_date || '—'}
         </div>
         <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
           Slug: {proposal.slug} · Status: {proposal.status}

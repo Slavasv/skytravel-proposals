@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateProposal } from '../../actions'
+import type { Lang } from './edit-page-client'
 
 type Proposal = {
   id: string
   slug: string
-  client_name: string
+  client_name_ru: string | null
+  client_name_en: string | null
   trip_title_ru: string | null
   trip_title_en: string | null
   guest_count: number | null
@@ -21,7 +23,6 @@ type Proposal = {
   intro_text_en: string | null
 }
 
-type Lang = 'ru' | 'en'
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 const CURRENCIES = ['USD', 'EUR', 'AED', 'GBP']
@@ -54,16 +55,24 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-export default function ProposalForm({ proposal, actions }: { proposal: Proposal; actions?: React.ReactNode }) {
+type Props = {
+  proposal: Proposal
+  lang: Lang
+  onLangChange: (lang: Lang) => void
+  actions?: React.ReactNode
+  itinerary?: React.ReactNode
+}
+
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary }: Props) {
   const router = useRouter()
-  const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     slug: proposal.slug,
-    client_name: proposal.client_name || '',
+    client_name_ru: proposal.client_name_ru || '',
+    client_name_en: proposal.client_name_en || '',
     trip_title_ru: proposal.trip_title_ru || '',
     trip_title_en: proposal.trip_title_en || '',
     guest_count: proposal.guest_count ?? 1,
@@ -77,7 +86,6 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
     intro_text_en: proposal.intro_text_en || '',
   })
 
-  // Debounce timer + flag показывающий что были изменения после монтирования
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInitialMount = useRef(true)
   const inFlight = useRef<Promise<void> | null>(null)
@@ -95,7 +103,8 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
       try {
         await updateProposal(proposal.id, {
           slug: currentForm.slug,
-          client_name: currentForm.client_name,
+          client_name_ru: currentForm.client_name_ru || null,
+          client_name_en: currentForm.client_name_en || null,
           trip_title_ru: currentForm.trip_title_ru || null,
           trip_title_en: currentForm.trip_title_en || null,
           guest_count: typeof currentForm.guest_count === 'number'
@@ -125,7 +134,6 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
     }
   }
 
-  // Autosave: debounce 1.5s после каждого изменения form
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
@@ -149,23 +157,20 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
   }, [form])
 
   async function handleDone() {
-    // Если есть отложенный таймер — сохраняем сразу
     if (saveTimer.current) {
       clearTimeout(saveTimer.current)
       saveTimer.current = null
     }
-    // Сохраняем текущее состояние (если ещё не сохранено)
     if (saveState === 'editing' || saveState === 'error') {
       await saveNow(form)
     }
-    // Дожидаемся текущего сохранения если оно идёт
     if (inFlight.current) {
       await inFlight.current
     }
     router.push('/admin')
   }
 
-  // Bilingual fields use suffix from current lang
+  const clientKey = lang === 'ru' ? 'client_name_ru' : 'client_name_en'
   const titleKey = lang === 'ru' ? 'trip_title_ru' : 'trip_title_en'
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
   const titlePlaceholder = lang === 'ru'
@@ -174,6 +179,9 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
   const introPlaceholder = lang === 'ru'
     ? 'Короткое описание поездки, которое клиент увидит на первой странице'
     : 'A short description of the trip that the client sees on the first page'
+  const clientPlaceholder = lang === 'ru'
+    ? 'Например: Семья Алиевых'
+    : 'e.g.: The Aliyev Family'
 
   function renderSaveIndicator() {
     if (saveState === 'error') {
@@ -209,7 +217,7 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
           <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid #333' }}>
             <button
               type="button"
-              onClick={() => setLang('ru')}
+              onClick={() => onLangChange('ru')}
               style={{
                 padding: '6px 14px',
                 fontSize: '13px',
@@ -225,7 +233,7 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
             </button>
             <button
               type="button"
-              onClick={() => setLang('en')}
+              onClick={() => onLangChange('en')}
               style={{
                 padding: '6px 14px',
                 fontSize: '13px',
@@ -247,15 +255,18 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
       </div>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Client & dates</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
+          Client & dates <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        </h2>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Client name</label>
             <input
               type="text"
-              value={form.client_name}
-              onChange={(e) => set('client_name', e.target.value)}
+              value={form[clientKey]}
+              onChange={(e) => set(clientKey, e.target.value)}
               style={inputStyle}
+              placeholder={clientPlaceholder}
             />
           </div>
           <div>
@@ -326,6 +337,8 @@ export default function ProposalForm({ proposal, actions }: { proposal: Proposal
           </div>
         </div>
       </section>
+
+      {itinerary}
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Price & status</h2>

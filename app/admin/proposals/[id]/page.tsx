@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import ProposalForm from './proposal-form'
-import ProposalActions from './proposal-actions'
+import EditPageClient from './edit-page-client'
 
 export default async function EditProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,6 +16,12 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
     notFound()
   }
 
+  const { data: days } = await supabase
+    .from('days')
+    .select('*')
+    .eq('proposal_id', proposal.id)
+    .order('day_number', { ascending: true })
+
   return (
     <div style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ fontSize: '13px', color: '#888780', marginBottom: '16px' }}>
@@ -30,11 +35,11 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
           {proposal.trip_title_ru || 'Untitled proposal'}
         </h1>
         <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
-          For {proposal.client_name || 'unknown client'}
+          For {proposal.client_name_ru || 'unknown client'}
         </p>
       </div>
 
-      <ProposalForm proposal={proposal} actions={<ProposalActions slug={proposal.slug} />} />
+      <EditPageClient proposal={proposal} days={days ?? []} />
     </div>
   )
 }

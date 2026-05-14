@@ -61,7 +61,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
       )}
 
       <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px' }}>
-        For {proposal.client_name} · {proposal.guest_count} guests · {proposal.start_date} → {proposal.end_date}
+        For {proposal.client_name_en || '—'} · {proposal.guest_count} guests · {proposal.start_date} → {proposal.end_date}
       </div>
 
       {proposal.intro_text_en && (
