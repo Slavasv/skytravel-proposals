@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { updateDay } from './day-actions'
 import type { Lang } from './edit-page-client'
 
@@ -47,6 +49,15 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: day.id, disabled: isPending })
+
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -129,17 +140,45 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
     ? (form.title_ru || day.title_ru)
     : (form.title_en || day.title_en)
 
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    position: 'relative',
+    border: '1px solid #2A2A28',
+    borderRadius: '8px',
+    background: isDragging ? '#1a1a1a' : 'transparent',
+    opacity: isPending ? 0.5 : isDragging ? 0.85 : 1,
+    boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.5)' : 'none',
+    zIndex: isDragging ? 10 : 'auto',
+  }
+
   return (
-    <div
-      style={{
-        position: 'relative',
-        border: '1px solid #2A2A28',
-        borderRadius: '8px',
-        background: 'transparent',
-        opacity: isPending ? 0.5 : 1,
-        transition: 'opacity 0.15s',
-      }}
-    >
+    <div ref={setNodeRef} style={style}>
+      {/* Drag handle */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        disabled={isPending}
+        aria-label="Drag to reorder"
+        style={{
+          position: 'absolute',
+          left: '8px',
+          top: '16px',
+          background: 'transparent',
+          border: 'none',
+          padding: '4px 4px',
+          cursor: isPending ? 'not-allowed' : 'grab',
+          color: '#555',
+          fontSize: '14px',
+          lineHeight: 1,
+          fontFamily: 'inherit',
+          touchAction: 'none',
+        }}
+      >
+        ⋮⋮
+      </button>
+
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -150,6 +189,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
           background: 'transparent',
           border: 'none',
           padding: '14px 16px',
+          paddingLeft: '34px',
           paddingRight: '50px',
           cursor: 'pointer',
           fontFamily: 'inherit',

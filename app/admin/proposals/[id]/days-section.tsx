@@ -1,7 +1,20 @@
 'use client'
 
 import { useTransition } from 'react'
-import { createDay, deleteDay } from './day-actions'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { createDay, deleteDay, reorderDays } from './day-actions'
 import DayCard from './day-card'
 import type { Lang } from './edit-page-client'
 
@@ -24,6 +37,12 @@ type Props = {
 export default function DaysSection({ proposalId, days, lang }: Props) {
   const [isPending, startTransition] = useTransition()
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  )
+
   function handleAddDay() {
     startTransition(async () => {
       await createDay(proposalId)
@@ -36,6 +55,22 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
     }
     startTransition(async () => {
       await deleteDay(dayId)
+    })
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = days.findIndex((d) => d.id === active.id)
+    const newIndex = days.findIndex((d) => d.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(days, oldIndex, newIndex)
+    const orderedIds = reordered.map((d) => d.id)
+
+    startTransition(async () => {
+      await reorderDays(proposalId, orderedIds)
     })
   }
 
@@ -91,17 +126,21 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
           No days yet. Click + Add day to start building the itinerary.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {days.map((day) => (
-            <DayCard
-              key={day.id}
-              day={day}
-              isPending={isPending}
-              onDeleteRequest={handleDeleteRequest}
-              lang={lang}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={days.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {days.map((day) => (
+                <DayCard
+                  key={day.id}
+                  day={day}
+                  isPending={isPending}
+                  onDeleteRequest={handleDeleteRequest}
+                  lang={lang}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </section>
   )
