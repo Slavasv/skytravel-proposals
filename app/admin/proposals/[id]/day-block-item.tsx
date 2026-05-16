@@ -1,22 +1,113 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { duplicateDayBlock, removeBlockFromDay } from './block-actions'
+import { useState, useEffect, useRef, useTransition } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  duplicateDayBlock,
+  removeBlockFromDay,
+  updateDayBlock,
+} from './block-actions'
 import type { DayBlock, Lang } from './edit-page-client'
 
 type Props = {
   dayBlock: DayBlock
   lang: Lang
+  isDayPending: boolean
 }
 
-export default function DayBlockItem({ dayBlock, lang }: Props) {
+type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
+
+export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const blockedByOuter = isDayPending
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: dayBlock.id, disabled: isPending || blockedByOuter })
+
+  const [noteForm, setNoteForm] = useState({
+    custom_note_ru: dayBlock.custom_note_ru || '',
+    custom_note_en: dayBlock.custom_note_en || '',
+  })
+
+  const hasExistingNote = (lang === 'ru' ? noteForm.custom_note_ru : noteForm.custom_note_en).length > 0
+  const [noteEditorOpen, setNoteEditorOpen] = useState(hasExistingNote)
+
+  const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isInitialMount = useRef(true)
+  const inFlight = useRef<Promise<void> | null>(null)
 
   const block = dayBlock.content_blocks
   const title = lang === 'ru' ? block.title_ru : block.title_en
   const description = lang === 'ru' ? block.description_ru : block.description_en
-  const note = lang === 'ru' ? dayBlock.custom_note_ru : dayBlock.custom_note_en
+
+  const noteKey = lang === 'ru' ? 'custom_note_ru' : 'custom_note_en'
+
+  function setNote(value: string) {
+    setNoteForm((prev) => ({ ...prev, [noteKey]: value }))
+    setSaveState('editing')
+  }
+
+  async function saveNow(currentForm: typeof noteForm) {
+    setSaveState('saving')
+    setErrorMsg(null)
+
+    const promise = (async () => {
+      try {
+        await updateDayBlock(dayBlock.id, {
+          custom_note_ru: currentForm.custom_note_ru || null,
+          custom_note_en: currentForm.custom_note_en || null,
+        })
+        setSavedAt(new Date())
+        setSaveState('saved')
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setSaveState('error')
+      }
+    })()
+
+    inFlight.current = promise
+    await promise
+    if (inFlight.current === promise) {
+      inFlight.current = null
+    }
+  }
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+
+    saveTimer.current = setTimeout(() => {
+      saveNow(noteForm)
+    }, 1500)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteForm])
+
+  useEffect(() => {
+    if (hasExistingNote) {
+      setNoteEditorOpen(true)
+    }
+  }, [hasExistingNote])
 
   function handleDuplicate() {
     setMenuOpen(false)
@@ -35,22 +126,59 @@ export default function DayBlockItem({ dayBlock, lang }: Props) {
     })
   }
 
+  function renderSaveIndicator() {
+    if (saveState === 'error') return <span style={{ color: '#E07B7B' }}>● Error</span>
+    if (saveState === 'saving') return <span style={{ color: '#C8A862' }}>● Saving...</span>
+    if (saveState === 'editing') return <span style={{ color: '#888780' }}>● Editing...</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: '#7AA876' }}>● Saved</span>
+    return null
+  }
+
+  const currentNote = noteForm[noteKey]
+
+  const containerStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    position: 'relative',
+    display: 'grid',
+    gridTemplateColumns: '24px 88px 1fr',
+    gap: '10px',
+    padding: '12px',
+    paddingRight: '40px',
+    border: '1px solid #2A2A28',
+    borderRadius: '6px',
+    background: isDragging ? '#1a1a1a' : '#0d0d0d',
+    opacity: isPending || blockedByOuter ? 0.4 : isDragging ? 0.85 : 1,
+    boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.5)' : 'none',
+    zIndex: isDragging ? 10 : 'auto',
+    alignItems: 'start',
+  }
+
   return (
-    <div
-      style={{
-        position: 'relative',
-        display: 'grid',
-        gridTemplateColumns: '88px 1fr',
-        gap: '14px',
-        padding: '12px',
-        paddingRight: '40px',
-        border: '1px solid #2A2A28',
-        borderRadius: '6px',
-        background: '#0d0d0d',
-        opacity: isPending ? 0.4 : 1,
-        transition: 'opacity 0.15s',
-      }}
-    >
+    <div ref={setNodeRef} style={containerStyle}>
+      {/* Drag handle */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        disabled={isPending || blockedByOuter}
+        aria-label="Drag to reorder"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          padding: '4px',
+          cursor: isPending || blockedByOuter ? 'not-allowed' : 'grab',
+          color: '#555',
+          fontSize: '14px',
+          lineHeight: 1,
+          fontFamily: 'inherit',
+          touchAction: 'none',
+          alignSelf: 'center',
+        }}
+      >
+        ⋮⋮
+      </button>
+
       {/* Image */}
       <div style={{
         width: '88px',
@@ -79,22 +207,81 @@ export default function DayBlockItem({ dayBlock, lang }: Props) {
           {title || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
         </div>
         {description && (
-          <p style={{ fontSize: '12px', lineHeight: 1.5, color: '#888780', margin: '0 0 6px' }}>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: '#888780', margin: '0 0 10px' }}>
             {description}
           </p>
         )}
-        {note && (
-          <div style={{
-            fontSize: '12px',
-            color: '#C8A862',
-            background: 'rgba(200, 168, 98, 0.08)',
-            border: '1px solid rgba(200, 168, 98, 0.2)',
-            padding: '6px 10px',
-            borderRadius: '4px',
-            marginTop: '8px',
-            lineHeight: 1.4,
-          }}>
-            {note}
+
+        {!noteEditorOpen ? (
+          <button
+            type="button"
+            onClick={() => setNoteEditorOpen(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              color: '#888780',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+              textDecorationColor: '#444',
+            }}
+          >
+            + Add note for this trip
+          </button>
+        ) : (
+          <div style={{ marginTop: '4px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '6px',
+            }}>
+              <label style={{
+                fontSize: '10px',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#888780',
+                fontWeight: 500,
+              }}>
+                Note for this trip · {lang.toUpperCase()}
+              </label>
+              <span style={{ fontSize: '11px' }}>
+                {renderSaveIndicator()}
+              </span>
+            </div>
+            <textarea
+              value={currentNote}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder={lang === 'ru'
+                ? 'Например: Выезд из отеля в 6:30 утра. Гид встретит вас в холле.'
+                : 'e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.'}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                fontSize: '12px',
+                lineHeight: 1.5,
+                color: '#E5E2DA',
+                background: '#1a1a1a',
+                border: '1px solid #333',
+                borderRadius: '4px',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                outline: 'none',
+                resize: 'vertical',
+              }}
+            />
+            <p style={{ fontSize: '10px', color: '#555', margin: '4px 0 0' }}>
+              Visible to client on this trip only. The library block stays unchanged.
+            </p>
+            {errorMsg && (
+              <p style={{ fontSize: '11px', color: '#E07B7B', margin: '4px 0 0' }}>
+                Error: {errorMsg}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -107,7 +294,7 @@ export default function DayBlockItem({ dayBlock, lang }: Props) {
           e.stopPropagation()
           setMenuOpen(!menuOpen)
         }}
-        disabled={isPending}
+        disabled={isPending || blockedByOuter}
         aria-label="Block actions"
         style={{
           position: 'absolute',
@@ -116,7 +303,7 @@ export default function DayBlockItem({ dayBlock, lang }: Props) {
           background: 'transparent',
           border: 'none',
           padding: '6px 8px',
-          cursor: isPending ? 'wait' : 'pointer',
+          cursor: isPending || blockedByOuter ? 'wait' : 'pointer',
           color: '#888780',
           fontSize: '14px',
           lineHeight: 1,

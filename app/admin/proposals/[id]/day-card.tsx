@@ -3,6 +3,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { useTransition } from 'react'
+import { reorderDayBlocks } from './block-actions'
 import { updateDay } from './day-actions'
 import DayBlockItem from './day-block-item'
 import AddBlockModal from './add-block-modal'
@@ -53,6 +68,30 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isBlocksPending, startBlocksTransition] = useTransition()
+
+  const blockSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  )
+
+  function handleBlocksDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const blocks = day.day_blocks
+    const oldIndex = blocks.findIndex((b) => b.id === active.id)
+    const newIndex = blocks.findIndex((b) => b.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(blocks, oldIndex, newIndex)
+    const orderedIds = reordered.map((b) => b.id)
+
+    startBlocksTransition(async () => {
+      await reorderDayBlocks(day.id, orderedIds)
+    })
+  }
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -381,11 +420,15 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
                 No blocks yet. Click + Add block to insert from the library.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {day.day_blocks.map((db) => (
-                  <DayBlockItem key={db.id} dayBlock={db} lang={lang} />
-                ))}
-              </div>
+              <DndContext sensors={blockSensors} collisionDetection={closestCenter} onDragEnd={handleBlocksDragEnd}>
+                <SortableContext items={day.day_blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {day.day_blocks.map((db) => (
+                      <DayBlockItem key={db.id} dayBlock={db} lang={lang} isDayPending={isBlocksPending} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>
