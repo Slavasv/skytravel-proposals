@@ -4,17 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { updateDay } from './day-actions'
-import type { Lang } from './edit-page-client'
-
-type Day = {
-  id: string
-  day_number: number
-  date: string | null
-  title_ru: string | null
-  title_en: string | null
-  intro_text_ru: string | null
-  intro_text_en: string | null
-}
+import DayBlockItem from './day-block-item'
+import AddBlockModal from './add-block-modal'
+import type { Day, Lang } from './edit-page-client'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -60,6 +52,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
 
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -140,6 +133,8 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
     ? (form.title_ru || day.title_ru)
     : (form.title_en || day.title_en)
 
+  const blocksCount = day.day_blocks?.length ?? 0
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -213,6 +208,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
             </div>
             <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span>{day.date || 'No date'}</span>
+              <span>{blocksCount} {blocksCount === 1 ? 'block' : 'blocks'}</span>
               {expanded && <span style={{ fontSize: '11px' }}>{renderSaveIndicator()}</span>}
             </div>
           </div>
@@ -333,8 +329,75 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
               Error: {errorMsg}
             </div>
           )}
+
+          {/* Blocks section */}
+          <div style={{ marginTop: '24px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+            }}>
+              <span style={{
+                fontSize: '11px',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#888780',
+                fontWeight: 500,
+              }}>
+                Blocks
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                disabled={isPending}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  letterSpacing: '0.03em',
+                  background: 'transparent',
+                  color: '#E5E2DA',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  cursor: isPending ? 'wait' : 'pointer',
+                  fontFamily: 'inherit',
+                  opacity: isPending ? 0.6 : 1,
+                }}
+              >
+                + Add block
+              </button>
+            </div>
+
+            {blocksCount === 0 ? (
+              <div style={{
+                padding: '20px',
+                textAlign: 'center',
+                color: '#888780',
+                border: '1px dashed #333',
+                borderRadius: '6px',
+                fontSize: '13px',
+              }}>
+                No blocks yet. Click + Add block to insert from the library.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {day.day_blocks.map((db) => (
+                  <DayBlockItem key={db.id} dayBlock={db} lang={lang} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      <AddBlockModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        dayId={day.id}
+        dayNumber={day.day_number}
+        lang={lang}
+      />
     </div>
   )
 }

@@ -16,17 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { createDay, deleteDay, reorderDays } from './day-actions'
 import DayCard from './day-card'
-import type { Lang } from './edit-page-client'
-
-type Day = {
-  id: string
-  day_number: number
-  date: string | null
-  title_ru: string | null
-  title_en: string | null
-  intro_text_ru: string | null
-  intro_text_en: string | null
-}
+import type { Lang, Day } from './edit-page-client'
 
 type Props = {
   proposalId: string

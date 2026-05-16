@@ -23,7 +23,27 @@ type Proposal = {
   intro_text_en: string | null
 }
 
-type Day = {
+export type ContentBlock = {
+  id: string
+  type: string
+  title_ru: string | null
+  title_en: string | null
+  description_ru: string | null
+  description_en: string | null
+  image_url: string | null
+  location: string | null
+  tags: string[] | null
+}
+
+export type DayBlock = {
+  id: string
+  sort_order: number
+  custom_note_ru: string | null
+  custom_note_en: string | null
+  content_blocks: ContentBlock
+}
+
+export type Day = {
   id: string
   day_number: number
   date: string | null
@@ -31,6 +51,7 @@ type Day = {
   title_en: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  day_blocks: DayBlock[]
 }
 
 export type Lang = 'ru' | 'en'

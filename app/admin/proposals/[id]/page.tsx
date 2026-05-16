@@ -18,9 +18,36 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
 
   const { data: days } = await supabase
     .from('days')
-    .select('*')
+    .select(`
+      *,
+      day_blocks (
+        id,
+        sort_order,
+        custom_note_ru,
+        custom_note_en,
+        content_blocks (
+          id,
+          type,
+          title_ru,
+          title_en,
+          description_ru,
+          description_en,
+          image_url,
+          location,
+          tags
+        )
+      )
+    `)
     .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
+
+  // Сортируем блоки внутри каждого дня по sort_order
+  const sortedDays = (days ?? []).map((day) => ({
+    ...day,
+    day_blocks: (day.day_blocks ?? []).sort(
+      (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
+    ),
+  }))
 
   return (
     <div style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -39,7 +66,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <EditPageClient proposal={proposal} days={days ?? []} />
+      <EditPageClient proposal={proposal} days={sortedDays} />
     </div>
   )
 }
