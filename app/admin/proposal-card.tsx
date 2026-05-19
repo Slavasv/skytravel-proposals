@@ -58,10 +58,20 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
           display: 'block',
           padding: '16px',
           paddingRight: '60px',
-          border: '1px solid #ddd',
+          border: '1px solid #2A2A28',
           borderRadius: '8px',
           textDecoration: 'none',
           color: 'inherit',
+          background: 'transparent',
+          transition: 'border-color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#444'
+          e.currentTarget.style.background = '#0d0d0d'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#2A2A28'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         <div style={{ fontWeight: 500 }}>{proposal.trip_title_ru || 'Untitled'}</div>
@@ -90,6 +100,15 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
           lineHeight: 1,
           borderRadius: '6px',
           fontFamily: 'inherit',
+          transition: 'color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#E5E2DA'
+          e.currentTarget.style.background = '#1a1a1a'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         ⋯
@@ -133,7 +152,10 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Duplicate
             </button>
@@ -151,7 +173,10 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Delete
             </button>

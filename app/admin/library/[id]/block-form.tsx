@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
 import TagsInput from './tags-input'
+import ImageUploader from '@/app/admin/_components/image-uploader'
 
 type Block = {
   id: string
@@ -59,6 +60,7 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit',
   boxSizing: 'border-box',
   outline: 'none',
+  transition: 'border-color 0.15s',
 }
 
 export default function BlockForm({ block }: { block: Block }) {
@@ -227,6 +229,13 @@ export default function BlockForm({ block }: { block: Block }) {
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
+                transition: 'color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                if (lang !== 'ru') e.currentTarget.style.color = '#E5E2DA'
+              }}
+              onMouseLeave={(e) => {
+                if (lang !== 'ru') e.currentTarget.style.color = '#888780'
               }}
             >
               RU
@@ -243,6 +252,13 @@ export default function BlockForm({ block }: { block: Block }) {
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
+                transition: 'color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                if (lang !== 'en') e.currentTarget.style.color = '#E5E2DA'
+              }}
+              onMouseLeave={(e) => {
+                if (lang !== 'en') e.currentTarget.style.color = '#888780'
               }}
             >
               EN
@@ -316,15 +332,12 @@ export default function BlockForm({ block }: { block: Block }) {
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>Same for both languages</p>
           </div>
           <div>
-            <label style={labelStyle}>Image URL</label>
-            <input
-              type="text"
+            <ImageUploader
               value={form.image_url}
-              onChange={(e) => set('image_url', e.target.value)}
-              style={inputStyle}
-              placeholder="https://..."
+              onChange={(url) => set('image_url', url)}
+              label="Cover image"
+              height={200}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>File upload coming in Sprint 5</p>
           </div>
         </div>
       </section>
@@ -482,6 +495,13 @@ export default function BlockForm({ block }: { block: Block }) {
             cursor: saveState === 'saving' ? 'wait' : 'pointer',
             fontFamily: 'inherit',
             opacity: saveState === 'saving' ? 0.6 : 1,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            if (saveState !== 'saving') e.currentTarget.style.background = '#FFFFFF'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#FAF8F4'
           }}
         >
           Done

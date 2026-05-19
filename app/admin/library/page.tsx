@@ -6,6 +6,7 @@ import LibrarySearch from './library-search'
 type SearchParams = {
   q?: string
   type?: string
+  archived?: string
 }
 
 const TYPE_FILTERS = [
@@ -17,22 +18,29 @@ const TYPE_FILTERS = [
 ]
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const { q, type } = await searchParams
+  const { q, type, archived } = await searchParams
   const query = q?.trim() ?? ''
   const activeType = type ?? null
+  const showArchived = archived === '1'
 
-  // Загружаем все блоки + считаем usage для каждого через JOIN
   let blocksQuery = supabase
     .from('content_blocks')
     .select('*, day_blocks(count)')
     .order('updated_at', { ascending: false })
+
+  // Архивные vs активные
+  if (showArchived) {
+    blocksQuery = blocksQuery.not('archived_at', 'is', null)
+  } else {
+    blocksQuery = blocksQuery.is('archived_at', null)
+  }
 
   // Фильтр по типу
   if (activeType) {
     blocksQuery = blocksQuery.eq('type', activeType)
   }
 
-  // Полнотекстовый поиск по нескольким полям и тегам
+  // Полнотекстовый поиск + теги
   if (query) {
     const safe = query.replace(/[%_,]/g, '\\$&')
     blocksQuery = blocksQuery.or(
@@ -53,24 +61,30 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
   }
 
-  // Подсчёт по типам для пилюль (показываем общие цифры, без учёта поиска)
-  const { data: allBlocks } = await supabase
+  // Подсчёт по типам (только в текущей выборке — active или archived)
+  const { data: scopeBlocks } = await supabase
     .from('content_blocks')
-    .select('type')
+    .select('type, archived_at')
+
+  const allActive = (scopeBlocks ?? []).filter((b) => b.archived_at === null)
+  const allArchived = (scopeBlocks ?? []).filter((b) => b.archived_at !== null)
+  const scope = showArchived ? allArchived : allActive
 
   const typeCounts: Record<string, number> = {}
-  for (const b of allBlocks ?? []) {
+  for (const b of scope) {
     typeCounts[b.type] = (typeCounts[b.type] ?? 0) + 1
   }
-  const totalCount = (allBlocks ?? []).length
+  const totalInScope = scope.length
 
   return (
     <div style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '960px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Library</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+            Library{showArchived && <span style={{ color: '#888780', fontWeight: 400 }}> · Archive</span>}
+          </h1>
           <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
-            {blocks?.length ?? 0} of {totalCount} {totalCount === 1 ? 'block' : 'blocks'}
+            {blocks?.length ?? 0} of {totalInScope} {totalInScope === 1 ? 'block' : 'blocks'}
             {query && ` matching "${query}"`}
             {activeType && ` · type: ${activeType}`}
           </p>
@@ -99,16 +113,20 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       <LibrarySearch
         defaultQuery={query}
         activeType={activeType}
+        showArchived={showArchived}
         typeFilters={TYPE_FILTERS}
         typeCounts={typeCounts}
-        totalCount={totalCount}
+        totalCount={totalInScope}
+        archivedTotal={allArchived.length}
       />
 
       {(!blocks || blocks.length === 0) ? (
         <div style={{ padding: '40px', textAlign: 'center', color: '#888780', border: '1px dashed #555', borderRadius: '8px', fontSize: '14px' }}>
           {query || activeType
             ? 'No blocks match your search.'
-            : 'No blocks yet. Click + New block to create one.'}
+            : showArchived
+              ? 'No archived blocks. Archived blocks appear here when you archive them.'
+              : 'No blocks yet. Click + New block to create one.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

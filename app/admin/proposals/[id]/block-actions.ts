@@ -46,6 +46,7 @@ export async function getLibraryBlocks(): Promise<LibraryBlock[]> {
   const { data, error } = await supabase
     .from('content_blocks')
     .select('id, type, title_ru, title_en, description_ru, description_en, image_url, location, tags')
+    .is('archived_at', null)
     .order('updated_at', { ascending: false })
 
   if (error || !data) {

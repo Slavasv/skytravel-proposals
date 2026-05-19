@@ -9,6 +9,7 @@ import {
   updateDayBlock,
 } from './block-actions'
 import type { DayBlock, Lang } from './edit-page-client'
+import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Props = {
   dayBlock: DayBlock
@@ -19,6 +20,7 @@ type Props = {
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
+  const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -141,10 +143,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     transition,
     position: 'relative',
     display: 'grid',
-    gridTemplateColumns: '24px 88px 1fr',
-    gap: '10px',
+    gridTemplateColumns: isMobile ? '1fr' : '24px 88px 1fr',
+    gap: isMobile ? '0' : '10px',
     padding: '12px',
-    paddingRight: '40px',
+    paddingRight: isMobile ? '12px' : '40px',
     border: '1px solid #2A2A28',
     borderRadius: '6px',
     background: isDragging ? '#1a1a1a' : '#0d0d0d',
@@ -155,7 +157,18 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   }
 
   return (
-    <div ref={setNodeRef} style={containerStyle}>
+    <div
+      ref={setNodeRef}
+      style={containerStyle}
+      onMouseEnter={(e) => {
+        if (!isDragging && !isPending && !blockedByOuter) {
+          e.currentTarget.style.borderColor = '#444'
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#2A2A28'
+      }}
+    >
       {/* Drag handle */}
       <button
         type="button"
@@ -164,16 +177,31 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         disabled={isPending || blockedByOuter}
         aria-label="Drag to reorder"
         style={{
-          background: 'transparent',
-          border: 'none',
-          padding: '4px',
+          background: isMobile ? 'rgba(20, 20, 20, 0.85)' : 'transparent',
+          border: isMobile ? '1px solid #444' : 'none',
+          padding: isMobile ? '4px 8px' : '4px',
           cursor: isPending || blockedByOuter ? 'not-allowed' : 'grab',
-          color: '#555',
+          color: '#888780',
           fontSize: '14px',
           lineHeight: 1,
           fontFamily: 'inherit',
           touchAction: 'none',
           alignSelf: 'center',
+          transition: 'color 0.15s',
+          ...(isMobile ? {
+            position: 'absolute',
+            top: '8px',
+            left: '8px',
+            zIndex: 2,
+            borderRadius: '6px',
+            backdropFilter: 'blur(4px)',
+          } : {}),
+        }}
+        onMouseEnter={(e) => {
+          if (!isPending && !blockedByOuter && !isMobile) e.currentTarget.style.color = '#E5E2DA'
+        }}
+        onMouseLeave={(e) => {
+          if (!isMobile) e.currentTarget.style.color = '#888780'
         }}
       >
         ⋮⋮
@@ -181,13 +209,14 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
 
       {/* Image */}
       <div style={{
-        width: '88px',
-        height: '88px',
+        width: isMobile ? '100%' : '88px',
+        height: isMobile ? '180px' : '88px',
         borderRadius: '4px',
         background: block.image_url
           ? `url(${block.image_url}) center/cover no-repeat`
           : '#222',
         flexShrink: 0,
+        marginBottom: isMobile ? '12px' : '0',
       }} />
 
       {/* Content */}
@@ -309,6 +338,15 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           lineHeight: 1,
           borderRadius: '4px',
           fontFamily: 'inherit',
+          transition: 'color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#E5E2DA'
+          e.currentTarget.style.background = '#1a1a1a'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         ⋯
@@ -346,7 +384,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Duplicate
             </button>
@@ -364,7 +405,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Remove from day
             </button>

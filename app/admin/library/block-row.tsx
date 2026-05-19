@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { deleteBlock } from './actions'
+import { deleteBlock, archiveBlock, unarchiveBlock } from './actions'
 
 type Block = {
   id: string
@@ -14,6 +14,7 @@ type Block = {
   image_url: string | null
   location: string | null
   tags: string[] | null
+  archived_at: string | null
 }
 
 export default function BlockRow({ block, usageCount }: { block: Block; usageCount: number }) {
@@ -23,6 +24,37 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
 
   const hasEn = Boolean(block.title_en && block.description_en)
   const isUsed = usageCount > 0
+  const isArchived = block.archived_at !== null
+
+  function handleArchive(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenuOpen(false)
+    setError(null)
+
+    startTransition(async () => {
+      try {
+        await archiveBlock(block.id)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Archive failed')
+      }
+    })
+  }
+
+  function handleUnarchive(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenuOpen(false)
+    setError(null)
+
+    startTransition(async () => {
+      try {
+        await unarchiveBlock(block.id)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unarchive failed')
+      }
+    })
+  }
 
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -70,9 +102,17 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           textDecoration: 'none',
           color: 'inherit',
           background: 'transparent',
+          transition: 'border-color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#444'
+          e.currentTarget.style.background = '#0d0d0d'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#2A2A28'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
-        {/* Image */}
         <div style={{
           width: '72px',
           height: '52px',
@@ -81,21 +121,36 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             ? `url(${block.image_url}) center/cover no-repeat`
             : '#222',
           flexShrink: 0,
+          filter: isArchived ? 'grayscale(0.8)' : 'none',
+          opacity: isArchived ? 0.6 : 1,
         }} />
 
-        {/* Title & location */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 500, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{
+            fontWeight: 500,
+            fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            color: isArchived ? '#888780' : 'inherit',
+          }}>
             {block.title_ru || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
           </div>
-          <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{
+            fontSize: '12px',
+            color: '#888780',
+            marginTop: '2px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
             {block.location || '—'}
             {block.tags && block.tags.length > 0 && (
               <>
                 {' · '}
-                {block.tags.slice(0, 3).map((t, i) => (
+                {block.tags.slice(0, 3).map((t) => (
                   <span key={t} style={{ marginRight: '6px' }}>
-                    #{t}{i < Math.min(block.tags!.length, 3) - 1 ? '' : ''}
+                    #{t}
                   </span>
                 ))}
                 {block.tags.length > 3 && <span>+{block.tags.length - 3}</span>}
@@ -104,7 +159,6 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           </div>
         </div>
 
-        {/* Type badge */}
         <div style={{
           fontSize: '10px',
           letterSpacing: '0.08em',
@@ -118,9 +172,13 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           {block.type}
         </div>
 
-        {/* Translation indicator + usage */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: '#888780' }}>
-          {!hasEn && (
+          {isArchived && (
+            <span title="Archived — not shown in library or add menu" style={{ color: '#888780', fontStyle: 'italic' }}>
+              Archived
+            </span>
+          )}
+          {!hasEn && !isArchived && (
             <span title="No English version" style={{ color: '#C8A862' }}>RU only</span>
           )}
           {isUsed && (
@@ -131,7 +189,6 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
         </div>
       </Link>
 
-      {/* Actions menu trigger */}
       <button
         onClick={toggleMenu}
         disabled={isPending}
@@ -150,6 +207,15 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           lineHeight: 1,
           borderRadius: '6px',
           fontFamily: 'inherit',
+          transition: 'color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#E5E2DA'
+          e.currentTarget.style.background = '#1a1a1a'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         ⋯
@@ -167,10 +233,56 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             border: '1px solid #333',
             borderRadius: '8px',
             padding: '4px',
-            minWidth: '160px',
+            minWidth: '180px',
             zIndex: 2,
             boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
           }}>
+            {isArchived ? (
+              <button
+                onClick={handleUnarchive}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#E5E2DA',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+              >
+                Unarchive
+              </button>
+            ) : (
+              <button
+                onClick={handleArchive}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#E5E2DA',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+              >
+                Archive
+              </button>
+            )}
+
             <button
               onClick={handleDelete}
               disabled={isUsed}
@@ -186,8 +298,15 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
                 cursor: isUsed ? 'not-allowed' : 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
-              title={isUsed ? `Used in ${usageCount} places — remove from proposals first` : undefined}
+              onMouseEnter={(e) => {
+                if (!isUsed) e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+              }}
+              title={isUsed ? `Used in ${usageCount} places — cannot delete` : undefined}
             >
               {isUsed ? `Delete (used ${usageCount}×)` : 'Delete'}
             </button>

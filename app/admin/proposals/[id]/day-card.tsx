@@ -208,6 +208,14 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
           lineHeight: 1,
           fontFamily: 'inherit',
           touchAction: 'none',
+          transition: 'color 0.15s',
+          zIndex: 1,
+        }}
+        onMouseEnter={(e) => {
+          if (!isPending) e.currentTarget.style.color = '#888780'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = '#555'
         }}
       >
         ⋮⋮
@@ -228,6 +236,14 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
           cursor: 'pointer',
           fontFamily: 'inherit',
           color: 'inherit',
+          borderRadius: '8px',
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          if (!isDragging) e.currentTarget.style.background = '#0d0d0d'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
@@ -279,6 +295,16 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
           lineHeight: 1,
           borderRadius: '6px',
           fontFamily: 'inherit',
+          transition: 'color 0.15s, background 0.15s',
+          zIndex: 1,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#E5E2DA'
+          e.currentTarget.style.background = '#1a1a1a'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.background = 'transparent'
         }}
       >
         ⋯
@@ -319,7 +345,10 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                transition: 'background 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Delete day
             </button>
@@ -402,6 +431,17 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
                   cursor: isPending ? 'wait' : 'pointer',
                   fontFamily: 'inherit',
                   opacity: isPending ? 0.6 : 1,
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isPending) {
+                    e.currentTarget.style.borderColor = '#555'
+                    e.currentTarget.style.background = '#1a1a1a'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#333'
+                  e.currentTarget.style.background = 'transparent'
                 }}
               >
                 + Add block

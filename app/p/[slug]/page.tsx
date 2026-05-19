@@ -3,6 +3,35 @@ import { notFound } from 'next/navigation'
 
 type Params = { slug: string }
 
+type BlockShape = {
+  content_blocks: {
+    id: string
+    type: string
+    title_ru: string
+    description_ru: string
+    image_url: string
+    location: string
+  }
+  custom_note_ru: string | null
+  sort_order: number
+}
+
+function formatDateRu(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\.$/, '')
+}
+
+function pluralRu(count: number, one: string, few: string, many: string): string {
+  const n = Math.abs(count) % 100
+  const n1 = n % 10
+  if (n > 10 && n < 20) return many
+  if (n1 > 1 && n1 < 5) return few
+  if (n1 === 1) return one
+  return many
+}
+
 export default async function ProposalPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params
 
@@ -32,6 +61,30 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
     .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
 
+  // Подсчёт блоков по типам
+  const typeCounts = { hotel: 0, activity: 0, city: 0 }
+  days?.forEach((day) => {
+    day.day_blocks?.forEach((db: BlockShape) => {
+      const t = db.content_blocks?.type as 'hotel' | 'activity' | 'city' | undefined
+      if (t && t in typeCounts) typeCounts[t]++
+    })
+  })
+
+  const summaryParts: string[] = []
+  const daysCount = days?.length ?? 0
+  if (daysCount > 0) {
+    summaryParts.push(`${daysCount} ${pluralRu(daysCount, 'день', 'дня', 'дней')}`)
+  }
+  if (typeCounts.hotel > 0) {
+    summaryParts.push(`${typeCounts.hotel} ${pluralRu(typeCounts.hotel, 'отель', 'отеля', 'отелей')}`)
+  }
+  if (typeCounts.activity > 0) {
+    summaryParts.push(`${typeCounts.activity} ${pluralRu(typeCounts.activity, 'активность', 'активности', 'активностей')}`)
+  }
+  if (typeCounts.city > 0) {
+    summaryParts.push(`${typeCounts.city} ${pluralRu(typeCounts.city, 'город', 'города', 'городов')}`)
+  }
+
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: '#2C2C2A' }}>
       {proposal.cover_image_url && (
@@ -60,8 +113,11 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         </div>
       )}
 
-      <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px' }}>
-        Для {proposal.client_name_ru || '—'} · {proposal.guest_count} гостей · {proposal.start_date} → {proposal.end_date}
+      <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px', lineHeight: 1.6 }}>
+        Для {proposal.client_name_ru || '—'} · {proposal.guest_count} {pluralRu(proposal.guest_count ?? 0, 'гость', 'гостя', 'гостей')} · {formatDateRu(proposal.start_date)} → {formatDateRu(proposal.end_date)}
+        {summaryParts.length > 0 && (
+          <> · {summaryParts.join(' · ')}</>
+        )}
       </div>
 
       {proposal.intro_text_ru && (
@@ -82,7 +138,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         return (
           <div key={day.id} style={{ marginBottom: '48px' }}>
             <div style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888780', marginBottom: '4px' }}>
-              День {day.day_number} · {day.date}
+              День {day.day_number} · {formatDateRu(day.date)}
             </div>
             <h3 style={{ fontSize: '24px', fontWeight: 400, margin: '0 0 12px', color: '#2C2C2A' }}>
               {day.title_ru}
@@ -93,7 +149,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
               </p>
             )}
 
-            {sortedBlocks.map((db: { content_blocks: { id: string, type: string, title_ru: string, description_ru: string, image_url: string, location: string }, custom_note_ru: string | null }) => {
+            {sortedBlocks.map((db: BlockShape) => {
               const block = db.content_blocks
               return (
                 <div key={block.id} style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>

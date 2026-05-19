@@ -3,6 +3,30 @@ import { notFound } from 'next/navigation'
 
 type Params = { slug: string }
 
+type BlockShape = {
+  content_blocks: {
+    id: string
+    type: string
+    title_en: string
+    description_en: string
+    image_url: string
+    location: string
+  }
+  custom_note_en: string | null
+  sort_order: number
+}
+
+function formatDateEn(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function pluralEn(count: number, singular: string, plural: string): string {
+  return count === 1 ? singular : plural
+}
+
 export default async function ProposalPageEN({ params }: { params: Promise<Params> }) {
   const { slug } = await params
 
@@ -32,6 +56,29 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
     .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
 
+  const typeCounts = { hotel: 0, activity: 0, city: 0 }
+  days?.forEach((day) => {
+    day.day_blocks?.forEach((db: BlockShape) => {
+      const t = db.content_blocks?.type as 'hotel' | 'activity' | 'city' | undefined
+      if (t && t in typeCounts) typeCounts[t]++
+    })
+  })
+
+  const summaryParts: string[] = []
+  const daysCount = days?.length ?? 0
+  if (daysCount > 0) {
+    summaryParts.push(`${daysCount} ${pluralEn(daysCount, 'day', 'days')}`)
+  }
+  if (typeCounts.hotel > 0) {
+    summaryParts.push(`${typeCounts.hotel} ${pluralEn(typeCounts.hotel, 'hotel', 'hotels')}`)
+  }
+  if (typeCounts.activity > 0) {
+    summaryParts.push(`${typeCounts.activity} ${pluralEn(typeCounts.activity, 'activity', 'activities')}`)
+  }
+  if (typeCounts.city > 0) {
+    summaryParts.push(`${typeCounts.city} ${pluralEn(typeCounts.city, 'city', 'cities')}`)
+  }
+
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: '#2C2C2A' }}>
       {proposal.cover_image_url && (
@@ -60,8 +107,11 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
         </div>
       )}
 
-      <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px' }}>
-        For {proposal.client_name_en || '—'} · {proposal.guest_count} guests · {proposal.start_date} → {proposal.end_date}
+      <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px', lineHeight: 1.6 }}>
+        For {proposal.client_name_en || '—'} · {proposal.guest_count} {pluralEn(proposal.guest_count ?? 0, 'guest', 'guests')} · {formatDateEn(proposal.start_date)} → {formatDateEn(proposal.end_date)}
+        {summaryParts.length > 0 && (
+          <> · {summaryParts.join(' · ')}</>
+        )}
       </div>
 
       {proposal.intro_text_en && (
@@ -82,7 +132,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
         return (
           <div key={day.id} style={{ marginBottom: '48px' }}>
             <div style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888780', marginBottom: '4px' }}>
-              Day {day.day_number} · {day.date}
+              Day {day.day_number} · {formatDateEn(day.date)}
             </div>
             <h3 style={{ fontSize: '24px', fontWeight: 400, margin: '0 0 12px', color: '#2C2C2A' }}>
               {day.title_en}
@@ -93,7 +143,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
               </p>
             )}
 
-            {sortedBlocks.map((db: { content_blocks: { id: string, type: string, title_en: string, description_en: string, image_url: string, location: string }, custom_note_en: string | null }) => {
+            {sortedBlocks.map((db: BlockShape) => {
               const block = db.content_blocks
               return (
                 <div key={block.id} style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>

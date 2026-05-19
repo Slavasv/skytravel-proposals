@@ -15,19 +15,15 @@ export type BlockUpdate = {
   image_url?: string | null
   location?: string | null
   tags?: string[]
-  // hotel
   notable_amenities_ru?: string | null
   notable_amenities_en?: string | null
-  // activity
   duration_hours?: number | null
   best_season_ru?: string | null
   best_season_en?: string | null
-  // transfer
   vehicle_ru?: string | null
   vehicle_en?: string | null
   duration_min?: number | null
   max_passengers?: number | null
-  // city
   notable_ru?: string | null
   notable_en?: string | null
 }
@@ -66,8 +62,34 @@ export async function updateBlock(id: string, updates: BlockUpdate) {
   revalidatePath(`/admin/library/${id}`)
 }
 
+export async function archiveBlock(id: string) {
+  const { error } = await supabase
+    .from('content_blocks')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/library')
+}
+
+export async function unarchiveBlock(id: string) {
+  const { error } = await supabase
+    .from('content_blocks')
+    .update({ archived_at: null })
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/library')
+}
+
 export async function deleteBlock(id: string) {
-  // Проверяем, используется ли блок в proposals
+  // Проверка использования — Delete недоступен для used blocks
   const { count, error: countError } = await supabase
     .from('day_blocks')
     .select('*', { count: 'exact', head: true })

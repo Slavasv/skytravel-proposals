@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateProposal } from '../../actions'
 import type { Lang } from './edit-page-client'
+import ImageUploader from '@/app/admin/_components/image-uploader'
 
 type Proposal = {
   id: string
@@ -316,13 +317,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             />
           </div>
           <div>
-            <label style={labelStyle}>Cover image URL</label>
-            <input
-              type="text"
+            <ImageUploader
               value={form.cover_image_url}
-              onChange={(e) => set('cover_image_url', e.target.value)}
-              style={inputStyle}
-              placeholder="https://..."
+              onChange={(url) => set('cover_image_url', url)}
+              label="Cover image"
+              height={240}
             />
           </div>
           <div>
