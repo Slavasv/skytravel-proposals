@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { updateProposal } from '../../actions'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Proposal = {
   id: string
@@ -66,6 +67,7 @@ type Props = {
 
 export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary }: Props) {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -259,7 +261,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
           Client & dates <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Client name</label>
             <input
@@ -341,7 +343,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Price & status</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Total price</label>
             <input
@@ -400,19 +402,20 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'stretch' : 'center',
         justifyContent: 'space-between',
         gap: '16px',
         paddingTop: '24px',
         borderTop: '1px solid #2A2A28',
         flexWrap: 'wrap',
+        flexDirection: isMobile ? 'column' : 'row',
       }}>
-        <div>{actions}</div>
+        <div style={{ width: isMobile ? '100%' : 'auto' }}>{actions}</div>
         <button
           onClick={handleDone}
           disabled={saveState === 'saving'}
           style={{
-            padding: '10px 24px',
+            padding: '12px 24px',
             fontSize: '13px',
             fontWeight: 500,
             letterSpacing: '0.03em',
@@ -423,6 +426,14 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             cursor: saveState === 'saving' ? 'wait' : 'pointer',
             fontFamily: 'inherit',
             opacity: saveState === 'saving' ? 0.6 : 1,
+            transition: 'background 0.15s',
+            width: isMobile ? '100%' : 'auto',
+          }}
+          onMouseEnter={(e) => {
+            if (saveState !== 'saving') e.currentTarget.style.background = '#FFFFFF'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#FAF8F4'
           }}
         >
           Done

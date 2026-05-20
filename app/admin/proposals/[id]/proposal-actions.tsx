@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Props = {
   slug: string
@@ -22,6 +23,7 @@ const buttonStyle: React.CSSProperties = {
 
 export default function ProposalActions({ slug }: Props) {
   const [copiedKey, setCopiedKey] = useState<'ru' | 'en' | null>(null)
+  const isMobile = useIsMobile()
 
   function getOrigin() {
     if (typeof window === 'undefined') return ''
@@ -47,7 +49,12 @@ export default function ProposalActions({ slug }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, auto)',
+      gap: '8px',
+      width: isMobile ? '100%' : 'auto',
+    }}>
       <button
         type="button"
         onClick={() => openPreview('ru')}

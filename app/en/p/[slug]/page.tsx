@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 type Params = { slug: string }
 
 type BlockShape = {
+  id: string
   content_blocks: {
     id: string
     type: string
@@ -45,6 +46,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
     .select(`
       *,
       day_blocks (
+        id,
         sort_order,
         custom_note_ru,
         custom_note_en,
@@ -83,6 +85,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: '#2C2C2A' }}>
       {proposal.cover_image_url && (
         <div
+          className="client-cover"
           style={{
             height: '320px',
             backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url(${proposal.cover_image_url})`,
@@ -100,7 +103,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
             <div style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: 0.85, marginBottom: '8px' }}>
               Sky Travel
             </div>
-            <h1 style={{ fontSize: '32px', fontWeight: 400, margin: 0, lineHeight: 1.2 }}>
+            <h1 className="client-title" style={{ fontSize: '32px', fontWeight: 400, margin: 0, lineHeight: 1.2 }}>
               {proposal.trip_title_en}
             </h1>
           </div>
@@ -146,9 +149,10 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
             {sortedBlocks.map((db: BlockShape) => {
               const block = db.content_blocks
               return (
-                <div key={block.id} style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>
+                <div key={db.id} className="client-block" style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>
                   {block.image_url && (
                     <div
+                      className="client-block-image"
                       style={{
                         width: '160px',
                         height: '110px',

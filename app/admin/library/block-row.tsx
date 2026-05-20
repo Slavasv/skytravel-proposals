@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { deleteBlock, archiveBlock, unarchiveBlock } from './actions'
+import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
   id: string
@@ -19,6 +20,7 @@ type Block = {
 
 export default function BlockRow({ block, usageCount }: { block: Block; usageCount: number }) {
   const [isPending, startTransition] = useTransition()
+  const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -92,8 +94,8 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
         href={`/admin/library/${block.id}`}
         style={{
           display: 'grid',
-          gridTemplateColumns: '72px 1fr auto auto',
-          gap: '16px',
+          gridTemplateColumns: isMobile ? '56px 1fr' : '72px 1fr auto auto',
+          gap: isMobile ? '12px' : '16px',
           alignItems: 'center',
           padding: '12px 16px',
           paddingRight: '50px',
@@ -114,8 +116,8 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
         }}
       >
         <div style={{
-          width: '72px',
-          height: '52px',
+          width: isMobile ? '56px' : '72px',
+          height: isMobile ? '56px' : '52px',
           borderRadius: '4px',
           background: block.image_url
             ? `url(${block.image_url}) center/cover no-repeat`
@@ -157,36 +159,70 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
               </>
             )}
           </div>
+          {isMobile && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '6px',
+              fontSize: '10px',
+            }}>
+              <span style={{
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#888780',
+                padding: '3px 7px',
+                border: '1px solid #333',
+                borderRadius: '4px',
+                fontWeight: 500,
+              }}>
+                {block.type}
+              </span>
+              {isArchived && (
+                <span style={{ color: '#888780', fontStyle: 'italic', fontSize: '11px' }}>Archived</span>
+              )}
+              {!hasEn && !isArchived && (
+                <span style={{ color: '#C8A862', fontSize: '11px' }}>RU only</span>
+              )}
+              {isUsed && (
+                <span style={{ color: '#888780', fontSize: '11px' }}>Used {usageCount}×</span>
+              )}
+            </div>
+          )}
         </div>
 
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: '#888780',
-          padding: '4px 8px',
-          border: '1px solid #333',
-          borderRadius: '4px',
-          fontWeight: 500,
-        }}>
-          {block.type}
-        </div>
+        {!isMobile && (
+          <div style={{
+            fontSize: '10px',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: '#888780',
+            padding: '4px 8px',
+            border: '1px solid #333',
+            borderRadius: '4px',
+            fontWeight: 500,
+          }}>
+            {block.type}
+          </div>
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: '#888780' }}>
-          {isArchived && (
-            <span title="Archived — not shown in library or add menu" style={{ color: '#888780', fontStyle: 'italic' }}>
-              Archived
-            </span>
-          )}
-          {!hasEn && !isArchived && (
-            <span title="No English version" style={{ color: '#C8A862' }}>RU only</span>
-          )}
-          {isUsed && (
-            <span title={`Used in ${usageCount} ${usageCount === 1 ? 'day' : 'days'} across proposals`}>
-              Used {usageCount}×
-            </span>
-          )}
-        </div>
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: '#888780' }}>
+            {isArchived && (
+              <span title="Archived — not shown in library or add menu" style={{ color: '#888780', fontStyle: 'italic' }}>
+                Archived
+              </span>
+            )}
+            {!hasEn && !isArchived && (
+              <span title="No English version" style={{ color: '#C8A862' }}>RU only</span>
+            )}
+            {isUsed && (
+              <span title={`Used in ${usageCount} ${usageCount === 1 ? 'day' : 'days'} across proposals`}>
+                Used {usageCount}×
+              </span>
+            )}
+          </div>
+        )}
       </Link>
 
       <button

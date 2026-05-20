@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
 import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
   id: string
@@ -69,6 +70,7 @@ export default function BlockForm({ block }: { block: Block }) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const [form, setForm] = useState({
     type: (block.type || 'hotel') as BlockType,
@@ -377,7 +379,7 @@ export default function BlockForm({ block }: { block: Block }) {
             Activity details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Duration (hours)</label>
                 <input
@@ -422,7 +424,7 @@ export default function BlockForm({ block }: { block: Block }) {
                 placeholder={lang === 'ru' ? 'Mercedes V-Class с водителем' : 'Mercedes V-Class with chauffeur'}
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Duration (min)</label>
                 <input

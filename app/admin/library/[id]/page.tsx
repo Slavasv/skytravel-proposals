@@ -19,7 +19,7 @@ export default async function EditBlockPage({ params }: { params: Promise<{ id: 
   const usageCount = block.day_blocks?.[0]?.count ?? 0
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
+    <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ fontSize: '13px', color: '#888780', marginBottom: '16px' }}>
         <Link href="/admin/library" style={{ color: '#888780', textDecoration: 'none' }}>
           ← Back to library
