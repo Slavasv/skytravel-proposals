@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { createBlock } from './actions'
 import BlockRow from './block-row'
 import LibrarySearch from './library-search'
@@ -23,24 +23,23 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const activeType = type ?? null
   const showArchived = archived === '1'
 
+  const supabase = await createSupabaseServer()
+
   let blocksQuery = supabase
     .from('content_blocks')
     .select('*, day_blocks(count)')
     .order('updated_at', { ascending: false })
 
-  // Архивные vs активные
   if (showArchived) {
     blocksQuery = blocksQuery.not('archived_at', 'is', null)
   } else {
     blocksQuery = blocksQuery.is('archived_at', null)
   }
 
-  // Фильтр по типу
   if (activeType) {
     blocksQuery = blocksQuery.eq('type', activeType)
   }
 
-  // Полнотекстовый поиск + теги
   if (query) {
     const safe = query.replace(/[%_,]/g, '\\$&')
     blocksQuery = blocksQuery.or(
@@ -61,7 +60,6 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
   }
 
-  // Подсчёт по типам (только в текущей выборке — active или archived)
   const { data: scopeBlocks } = await supabase
     .from('content_blocks')
     .select('type, archived_at')

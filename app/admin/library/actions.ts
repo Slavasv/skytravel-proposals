@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -29,12 +29,14 @@ export type BlockUpdate = {
 }
 
 export async function createBlock() {
+  const supabase = await createSupabaseServer()
+
   const { data, error } = await supabase
     .from('content_blocks')
     .insert({
       type: 'hotel',
-      title_ru: 'Новый блок',
-      title_en: 'New block',
+      title_ru: null,
+      title_en: null,
       tags: [],
     })
     .select()
@@ -49,55 +51,54 @@ export async function createBlock() {
 }
 
 export async function updateBlock(id: string, updates: BlockUpdate) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('content_blocks')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/library')
   revalidatePath(`/admin/library/${id}`)
 }
 
 export async function archiveBlock(id: string) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('content_blocks')
     .update({ archived_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/library')
 }
 
 export async function unarchiveBlock(id: string) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('content_blocks')
     .update({ archived_at: null })
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/library')
 }
 
 export async function deleteBlock(id: string) {
-  // Проверка использования — Delete недоступен для used blocks
+  const supabase = await createSupabaseServer()
+
   const { count, error: countError } = await supabase
     .from('day_blocks')
     .select('*', { count: 'exact', head: true })
     .eq('block_id', id)
 
-  if (countError) {
-    throw new Error(countError.message)
-  }
+  if (countError) throw new Error(countError.message)
 
   if (count && count > 0) {
     throw new Error(`Cannot delete: this block is used in ${count} day(s) across proposals`)
@@ -108,22 +109,19 @@ export async function deleteBlock(id: string) {
     .delete()
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/library')
 }
 
 export async function getBlockUsage(id: string): Promise<number> {
+  const supabase = await createSupabaseServer()
+
   const { count, error } = await supabase
     .from('day_blocks')
     .select('*', { count: 'exact', head: true })
     .eq('block_id', id)
 
-  if (error) {
-    return 0
-  }
-
+  if (error) return 0
   return count ?? 0
 }

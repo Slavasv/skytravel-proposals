@@ -69,7 +69,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
       return
     }
 
-    if (!confirm(`Delete block "${block.title_ru || 'Untitled'}"?\n\nThis cannot be undone.`)) {
+    if (!confirm(`Delete block "${block.title_ru || block.title_en || 'Untitled'}"?\n\nThis cannot be undone.`)) {
       return
     }
 
@@ -136,7 +136,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             textOverflow: 'ellipsis',
             color: isArchived ? '#888780' : 'inherit',
           }}>
-            {block.title_ru || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
+            {block.title_ru || block.title_en || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
           </div>
           <div style={{
             fontSize: '12px',

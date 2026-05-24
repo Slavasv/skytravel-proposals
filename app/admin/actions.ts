@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -23,53 +23,55 @@ type ProposalUpdate = {
 
 export async function createProposal() {
   const slug = `untitled-${Date.now().toString(36)}`
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data, error } = await supabase
     .from('proposals')
     .insert({
       slug,
-      client_name_ru: 'Новый клиент',
-      client_name_en: 'New client',
-      trip_title_ru: 'Новый proposal',
-      trip_title_en: 'New proposal',
+      client_name_ru: null,
+      client_name_en: null,
+      trip_title_ru: null,
+      trip_title_en: null,
       guest_count: 1,
       status: 'draft',
       currency: 'USD',
+      owner_id: user?.id ?? null,
     })
     .select()
     .single()
 
-  if (error || !data) {
-    throw new Error(error?.message || 'Failed to create proposal')
-  }
+  if (error || !data) throw new Error(error?.message || 'Failed to create proposal')
 
   revalidatePath('/admin')
   redirect(`/admin/proposals/${data.id}`)
 }
 
 export async function deleteProposal(id: string) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('proposals')
     .delete()
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin')
 }
 
 export async function duplicateProposal(id: string) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data: original, error: fetchError } = await supabase
     .from('proposals')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (fetchError || !original) {
-    throw new Error('Original proposal not found')
-  }
+  if (fetchError || !original) throw new Error('Original proposal not found')
 
   const { data: newProposal, error: createError } = await supabase
     .from('proposals')
@@ -88,13 +90,12 @@ export async function duplicateProposal(id: string) {
       cover_image_url: original.cover_image_url,
       intro_text_ru: original.intro_text_ru,
       intro_text_en: original.intro_text_en,
+      owner_id: user?.id ?? null,
     })
     .select()
     .single()
 
-  if (createError || !newProposal) {
-    throw new Error(createError?.message || 'Failed to duplicate')
-  }
+  if (createError || !newProposal) throw new Error(createError?.message || 'Failed to duplicate')
 
   const { data: originalDays } = await supabase
     .from('days')
@@ -119,7 +120,12 @@ export async function duplicateProposal(id: string) {
 
       if (newDay && day.day_blocks?.length) {
         await supabase.from('day_blocks').insert(
-          day.day_blocks.map((db: { block_id: string; sort_order: number; custom_note_ru: string | null; custom_note_en: string | null }) => ({
+          day.day_blocks.map((db: {
+            block_id: string
+            sort_order: number
+            custom_note_ru: string | null
+            custom_note_en: string | null
+          }) => ({
             day_id: newDay.id,
             block_id: db.block_id,
             sort_order: db.sort_order,
@@ -135,14 +141,14 @@ export async function duplicateProposal(id: string) {
 }
 
 export async function updateProposal(id: string, updates: ProposalUpdate) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('proposals')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin')
   revalidatePath(`/admin/proposals/${id}`)

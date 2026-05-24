@@ -2,12 +2,14 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createSupabaseBrowser } from '@/lib/supabase-client'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const from = searchParams.get('from') || '/admin'
 
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,18 +20,18 @@ function LoginForm() {
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+    const supabase = createSupabaseBrowser()
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     })
 
-    if (res.ok) {
+    if (authError) {
+      setError('Invalid email or password')
+      setLoading(false)
+    } else {
       router.push(from)
       router.refresh()
-    } else {
-      setError('Invalid password')
-      setLoading(false)
     }
   }
 
@@ -65,6 +67,29 @@ function LoginForm() {
         Administrator access
       </h1>
 
+      <div style={{ marginBottom: '12px' }}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+          autoFocus
+          style={{
+            width: '100%',
+            padding: '13px 14px',
+            fontSize: '15px',
+            color: '#2C2C2A',
+            border: '1px solid #D3D1C7',
+            borderRadius: '8px',
+            boxSizing: 'border-box',
+            fontFamily: 'inherit',
+            outline: 'none',
+            background: '#fff',
+          }}
+        />
+      </div>
+
       <div style={{ position: 'relative', marginBottom: error ? '8px' : '16px' }}>
         <input
           type={showPassword ? 'text' : 'password'}
@@ -72,7 +97,6 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
           required
-          autoFocus
           style={{
             width: '100%',
             padding: '13px 44px 13px 14px',
@@ -120,7 +144,7 @@ function LoginForm() {
 
       <button
         type="submit"
-        disabled={loading || !password}
+        disabled={loading || !email || !password}
         style={{
           width: '100%',
           padding: '13px',
@@ -132,7 +156,7 @@ function LoginForm() {
           border: 'none',
           borderRadius: '8px',
           cursor: loading ? 'wait' : 'pointer',
-          opacity: loading || !password ? 0.4 : 1,
+          opacity: loading || !email || !password ? 0.4 : 1,
           fontFamily: 'inherit',
           transition: 'opacity 0.15s',
         }}

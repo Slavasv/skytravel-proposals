@@ -3,17 +3,23 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import GearMenu from './gear-menu'
 
-const NAV_ITEMS = [
-  { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
-  { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
-]
+type Props = {
+  isAdmin: boolean
+  email: string
+}
 
-export default function AdminHeader() {
+export default function AdminHeader({ isAdmin, email }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
 
-  function isActive(item: typeof NAV_ITEMS[number]) {
+  const navItems = [
+    { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
+    { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
+  ]
+
+  function isActive(item: typeof navItems[number]) {
     if (item.href === '/admin') {
       return pathname === '/admin' || pathname.startsWith('/admin/proposals')
     }
@@ -29,7 +35,6 @@ export default function AdminHeader() {
       borderBottom: '1px solid #2A2A28',
       background: '#0f0f0f',
     }}>
-      {/* Brand */}
       <Link
         href="/admin"
         style={{
@@ -47,9 +52,8 @@ export default function AdminHeader() {
         SKY TRAVEL <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> ADMIN
       </Link>
 
-      {/* Nav */}
-      <div style={{ display: 'flex', gap: isMobile ? '14px' : '24px' }}>
-        {NAV_ITEMS.map((item) => {
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '24px' }}>
+        {navItems.map((item) => {
           const active = isActive(item)
           return (
             <Link
@@ -62,7 +66,8 @@ export default function AdminHeader() {
                 textTransform: 'uppercase',
                 color: active ? '#FAF8F4' : '#888780',
                 textDecoration: 'none',
-                paddingBottom: '4px',
+                paddingBottom: '2px',
+                marginBottom: '-2px',
                 borderBottom: `2px solid ${active ? '#FAF8F4' : 'transparent'}`,
                 transition: 'color 0.15s, border-color 0.15s',
                 whiteSpace: 'nowrap',
@@ -78,6 +83,8 @@ export default function AdminHeader() {
             </Link>
           )
         })}
+
+        <GearMenu isAdmin={isAdmin} email={email} />
       </div>
     </nav>
   )

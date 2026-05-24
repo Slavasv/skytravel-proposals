@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import BlockForm from './block-form'
 
 export default async function EditBlockPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+
+  const supabase = await createSupabaseServer()
 
   const { data: block, error } = await supabase
     .from('content_blocks')
@@ -28,7 +30,7 @@ export default async function EditBlockPage({ params }: { params: Promise<{ id: 
 
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-          {block.title_ru || 'Untitled block'}
+          {block.title_ru || block.title_en || 'Untitled block'}
         </h1>
         <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
           {block.type} · {usageCount > 0 ? `used in ${usageCount} ${usageCount === 1 ? 'place' : 'places'}` : 'not used yet'}

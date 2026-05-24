@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
 export type DayBlockUpdate = {
@@ -21,6 +21,7 @@ export type LibraryBlock = {
 }
 
 async function getProposalIdByDay(dayId: string): Promise<string | null> {
+  const supabase = await createSupabaseServer()
   const { data } = await supabase
     .from('days')
     .select('proposal_id')
@@ -30,6 +31,7 @@ async function getProposalIdByDay(dayId: string): Promise<string | null> {
 }
 
 async function getProposalIdByDayBlock(dayBlockId: string): Promise<string | null> {
+  const supabase = await createSupabaseServer()
   const { data } = await supabase
     .from('day_blocks')
     .select('day_id, days(proposal_id)')
@@ -43,20 +45,20 @@ async function getProposalIdByDayBlock(dayBlockId: string): Promise<string | nul
 }
 
 export async function getLibraryBlocks(): Promise<LibraryBlock[]> {
+  const supabase = await createSupabaseServer()
   const { data, error } = await supabase
     .from('content_blocks')
     .select('id, type, title_ru, title_en, description_ru, description_en, image_url, location, tags')
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
 
-  if (error || !data) {
-    return []
-  }
-
+  if (error || !data) return []
   return data
 }
 
 export async function addBlockToDay(dayId: string, blockId: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: existing } = await supabase
     .from('day_blocks')
     .select('sort_order')
@@ -68,32 +70,24 @@ export async function addBlockToDay(dayId: string, blockId: string) {
 
   const { error } = await supabase
     .from('day_blocks')
-    .insert({
-      day_id: dayId,
-      block_id: blockId,
-      sort_order: nextOrder,
-    })
+    .insert({ day_id: dayId, block_id: blockId, sort_order: nextOrder })
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   const proposalId = await getProposalIdByDay(dayId)
-  if (proposalId) {
-    revalidatePath(`/admin/proposals/${proposalId}`)
-  }
+  if (proposalId) revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 export async function duplicateDayBlock(dayBlockId: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: original, error: fetchError } = await supabase
     .from('day_blocks')
     .select('*')
     .eq('id', dayBlockId)
     .single()
 
-  if (fetchError || !original) {
-    throw new Error('Block not found')
-  }
+  if (fetchError || !original) throw new Error('Block not found')
 
   const { data: siblings } = await supabase
     .from('day_blocks')
@@ -101,9 +95,7 @@ export async function duplicateDayBlock(dayBlockId: string) {
     .eq('day_id', original.day_id)
     .order('sort_order', { ascending: true })
 
-  if (!siblings) {
-    throw new Error('Cannot fetch day blocks')
-  }
+  if (!siblings) throw new Error('Cannot fetch day blocks')
 
   const originalIndex = siblings.findIndex((s) => s.id === dayBlockId)
   const newSortOrder = original.sort_order + 1
@@ -125,33 +117,28 @@ export async function duplicateDayBlock(dayBlockId: string) {
       custom_note_en: original.custom_note_en,
     })
 
-  if (insertError) {
-    throw new Error(insertError.message)
-  }
+  if (insertError) throw new Error(insertError.message)
 
   const proposalId = await getProposalIdByDay(original.day_id)
-  if (proposalId) {
-    revalidatePath(`/admin/proposals/${proposalId}`)
-  }
+  if (proposalId) revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 export async function updateDayBlock(dayBlockId: string, updates: DayBlockUpdate) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('day_blocks')
     .update(updates)
     .eq('id', dayBlockId)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   const proposalId = await getProposalIdByDayBlock(dayBlockId)
-  if (proposalId) {
-    revalidatePath(`/admin/proposals/${proposalId}`)
-  }
+  if (proposalId) revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 export async function removeBlockFromDay(dayBlockId: string) {
+  const supabase = await createSupabaseServer()
   const proposalId = await getProposalIdByDayBlock(dayBlockId)
 
   const { data: dayBlock } = await supabase
@@ -160,27 +147,22 @@ export async function removeBlockFromDay(dayBlockId: string) {
     .eq('id', dayBlockId)
     .single()
 
-  if (!dayBlock) {
-    throw new Error('Block not found')
-  }
+  if (!dayBlock) throw new Error('Block not found')
 
   const { error } = await supabase
     .from('day_blocks')
     .delete()
     .eq('id', dayBlockId)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   await renumberDayBlocks(dayBlock.day_id)
-
-  if (proposalId) {
-    revalidatePath(`/admin/proposals/${proposalId}`)
-  }
+  if (proposalId) revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 export async function reorderDayBlocks(dayId: string, orderedIds: string[]) {
+  const supabase = await createSupabaseServer()
+
   for (let i = 0; i < orderedIds.length; i++) {
     await supabase
       .from('day_blocks')
@@ -195,12 +177,12 @@ export async function reorderDayBlocks(dayId: string, orderedIds: string[]) {
   }
 
   const proposalId = await getProposalIdByDay(dayId)
-  if (proposalId) {
-    revalidatePath(`/admin/proposals/${proposalId}`)
-  }
+  if (proposalId) revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 async function renumberDayBlocks(dayId: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: blocks } = await supabase
     .from('day_blocks')
     .select('id, sort_order')

@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
 export type DayUpdate = {
@@ -20,6 +20,8 @@ function addDays(dateStr: string | null, days: number): string | null {
 }
 
 export async function createDay(proposalId: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: existing } = await supabase
     .from('days')
     .select('day_number')
@@ -48,23 +50,21 @@ export async function createDay(proposalId: string) {
     .select()
     .single()
 
-  if (error || !data) {
-    throw new Error(error?.message || 'Failed to create day')
-  }
+  if (error || !data) throw new Error(error?.message || 'Failed to create day')
 
   revalidatePath(`/admin/proposals/${proposalId}`)
   return data
 }
 
 export async function updateDay(id: string, updates: DayUpdate) {
+  const supabase = await createSupabaseServer()
+
   const { error } = await supabase
     .from('days')
     .update(updates)
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   const { data } = await supabase
     .from('days')
@@ -78,31 +78,30 @@ export async function updateDay(id: string, updates: DayUpdate) {
 }
 
 export async function deleteDay(id: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: day } = await supabase
     .from('days')
     .select('proposal_id, day_number')
     .eq('id', id)
     .single()
 
-  if (!day) {
-    throw new Error('Day not found')
-  }
+  if (!day) throw new Error('Day not found')
 
   const { error } = await supabase
     .from('days')
     .delete()
     .eq('id', id)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   await renumberDays(day.proposal_id)
-
   revalidatePath(`/admin/proposals/${day.proposal_id}`)
 }
 
 export async function reorderDays(proposalId: string, orderedIds: string[]) {
+  const supabase = await createSupabaseServer()
+
   for (let i = 0; i < orderedIds.length; i++) {
     await supabase
       .from('days')
@@ -117,11 +116,12 @@ export async function reorderDays(proposalId: string, orderedIds: string[]) {
   }
 
   await renumberDays(proposalId)
-
   revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
 async function renumberDays(proposalId: string) {
+  const supabase = await createSupabaseServer()
+
   const { data: proposal } = await supabase
     .from('proposals')
     .select('start_date')

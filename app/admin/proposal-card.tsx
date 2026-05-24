@@ -10,38 +10,34 @@ type Proposal = {
   client_name_ru: string | null
   client_name_en: string | null
   trip_title_ru: string | null
+  trip_title_en: string | null
   guest_count: number | null
   start_date: string | null
   end_date: string | null
   status: string | null
+  owner_email?: string | null
 }
 
-export default function ProposalCard({ proposal }: { proposal: Proposal }) {
+export default function ProposalCard({ proposal, showOwner }: { proposal: Proposal; showOwner?: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const title = proposal.trip_title_ru || proposal.trip_title_en || 'Untitled'
+  const client = proposal.client_name_ru || proposal.client_name_en || '—'
 
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
-
-    if (!confirm(`Delete proposal "${proposal.trip_title_ru || proposal.slug}"?\n\nThis cannot be undone.`)) {
-      return
-    }
-
-    startTransition(async () => {
-      await deleteProposal(proposal.id)
-    })
+    if (!confirm(`Delete proposal "${title}"?\n\nThis cannot be undone.`)) return
+    startTransition(async () => { await deleteProposal(proposal.id) })
   }
 
   function handleDuplicate(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
-
-    startTransition(async () => {
-      await duplicateProposal(proposal.id)
-    })
+    startTransition(async () => { await duplicateProposal(proposal.id) })
   }
 
   function toggleMenu(e: React.MouseEvent) {
@@ -74,10 +70,15 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
           e.currentTarget.style.background = 'transparent'
         }}
       >
-        <div style={{ fontWeight: 500 }}>{proposal.trip_title_ru || 'Untitled'}</div>
+        <div style={{ fontWeight: 500 }}>{title}</div>
         <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-          {proposal.client_name_ru || '—'} · {proposal.guest_count ?? 1} гостей · {proposal.start_date || '—'} → {proposal.end_date || '—'}
+          {client} · {proposal.guest_count ?? 1} гостей · {proposal.start_date || '—'} → {proposal.end_date || '—'}
         </div>
+        {showOwner && proposal.owner_email && (
+          <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
+            {proposal.owner_email}
+          </div>
+        )}
         <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
           Slug: {proposal.slug} · Status: {proposal.status}
         </div>
@@ -116,44 +117,22 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
 
       {menuOpen && (
         <>
-          <div
-            onClick={() => setMenuOpen(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 1,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '44px',
-              right: '14px',
-              background: '#1a1a1a',
-              border: '1px solid #333',
-              borderRadius: '8px',
-              padding: '4px',
-              minWidth: '140px',
-              zIndex: 2,
-              boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-            }}
-          >
+          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
+          <div style={{
+            position: 'absolute',
+            top: '44px',
+            right: '14px',
+            background: '#1a1a1a',
+            border: '1px solid #333',
+            borderRadius: '8px',
+            padding: '4px',
+            minWidth: '140px',
+            zIndex: 2,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+          }}>
             <button
               onClick={handleDuplicate}
-              style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                color: 'inherit',
-                fontSize: '13px',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                fontFamily: 'inherit',
-                transition: 'background 0.12s',
-              }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
@@ -161,20 +140,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
             </button>
             <button
               onClick={handleDelete}
-              style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                color: '#E07B7B',
-                fontSize: '13px',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                fontFamily: 'inherit',
-                transition: 'background 0.12s',
-              }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: '#E07B7B', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
