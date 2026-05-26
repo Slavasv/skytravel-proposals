@@ -16,6 +16,7 @@ type Proposal = {
   end_date: string | null
   status: string | null
   owner_email?: string | null
+  last_viewed_at?: string | null
 }
 
 export default function ProposalCard({ proposal, showOwner }: { proposal: Proposal; showOwner?: boolean }) {
@@ -24,6 +25,20 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
 
   const title = proposal.trip_title_ru || proposal.trip_title_en || 'Untitled'
   const client = proposal.client_name_ru || proposal.client_name_en || '—'
+
+  function viewedLabel(dateStr: string | null | undefined): string {
+    if (!dateStr) return 'Ещё не открывал'
+    const then = new Date(dateStr)
+    if (isNaN(then.getTime())) return 'Ещё не открывал'
+    const diffMs = Date.now() - then.getTime()
+    const diffDays = Math.floor(diffMs / 86400000)
+    if (diffDays <= 0) return 'Открыто сегодня'
+    if (diffDays === 1) return 'Открыто вчера'
+    if (diffDays < 7) return `Открыто ${diffDays} дн. назад`
+    return 'Открыто ' + then.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace(/\.$/, '')
+  }
+
+  const isViewed = !!proposal.last_viewed_at
 
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -81,6 +96,9 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
         )}
         <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
           Slug: {proposal.slug} · Status: {proposal.status}
+        </div>
+        <div style={{ fontSize: '12px', color: isViewed ? '#7FA87F' : '#666', marginTop: '4px' }}>
+          {isViewed ? '● ' : '○ '}{viewedLabel(proposal.last_viewed_at)}
         </div>
       </Link>
 

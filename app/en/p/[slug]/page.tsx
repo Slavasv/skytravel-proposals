@@ -41,6 +41,9 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
     notFound()
   }
 
+  // Засчитываем открытие proposal клиентом (счётчик + дата последнего просмотра)
+  await supabase.rpc('increment_proposal_views', { p_slug: slug })
+
   const { data: days } = await supabase
     .from('days')
     .select(`
