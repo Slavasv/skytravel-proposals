@@ -12,19 +12,39 @@ export default async function UsersPage() {
   }
 
   const adminClient = createSupabaseAdmin()
+
+  // Находим company_id текущего админа — будем фильтровать юзеров по его компании
+  const { data: meProfile } = await adminClient
+    .from('profiles')
+    .select('company_id')
+    .eq('id', profile!.id)
+    .single()
+
+  if (!meProfile?.company_id) {
+    return <div style={{ padding: '40px', color: '#888780' }}>Компания не найдена.</div>
+  }
+
+  // Грузим только профили своей компании
+  const { data: profiles } = await adminClient
+    .from('profiles')
+    .select('id, email, role, created_at, company_id')
+    .eq('company_id', meProfile.company_id)
+
+  const ownIds = new Set((profiles ?? []).map((p) => p.id))
+
+  // Грузим всех auth-юзеров, но оставляем только тех, кто в нашей компании
   const { data: { users }, error } = await adminClient.auth.admin.listUsers()
 
   if (error) {
     return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
   }
 
-  const { data: profiles } = await adminClient
-    .from('profiles')
-    .select('id, email, role, created_at')
+  const filteredUsers = users.filter((u) => ownIds.has(u.id))
 
   const { data: proposals } = await adminClient
     .from('proposals')
     .select('owner_id')
+    .in('owner_id', Array.from(ownIds))
 
   const proposalCounts: Record<string, number> = {}
   for (const p of proposals ?? []) {
@@ -35,7 +55,7 @@ export default async function UsersPage() {
 
   const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
-  const enriched = users.map((u) => ({
+  const enriched = filteredUsers.map((u) => ({
     id: u.id,
     email: u.email ?? '',
     role: profileMap[u.id]?.role ?? 'manager',
