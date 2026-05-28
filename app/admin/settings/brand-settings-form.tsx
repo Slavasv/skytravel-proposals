@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useTransition } from 'react'
 import { updateCompany } from './actions'
+import ImageUploader from '@/app/admin/_components/image-uploader'
 
 type Company = {
+  logo_url: string | null
   accent_color: string | null
   contact_email: string | null
   contact_phone: string | null
@@ -18,6 +20,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [color, setColor] = useState(company.accent_color || '#C9A227')
+  const [logo, setLogo] = useState(company.logo_url || '')
 
   const socials = company.socials || {}
 
@@ -65,6 +68,16 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
       marginBottom: '32px',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        <div>
+          <ImageUploader
+            value={logo}
+            onChange={setLogo}
+            label="Логотип"
+            height={140}
+          />
+          <input type="hidden" name="logo_url" value={logo} />
+        </div>
 
         <div>
           <label style={labelStyle}>Акцентный цвет</label>

@@ -37,6 +37,7 @@ export async function updateCompany(formData: FormData) {
   const { error } = await admin
     .from('companies')
     .update({
+      logo_url: (formData.get('logo_url') as string)?.trim() || null,
       accent_color: (formData.get('accent_color') as string)?.trim() || null,
       contact_email: (formData.get('contact_email') as string)?.trim() || null,
       contact_phone: (formData.get('contact_phone') as string)?.trim() || null,
