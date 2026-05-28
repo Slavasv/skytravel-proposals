@@ -1,5 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { getProfile } from '@/lib/get-profile'
+import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createProposal } from './actions'
 import ProposalCard from './proposal-card'
 import StatusFilter from './status-filter'
@@ -11,7 +11,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const activeStatus = status ?? null
 
   const profile = await getProfile()
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
 
   const supabase = await createSupabaseServer()

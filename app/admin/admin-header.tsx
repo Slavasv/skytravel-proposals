@@ -8,9 +8,10 @@ import GearMenu from './gear-menu'
 type Props = {
   isAdmin: boolean
   email: string
+  companyName: string | null
 }
 
-export default function AdminHeader({ isAdmin, email }: Props) {
+export default function AdminHeader({ isAdmin, email, companyName }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
 
@@ -49,7 +50,7 @@ export default function AdminHeader({ isAdmin, email }: Props) {
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
       >
-        SKY TRAVEL <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> ADMIN
+        {(companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> ADMIN
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '24px' }}>

@@ -49,6 +49,13 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
   // Засчитываем открытие proposal клиентом (счётчик + дата последнего просмотра)
   await supabase.rpc('increment_proposal_views', { p_slug: slug })
 
+  // Подтягиваем бренд (компанию) этого proposal — для метки и футера
+  const { data: company } = await supabase
+    .from('companies')
+    .select('name, contact_email')
+    .eq('id', proposal.company_id)
+    .single()
+
   const { data: days } = await supabase
     .from('days')
     .select(`
@@ -110,7 +117,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         >
           <div>
             <div style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: 0.85, marginBottom: '8px' }}>
-              Sky Travel
+              {company?.name ?? 'Sky Travel'}
             </div>
             <h1 className="client-title" style={{ fontSize: '32px', fontWeight: 400, margin: 0, lineHeight: 1.2 }}>
               {proposal.trip_title_ru}
@@ -205,7 +212,8 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
       </div>
 
       <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: '#888780' }}>
-        Sky Travel · concierge@skytravel.ae
+        {company?.name ?? 'Sky Travel'}
+        {company?.contact_email ? ` · ${company.contact_email}` : ''}
       </div>
     </div>
   )

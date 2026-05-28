@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getProfile } from '@/lib/get-profile'
+import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import UserRow from './user-row'
 import CreateUserForm from './create-user-form'
@@ -7,7 +7,7 @@ import CreateUserForm from './create-user-form'
 export default async function UsersPage() {
   const profile = await getProfile()
 
-  if (profile?.role !== 'admin') {
+ if (!canManageBrand(profile?.role)) {
     notFound()
   }
 
