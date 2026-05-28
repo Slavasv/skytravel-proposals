@@ -6,10 +6,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isAdmin = canManageBrand(profile?.role)
   const email = profile?.email ?? ''
   const companyName = profile?.company_name ?? null
+  const isSuperadmin = profile?.role === 'superadmin'
 
   return (
     <div>
-      <AdminHeader isAdmin={isAdmin} email={email} companyName={companyName} />
+      <AdminHeader isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} />
       {children}
     </div>
   )

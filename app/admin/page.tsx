@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createProposal } from './actions'
@@ -11,6 +12,12 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const activeStatus = status ?? null
 
   const profile = await getProfile()
+
+  // Superadmin не работает с proposals — его место в кабинете компаний
+  if (profile?.role === 'superadmin') {
+    redirect('/admin/companies')
+  }
+
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
 

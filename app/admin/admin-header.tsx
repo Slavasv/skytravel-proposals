@@ -9,16 +9,21 @@ type Props = {
   isAdmin: boolean
   email: string
   companyName: string | null
+  isSuperadmin: boolean
 }
 
-export default function AdminHeader({ isAdmin, email, companyName }: Props) {
+export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
 
-  const navItems = [
-    { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
-    { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
-  ]
+  const navItems = isSuperadmin
+    ? [
+        { href: '/admin/companies', label: 'Компании', matchPrefix: '/admin/companies' },
+      ]
+    : [
+        { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
+        { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
+      ]
 
   function isActive(item: typeof navItems[number]) {
     if (item.href === '/admin') {
@@ -37,7 +42,7 @@ export default function AdminHeader({ isAdmin, email, companyName }: Props) {
       background: '#0f0f0f',
     }}>
       <Link
-        href="/admin"
+        href={isSuperadmin ? '/admin/companies' : '/admin'}
         style={{
           fontSize: isMobile ? '10px' : '12px',
           fontWeight: 500,
@@ -50,7 +55,7 @@ export default function AdminHeader({ isAdmin, email, companyName }: Props) {
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
       >
-        {(companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> ADMIN
+        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '24px' }}>

@@ -1,9 +1,30 @@
 'use server'
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { revalidatePath } from 'next/cache'
 
 export async function createUser(email: string, password: string, role: 'admin' | 'manager') {
+  // Проверяем, что вызывающий — owner или admin, и узнаём его компанию
+  const profile = await getProfile()
+  if (!canManageBrand(profile?.role)) {
+    throw new Error('Недостаточно прав')
+  }
+
+  // Находим company_id создателя — новый юзер попадёт в ту же компанию
+  const server = await createSupabaseServer()
+  const { data: { user: creator } } = await server.auth.getUser()
+  if (!creator) throw new Error('Не авторизован')
+
+  const { data: creatorProfile } = await server
+    .from('profiles')
+    .select('company_id')
+    .eq('id', creator.id)
+    .single()
+
+  if (!creatorProfile?.company_id) throw new Error('Компания создателя не найдена')
+
   const admin = createSupabaseAdmin()
 
   const { data, error } = await admin.auth.admin.createUser({
@@ -16,9 +37,10 @@ export async function createUser(email: string, password: string, role: 'admin' 
   if (error) throw new Error(error.message)
   if (!data.user) throw new Error('User not created')
 
+  // Ставим роль И привязываем к компании создателя
   await admin
     .from('profiles')
-    .update({ role })
+    .update({ role, company_id: creatorProfile.company_id })
     .eq('id', data.user.id)
 
   revalidatePath('/admin/users')
