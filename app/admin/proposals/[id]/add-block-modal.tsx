@@ -3,6 +3,28 @@
 import { useState, useEffect, useTransition } from 'react'
 import { addBlockToDay, getLibraryBlocks, type LibraryBlock } from './block-actions'
 import type { Lang } from './edit-page-client'
+function pickOne<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
+function formatLocation(b: LibraryBlock, lang: Lang): string | null {
+  const ru = lang === 'ru'
+  if (b.type === 'hotel') {
+    const city = pickOne(b.cities)
+    if (!city) return null
+    const country = pickOne(city.countries)
+    const cityName = ru ? city.name_ru : city.name_en
+    const countryName = country ? (ru ? country.name_ru : country.name_en) : null
+    return countryName ? `${cityName}, ${countryName}` : cityName
+  }
+  if (b.type === 'city') {
+    const country = pickOne(b.countries)
+    if (!country) return null
+    return ru ? country.name_ru : country.name_en
+  }
+  return null
+}
 
 type Props = {
   isOpen: boolean
@@ -330,7 +352,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
                         fontWeight: 500,
                       }}>
                         {b.type}
-                        {b.location && <span style={{ color: '#555', fontWeight: 400 }}> · {b.location}</span>}
+                        {(() => {
+                          const geo = formatLocation(b, lang)
+                          return geo ? <span style={{ color: '#555', fontWeight: 400 }}> · {geo}</span> : null
+                        })()}
                       </div>
                       <div style={{
                         fontSize: '14px',

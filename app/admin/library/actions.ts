@@ -8,6 +8,8 @@ export type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
 
 export type BlockUpdate = {
   type?: BlockType
+  city_id?: string | null
+  country_id?: string | null
   title_ru?: string | null
   title_en?: string | null
   description_ru?: string | null

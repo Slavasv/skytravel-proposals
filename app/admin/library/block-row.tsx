@@ -5,6 +5,9 @@ import { useState, useTransition } from 'react'
 import { deleteBlock, archiveBlock, unarchiveBlock } from './actions'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
+type CityJoin = { name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }
+type CountryJoin = { name_ru: string; name_en: string }
+
 type Block = {
   id: string
   type: string
@@ -16,6 +19,29 @@ type Block = {
   location: string | null
   tags: string[] | null
   archived_at: string | null
+  cities: CityJoin | CityJoin[] | null
+  countries: CountryJoin | CountryJoin[] | null
+}
+
+// Достаём один объект из join (Supabase возвращает либо объект, либо массив)
+function pickOne<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
+// Подпись локации для типа hotel/city; для activity/transfer возвращает null
+function formatLocation(block: Block): string | null {
+  if (block.type === 'hotel') {
+    const city = pickOne(block.cities)
+    if (!city) return null
+    const country = pickOne(city.countries)
+    return country ? `${city.name_ru}, ${country.name_ru}` : city.name_ru
+  }
+  if (block.type === 'city') {
+    const country = pickOne(block.countries)
+    return country?.name_ru ?? null
+  }
+  return null
 }
 
 export default function BlockRow({ block, usageCount }: { block: Block; usageCount: number }) {
@@ -146,7 +172,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            {block.location || '—'}
+            {formatLocation(block) || '—'}
             {block.tags && block.tags.length > 0 && (
               <>
                 {' · '}

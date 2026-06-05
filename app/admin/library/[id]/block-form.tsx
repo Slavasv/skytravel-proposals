@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
 import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import LocationPicker from '@/app/admin/_components/location-picker'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
   id: string
   type: BlockType
+  city_id: string | null
+  country_id: string | null
   title_ru: string | null
   title_en: string | null
   description_ru: string | null
@@ -74,6 +77,8 @@ export default function BlockForm({ block }: { block: Block }) {
 
   const [form, setForm] = useState({
     type: (block.type || 'hotel') as BlockType,
+    city_id: block.city_id,
+    country_id: block.country_id,
     title_ru: block.title_ru || '',
     title_en: block.title_en || '',
     description_ru: block.description_ru || '',
@@ -115,6 +120,10 @@ export default function BlockForm({ block }: { block: Block }) {
       try {
         await updateBlock(block.id, {
           type: currentForm.type,
+          // hotel хранит город (страна вычисляется через city.country_id)
+          city_id: currentForm.type === 'hotel' ? currentForm.city_id : null,
+          // city хранит страну
+          country_id: currentForm.type === 'city' ? currentForm.country_id : null,
           title_ru: currentForm.title_ru || null,
           title_en: currentForm.title_en || null,
           description_ru: currentForm.description_ru || null,
@@ -322,17 +331,25 @@ export default function BlockForm({ block }: { block: Block }) {
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Location & image</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Location</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => set('location', e.target.value)}
-              style={inputStyle}
-              placeholder="e.g.: Прованс, Франция / Provence, France"
+
+          {form.type === 'hotel' && (
+            <LocationPicker
+              mode="city"
+              value={form.city_id}
+              onChange={(id) => set('city_id', id)}
+              label="Город"
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>Same for both languages</p>
-          </div>
+          )}
+
+          {form.type === 'city' && (
+            <LocationPicker
+              mode="country"
+              value={form.country_id}
+              onChange={(id) => set('country_id', id)}
+              label="Страна"
+            />
+          )}
+
           <div>
             <ImageUploader
               value={form.image_url}

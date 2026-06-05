@@ -27,7 +27,12 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
 
   let blocksQuery = supabase
     .from('content_blocks')
-    .select('*, day_blocks(count)')
+    .select(`
+      *,
+      day_blocks(count),
+      cities ( name_ru, name_en, countries ( name_ru, name_en ) ),
+      countries ( name_ru, name_en )
+    `)
     .order('updated_at', { ascending: false })
 
   if (showArchived) {

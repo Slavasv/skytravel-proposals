@@ -8,6 +8,9 @@ export type DayBlockUpdate = {
   custom_note_en?: string | null
 }
 
+type CityJoin = { name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }
+type CountryJoin = { name_ru: string; name_en: string }
+
 export type LibraryBlock = {
   id: string
   type: string
@@ -18,6 +21,8 @@ export type LibraryBlock = {
   image_url: string | null
   location: string | null
   tags: string[] | null
+  cities: CityJoin | CityJoin[] | null
+  countries: CountryJoin | CountryJoin[] | null
 }
 
 async function getProposalIdByDay(dayId: string): Promise<string | null> {
@@ -48,7 +53,11 @@ export async function getLibraryBlocks(): Promise<LibraryBlock[]> {
   const supabase = await createSupabaseServer()
   const { data, error } = await supabase
     .from('content_blocks')
-    .select('id, type, title_ru, title_en, description_ru, description_en, image_url, location, tags')
+    .select(`
+      id, type, title_ru, title_en, description_ru, description_en, image_url, location, tags,
+      cities ( name_ru, name_en, countries ( name_ru, name_en ) ),
+      countries ( name_ru, name_en )
+    `)
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
 
