@@ -27,7 +27,7 @@ export async function searchCountries(query: string): Promise<CountryRow[]> {
 }
 
 // Поиск городов по подстроке (ru + en, ilike)
-export async function searchCities(query: string): Promise<CityRow[]> {
+export async function searchCities(query: string, countryId?: string | null): Promise<CityRow[]> {
   const supabase = await createSupabaseServer()
   const q = query.trim()
 
@@ -37,6 +37,10 @@ export async function searchCities(query: string): Promise<CityRow[]> {
     .eq('is_active', true)
     .order('name_ru')
     .limit(20)
+
+  if (countryId) {
+    req = req.eq('country_id', countryId)
+  }
 
   if (q) {
     req = req.or(`name_ru.ilike.%${q}%,name_en.ilike.%${q}%`)

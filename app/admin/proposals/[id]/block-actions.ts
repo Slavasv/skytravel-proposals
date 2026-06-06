@@ -8,7 +8,7 @@ export type DayBlockUpdate = {
   custom_note_en?: string | null
 }
 
-type CityJoin = { name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }
+type CityJoin = { country_id: string; name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }
 type CountryJoin = { name_ru: string; name_en: string }
 
 export type LibraryBlock = {
@@ -21,6 +21,8 @@ export type LibraryBlock = {
   image_url: string | null
   location: string | null
   tags: string[] | null
+  city_id: string | null
+  country_id: string | null
   cities: CityJoin | CityJoin[] | null
   countries: CountryJoin | CountryJoin[] | null
 }
@@ -55,7 +57,8 @@ export async function getLibraryBlocks(): Promise<LibraryBlock[]> {
     .from('content_blocks')
     .select(`
       id, type, title_ru, title_en, description_ru, description_en, image_url, location, tags,
-      cities ( name_ru, name_en, countries ( name_ru, name_en ) ),
+      city_id, country_id,
+      cities ( country_id, name_ru, name_en, countries ( name_ru, name_en ) ),
       countries ( name_ru, name_en )
     `)
     .is('archived_at', null)

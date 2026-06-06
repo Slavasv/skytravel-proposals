@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { addBlockToDay, getLibraryBlocks, type LibraryBlock } from './block-actions'
 import type { Lang } from './edit-page-client'
+import LocationPicker from '@/app/admin/_components/location-picker'
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? (value[0] ?? null) : value
@@ -47,6 +48,8 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [activeType, setActiveType] = useState<string | null>(null)
+  const [activeCountry, setActiveCountry] = useState<string | null>(null)
+  const [activeCity, setActiveCity] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Загружаем блоки при открытии модалки
@@ -68,6 +71,8 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
     if (!isOpen) {
       setSearch('')
       setActiveType(null)
+      setActiveCountry(null)
+      setActiveCity(null)
     }
   }, [isOpen])
 
@@ -90,6 +95,25 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
   // Фильтрация в памяти
   const filtered = blocks.filter((b) => {
     if (activeType && b.type !== activeType) return false
+
+    // Гео-фильтр: при активном гео activity/transfer скрываются (универсальные).
+    if (activeCountry || activeCity) {
+      if (b.type === 'activity' || b.type === 'transfer') return false
+
+      if (activeCity) {
+        // Выбран город: оставляем hotel'ы этого города.
+        // city-блоки тут не подходят (у них только country_id).
+        if (b.city_id !== activeCity) return false
+      } else if (activeCountry) {
+        // Выбрана страна: hotel в городе этой страны ИЛИ city-блок этой страны.
+        const city = Array.isArray(b.cities) ? b.cities[0] : b.cities
+        const cityCountryId = city?.country_id ?? null
+        const matchHotel = b.type === 'hotel' && cityCountryId === activeCountry
+        const matchCity = b.type === 'city' && b.country_id === activeCountry
+        if (!matchHotel && !matchCity) return false
+      }
+    }
+
     if (!search.trim()) return true
     const q = search.trim().toLowerCase()
     const fields = [
@@ -245,6 +269,24 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
                 ×
               </button>
             )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <LocationPicker
+              mode="country"
+              value={activeCountry}
+              onChange={(id) => { setActiveCountry(id); setActiveCity(null) }}
+              label="Страна"
+              disableCreate
+            />
+            <LocationPicker
+              mode="city"
+              value={activeCity}
+              onChange={setActiveCity}
+              label="Город"
+              disableCreate
+              countryFilter={activeCountry}
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>

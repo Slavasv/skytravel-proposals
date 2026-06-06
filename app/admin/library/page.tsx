@@ -7,6 +7,8 @@ type SearchParams = {
   q?: string
   type?: string
   archived?: string
+  country?: string
+  city?: string
 }
 
 const TYPE_FILTERS = [
@@ -18,10 +20,13 @@ const TYPE_FILTERS = [
 ]
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const { q, type, archived } = await searchParams
+  const { q, type, archived, country, city } = await searchParams
   const query = q?.trim() ?? ''
   const activeType = type ?? null
   const showArchived = archived === '1'
+  const activeCountry = country ?? null
+  const activeCity = city ?? null
+  const hasGeoFilter = Boolean(activeCountry || activeCity)
 
   const supabase = await createSupabaseServer()
 
@@ -43,6 +48,25 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
 
   if (activeType) {
     blocksQuery = blocksQuery.eq('type', activeType)
+  }
+
+  // Гео-фильтр: для hotel (city_id) и city (country_id).
+  // Activity/transfer скрываем при активном гео-фильтре (они универсальные, без локации).
+  if (activeCity) {
+    blocksQuery = blocksQuery.eq('city_id', activeCity)
+  } else if (activeCountry) {
+    // Города этой страны (нужны id) → блоки hotel в этих городах ИЛИ city-блоки этой страны.
+    const { data: citiesInCountry } = await supabase
+      .from('cities')
+      .select('id')
+      .eq('country_id', activeCountry)
+    const cityIds = (citiesInCountry ?? []).map((c) => c.id)
+    if (cityIds.length > 0) {
+      blocksQuery = blocksQuery.or(`country_id.eq.${activeCountry},city_id.in.(${cityIds.join(',')})`)
+    } else {
+      // В стране пока ни одного города → только city-блоки этой страны.
+      blocksQuery = blocksQuery.eq('country_id', activeCountry)
+    }
   }
 
   if (query) {
@@ -117,6 +141,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         defaultQuery={query}
         activeType={activeType}
         showArchived={showArchived}
+        activeCountry={activeCountry}
+        activeCity={activeCity}
         typeFilters={TYPE_FILTERS}
         typeCounts={typeCounts}
         totalCount={totalInScope}

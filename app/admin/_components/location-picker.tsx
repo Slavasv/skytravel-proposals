@@ -14,14 +14,16 @@ type Mode = 'country' | 'city'
 
 type Props = {
   mode: Mode
-  value: string | null // id выбранной страны/города
+  value: string | null
   onChange: (id: string | null) => void
   label?: string
+  disableCreate?: boolean
+  countryFilter?: string | null // только для mode='city': показывать города этой страны
 }
 
 type Item = CountryRow | CityRow
 
-export default function LocationPicker({ mode, value, onChange, label }: Props) {
+export default function LocationPicker({ mode, value, onChange, label, disableCreate, countryFilter }: Props) {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<Item[]>([])
   const [open, setOpen] = useState(false)
@@ -48,6 +50,8 @@ export default function LocationPicker({ mode, value, onChange, label }: Props) 
         return
       }
       try {
+        // Для подгрузки label выбранного города НЕ фильтруем по стране —
+        // иначе если страна изменилась, label выбранного города пропадёт.
         const results = mode === 'country' ? await searchCountries('') : await searchCities('')
         const found = results.find((r) => r.id === value)
         if (found) setSelectedLabel(`${found.name_ru} / ${found.name_en}`)
@@ -62,7 +66,9 @@ export default function LocationPicker({ mode, value, onChange, label }: Props) 
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
     debounceTimer.current = setTimeout(async () => {
       try {
-        const results = mode === 'country' ? await searchCountries(query) : await searchCities(query)
+        const results = mode === 'country'
+          ? await searchCountries(query)
+          : await searchCities(query, countryFilter)
         setItems(results)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Ошибка поиска')
@@ -71,7 +77,7 @@ export default function LocationPicker({ mode, value, onChange, label }: Props) 
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
     }
-  }, [query, open, mode])
+  }, [query, open, mode, countryFilter])
 
   // Закрытие по клику вне
   useEffect(() => {
@@ -266,21 +272,23 @@ export default function LocationPicker({ mode, value, onChange, label }: Props) 
             ))
           )}
 
-          <div
-            onClick={startCreating}
-            style={{
-              padding: '10px 12px',
-              fontSize: '13px',
-              color: '#C8A862',
-              cursor: 'pointer',
-              borderTop: '1px solid #2A2A28',
-              fontWeight: 500,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            + Создать {mode === 'country' ? 'страну' : 'город'}{query ? ` «${query}»` : ''}
-          </div>
+          {!disableCreate && (
+            <div
+              onClick={startCreating}
+              style={{
+                padding: '10px 12px',
+                fontSize: '13px',
+                color: '#C8A862',
+                cursor: 'pointer',
+                borderTop: '1px solid #2A2A28',
+                fontWeight: 500,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              + Создать {mode === 'country' ? 'страну' : 'город'}{query ? ` «${query}»` : ''}
+            </div>
+          )}
         </div>
       )}
 
