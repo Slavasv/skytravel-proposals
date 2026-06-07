@@ -126,6 +126,7 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
                   isPending={isPending}
                   onDeleteRequest={handleDeleteRequest}
                   lang={lang}
+                  proposalId={proposalId}
                 />
               ))}
             </div>

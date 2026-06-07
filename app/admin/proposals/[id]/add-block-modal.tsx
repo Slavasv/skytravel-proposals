@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { addBlockToDay, getLibraryBlocks, type LibraryBlock } from './block-actions'
+import { createBlockMinimal } from '@/app/admin/library/actions'
 import type { Lang } from './edit-page-client'
 import LocationPicker from '@/app/admin/_components/location-picker'
+
+type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? (value[0] ?? null) : value
@@ -33,6 +37,7 @@ type Props = {
   dayId: string
   dayNumber: number
   lang: Lang
+  proposalId: string
 }
 
 const TYPE_FILTERS = [
@@ -43,7 +48,8 @@ const TYPE_FILTERS = [
   { value: 'city', label: 'City' },
 ]
 
-export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang }: Props) {
+export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang, proposalId }: Props) {
+  const router = useRouter()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -51,6 +57,16 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
   const [activeCountry, setActiveCountry] = useState<string | null>(null)
   const [activeCity, setActiveCity] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Состояние мини-формы создания блока
+  const [creatingOpen, setCreatingOpen] = useState(false)
+  const [newType, setNewType] = useState<BlockType>('hotel')
+  const [newTitleRu, setNewTitleRu] = useState('')
+  const [newTitleEn, setNewTitleEn] = useState('')
+  const [newCityId, setNewCityId] = useState<string | null>(null)
+  const [newCountryId, setNewCountryId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   // Загружаем блоки при открытии модалки
   useEffect(() => {
@@ -73,6 +89,13 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
       setActiveType(null)
       setActiveCountry(null)
       setActiveCity(null)
+      setCreatingOpen(false)
+      setNewType('hotel')
+      setNewTitleRu('')
+      setNewTitleEn('')
+      setNewCityId(null)
+      setNewCountryId(null)
+      setCreateError('')
     }
   }, [isOpen])
 
@@ -132,6 +155,29 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
       await addBlockToDay(dayId, blockId)
       onClose()
     })
+  }
+  async function handleCreate() {
+    setCreateError('')
+    if (!newTitleRu.trim() && !newTitleEn.trim()) {
+      setCreateError('Введите название хотя бы на одном языке')
+      return
+    }
+    setCreating(true)
+    try {
+      const newId = await createBlockMinimal({
+        type: newType,
+        title_ru: newTitleRu,
+        title_en: newTitleEn,
+        city_id: newCityId,
+        country_id: newCountryId,
+      })
+      // Редирект в редактор блока с возвратом + автодобавлением в день
+      const returnTo = encodeURIComponent(`/admin/proposals/${proposalId}`)
+      router.push(`/admin/library/${newId}?returnTo=${returnTo}&addToDay=${dayId}`)
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Ошибка создания')
+      setCreating(false)
+    }
   }
 
   if (!isOpen) return null
@@ -289,33 +335,175 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang 
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            {TYPE_FILTERS.map((f) => {
-              const isActive = activeType === f.value
-              const count = f.value === null ? blocks.length : typeCounts[f.value] ?? 0
-              return (
-                <button
-                  key={f.label}
-                  type="button"
-                  onClick={() => setActiveType(f.value)}
-                  style={{
-                    padding: '5px 12px',
-                    fontSize: '12px',
-                    borderRadius: '999px',
-                    background: isActive ? '#FAF8F4' : 'transparent',
-                    color: isActive ? '#2C2C2A' : '#888780',
-                    border: `1px solid ${isActive ? '#FAF8F4' : '#333'}`,
-                    fontWeight: isActive ? 500 : 400,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  {f.label} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{count}</span>
-                </button>
-              )
-            })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
+              {TYPE_FILTERS.map((f) => {
+                const isActive = activeType === f.value
+                const count = f.value === null ? blocks.length : typeCounts[f.value] ?? 0
+                return (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => setActiveType(f.value)}
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      borderRadius: '999px',
+                      background: isActive ? '#FAF8F4' : 'transparent',
+                      color: isActive ? '#2C2C2A' : '#888780',
+                      border: `1px solid ${isActive ? '#FAF8F4' : '#333'}`,
+                      fontWeight: isActive ? 500 : 400,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {f.label} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreatingOpen(true)}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                fontWeight: 500,
+                background: 'transparent',
+                color: '#C8A862',
+                border: '1px dashed #555',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              + New block
+            </button>
           </div>
         </div>
+
+        {/* Мини-форма создания блока */}
+        {creatingOpen && (
+          <div style={{
+            padding: '16px 24px',
+            borderBottom: '1px solid #2A2A28',
+            background: '#0f0f0f',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: '#E5E2DA' }}>
+                Новый блок
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreatingOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#888780',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: '8px' }}>
+              <select
+                value={newType}
+                onChange={(e) => {
+                  setNewType(e.target.value as BlockType)
+                  setNewCityId(null)
+                  setNewCountryId(null)
+                }}
+                style={{
+                  padding: '8px 10px',
+                  fontSize: '13px',
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  color: '#E5E2DA',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
+              >
+                <option value="hotel">Hotel</option>
+                <option value="activity">Activity</option>
+                <option value="transfer">Transfer</option>
+                <option value="city">City</option>
+              </select>
+              <input
+                type="text"
+                value={newTitleRu}
+                onChange={(e) => setNewTitleRu(e.target.value)}
+                placeholder="Название (RU)"
+                style={{
+                  padding: '8px 10px',
+                  fontSize: '13px',
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  color: '#E5E2DA',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
+              />
+              <input
+                type="text"
+                value={newTitleEn}
+                onChange={(e) => setNewTitleEn(e.target.value)}
+                placeholder="Title (EN)"
+                style={{
+                  padding: '8px 10px',
+                  fontSize: '13px',
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  color: '#E5E2DA',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {newType === 'hotel' && (
+              <LocationPicker mode="city" value={newCityId} onChange={setNewCityId} label="Город" />
+            )}
+            {newType === 'city' && (
+              <LocationPicker mode="country" value={newCountryId} onChange={setNewCountryId} label="Страна" />
+            )}
+
+            {createError && (
+              <div style={{ fontSize: '12px', color: '#E07B7B' }}>{createError}</div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={creating}
+              style={{
+                alignSelf: 'flex-start',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 500,
+                background: '#FAF8F4',
+                color: '#2C2C2A',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: creating ? 'wait' : 'pointer',
+                opacity: creating ? 0.5 : 1,
+                fontFamily: 'inherit',
+              }}
+            >
+              {creating ? 'Создание...' : 'Создать и перейти к заполнению →'}
+            </button>
+          </div>
+        )}
 
         {/* Blocks list */}
         <div style={{

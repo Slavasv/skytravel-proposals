@@ -3,8 +3,15 @@ import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import BlockForm from './block-form'
 
-export default async function EditBlockPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditBlockPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ returnTo?: string; addToDay?: string }>
+}) {
   const { id } = await params
+  const { returnTo } = await searchParams
 
   const supabase = await createSupabaseServer()
 
@@ -23,8 +30,8 @@ export default async function EditBlockPage({ params }: { params: Promise<{ id: 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ fontSize: '13px', color: '#888780', marginBottom: '16px' }}>
-        <Link href="/admin/library" style={{ color: '#888780', textDecoration: 'none' }}>
-          ← Back to library
+        <Link href={returnTo || '/admin/library'} style={{ color: '#888780', textDecoration: 'none' }}>
+          {returnTo ? '← К proposal' : '← Back to library'}
         </Link>
       </div>
 

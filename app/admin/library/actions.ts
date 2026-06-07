@@ -51,6 +51,39 @@ export async function createBlock() {
   revalidatePath('/admin/library')
   redirect(`/admin/library/${data.id}`)
 }
+export async function createBlockMinimal(input: {
+  type: BlockType
+  title_ru: string
+  title_en: string
+  city_id: string | null
+  country_id: string | null
+}): Promise<string> {
+  const supabase = await createSupabaseServer()
+
+  // Для activity/transfer гео обнуляем (на всякий случай — модалка их и не пришлёт)
+  const city_id = input.type === 'hotel' ? input.city_id : null
+  const country_id = input.type === 'city' ? input.country_id : null
+
+  const { data, error } = await supabase
+    .from('content_blocks')
+    .insert({
+      type: input.type,
+      title_ru: input.title_ru.trim() || null,
+      title_en: input.title_en.trim() || null,
+      city_id,
+      country_id,
+      tags: [],
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) {
+    throw new Error(error?.message || 'Failed to create block')
+  }
+
+  revalidatePath('/admin/library')
+  return data.id
+}
 
 export async function updateBlock(id: string, updates: BlockUpdate) {
   const supabase = await createSupabaseServer()

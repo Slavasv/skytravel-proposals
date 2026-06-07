@@ -30,6 +30,7 @@ type Props = {
   isPending: boolean
   onDeleteRequest: (dayId: string, dayTitle: string) => void
   lang: Lang
+  proposalId: string
 }
 
 const labelStyle: React.CSSProperties = {
@@ -55,7 +56,7 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props) {
+export default function DayCard({ day, isPending, onDeleteRequest, lang, proposalId }: Props) {
   const {
     attributes,
     listeners,
@@ -480,6 +481,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang }: Props
         dayId={day.id}
         dayNumber={day.day_number}
         lang={lang}
+        proposalId={proposalId}
       />
     </div>
   )

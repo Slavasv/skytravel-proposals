@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
+import { addBlockToDay } from '@/app/admin/proposals/[id]/block-actions'
 import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
@@ -69,6 +70,9 @@ const inputStyle: React.CSSProperties = {
 
 export default function BlockForm({ block }: { block: Block }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
+  const addToDay = searchParams.get('addToDay')
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -193,7 +197,17 @@ export default function BlockForm({ block }: { block: Block }) {
     if (inFlight.current) {
       await inFlight.current
     }
-    router.push('/admin/library')
+
+    // Если пришли из модалки proposal'а — добавляем блок в день и возвращаемся туда
+    if (addToDay) {
+      try {
+        await addBlockToDay(addToDay, block.id)
+      } catch {
+        // Если не удалось — всё равно вернёмся, не блокируем поток
+      }
+    }
+
+    router.push(returnTo || '/admin/library')
   }
 
   // Keys для двуязычных полей в зависимости от выбранного языка
