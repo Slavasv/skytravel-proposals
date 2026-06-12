@@ -6,6 +6,7 @@ import { updateProposal } from '../../actions'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import CostLines, { type CostLine } from './cost-lines'
 
 type Proposal = {
   id: string
@@ -34,6 +35,7 @@ type Proposal = {
   cost_excludes_en: string | null
   cost_notes_ru: string | null
   cost_notes_en: string | null
+  cost_lines: CostLine[] | null
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -109,6 +111,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
     cost_excludes_en: proposal.cost_excludes_en || '',
     cost_notes_ru: proposal.cost_notes_ru || '',
     cost_notes_en: proposal.cost_notes_en || '',
+    cost_lines: (proposal.cost_lines ?? []) as CostLine[],
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -154,6 +157,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
           cost_excludes_en: currentForm.cost_excludes_en || null,
           cost_notes_ru: currentForm.cost_notes_ru || null,
           cost_notes_en: currentForm.cost_notes_en || null,
+          cost_lines: currentForm.cost_lines,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -482,6 +486,22 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
               {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
             </p>
+          </div>
+
+          <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid #2A2A28' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '4px' }}>
+              {lang === 'ru' ? 'Строки тарифов' : 'Price breakdown'}
+            </div>
+            <p style={{ fontSize: '12px', color: '#888780', margin: '0 0 16px' }}>
+              {lang === 'ru'
+                ? 'Детализация по отелям, трансферам и активностям. Цену пишите как в предложении — мы её не пересчитываем.'
+                : 'Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.'}
+            </p>
+            <CostLines
+              lines={form.cost_lines}
+              lang={lang}
+              onChange={(next) => set('cost_lines', next)}
+            />
           </div>
         </div>
       </section>
