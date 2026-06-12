@@ -18,6 +18,10 @@ type ProposalUpdate = {
   cover_image_url?: string | null
   intro_text_ru?: string | null
   intro_text_en?: string | null
+  payment_terms_ru?: string | null
+  payment_terms_en?: string | null
+  cancellation_policy_ru?: string | null
+  cancellation_policy_en?: string | null
   slug?: string
 }
 

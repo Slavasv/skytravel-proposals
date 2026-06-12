@@ -23,6 +23,10 @@ type Proposal = {
   cover_image_url: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  payment_terms_ru: string | null
+  payment_terms_en: string | null
+  cancellation_policy_ru: string | null
+  cancellation_policy_en: string | null
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -87,6 +91,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
     cover_image_url: proposal.cover_image_url || '',
     intro_text_ru: proposal.intro_text_ru || '',
     intro_text_en: proposal.intro_text_en || '',
+    payment_terms_ru: proposal.payment_terms_ru || '',
+    payment_terms_en: proposal.payment_terms_en || '',
+    cancellation_policy_ru: proposal.cancellation_policy_ru || '',
+    cancellation_policy_en: proposal.cancellation_policy_en || '',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -121,6 +129,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
           cover_image_url: currentForm.cover_image_url || null,
           intro_text_ru: currentForm.intro_text_ru || null,
           intro_text_en: currentForm.intro_text_en || null,
+          payment_terms_ru: currentForm.payment_terms_ru || null,
+          payment_terms_en: currentForm.payment_terms_en || null,
+          cancellation_policy_ru: currentForm.cancellation_policy_ru || null,
+          cancellation_policy_en: currentForm.cancellation_policy_en || null,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -176,6 +188,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
   const clientKey = lang === 'ru' ? 'client_name_ru' : 'client_name_en'
   const titleKey = lang === 'ru' ? 'trip_title_ru' : 'trip_title_en'
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
+  const paymentKey = lang === 'ru' ? 'payment_terms_ru' : 'payment_terms_en'
+  const cancellationKey = lang === 'ru' ? 'cancellation_policy_ru' : 'cancellation_policy_en'
   const titlePlaceholder = lang === 'ru'
     ? 'Например: Путешествие в Прованс для семьи Алиевых'
     : 'e.g.: A Provence Journey for the Aliyev Family'
@@ -379,6 +393,44 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
+          Terms & Conditions <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={labelStyle}>Payment terms</label>
+            <textarea
+              value={form[paymentKey]}
+              onChange={(e) => set(paymentKey, e.target.value)}
+              rows={4}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+              placeholder={lang === 'ru'
+                ? 'Например:\n30% — при подтверждении\n70% — за 45 дней до прибытия'
+                : 'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
+            />
+            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+            </p>
+          </div>
+          <div>
+            <label style={labelStyle}>Cancellation policy</label>
+            <textarea
+              value={form[cancellationKey]}
+              onChange={(e) => set(cancellationKey, e.target.value)}
+              rows={6}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+              placeholder={lang === 'ru'
+                ? 'Например:\nБолее 120 дней до прибытия — депозит 20% возвращается...\nМенее 30 дней — удерживается 100%'
+                : 'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
+            />
+            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+            </p>
           </div>
         </div>
       </section>

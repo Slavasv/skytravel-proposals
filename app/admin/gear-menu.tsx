@@ -92,7 +92,7 @@ export default function GearMenu({ email, isAdmin }: Props) {
               onMouseEnter={onHover}
               onMouseLeave={onLeave}
             >
-              Change password
+              Settings
             </a>
 
             {isAdmin && (

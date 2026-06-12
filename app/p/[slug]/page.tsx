@@ -202,6 +202,40 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         )
       })}
 
+      {(proposal.payment_terms_ru || proposal.cancellation_policy_ru) && (
+        <div style={{ marginTop: '64px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
+            Условия
+          </h2>
+
+          {proposal.payment_terms_ru && (
+            <div style={{ marginBottom: '32px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+                Условия оплаты
+              </h3>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+                {proposal.payment_terms_ru.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                  <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {proposal.cancellation_policy_ru && (
+            <div>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+                Политика отмены
+              </h3>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+                {proposal.cancellation_policy_ru.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                  <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ marginTop: '64px', padding: '32px', background: '#2C2C2A', color: '#FAF8F4', textAlign: 'center', borderRadius: '8px' }}>
         <div style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.7 }}>
           Total Price
