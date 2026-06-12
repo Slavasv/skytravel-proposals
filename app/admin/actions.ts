@@ -22,6 +22,13 @@ type ProposalUpdate = {
   payment_terms_en?: string | null
   cancellation_policy_ru?: string | null
   cancellation_policy_en?: string | null
+  cost_currency?: string | null
+  cost_includes_ru?: string | null
+  cost_includes_en?: string | null
+  cost_excludes_ru?: string | null
+  cost_excludes_en?: string | null
+  cost_notes_ru?: string | null
+  cost_notes_en?: string | null
   slug?: string
 }
 
