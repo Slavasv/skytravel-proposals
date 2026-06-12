@@ -17,6 +17,17 @@ type BlockShape = {
   sort_order: number
 }
 
+type CostLine = {
+  id: string
+  category: 'hotel' | 'transfer' | 'activity'
+  label_ru: string
+  label_en: string
+  nights: number | null
+  details_ru: string
+  details_en: string
+  price: string
+}
+
 function formatDateRu(dateStr: string | null): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -236,14 +247,104 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         </div>
       )}
 
-      <div style={{ marginTop: '64px', padding: '32px', background: '#2C2C2A', color: '#FAF8F4', textAlign: 'center', borderRadius: '8px' }}>
-        <div style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.7 }}>
-          Total Price
-        </div>
-        <div style={{ fontSize: '28px', fontWeight: 500 }}>
-          {proposal.total_price?.toLocaleString('en-US')} {proposal.currency}
-        </div>
-      </div>
+      {(() => {
+        const lines: CostLine[] = Array.isArray(proposal.cost_lines) ? proposal.cost_lines : []
+        const cur = proposal.cost_currency || proposal.currency || ''
+        const hasCosts =
+          lines.length > 0 ||
+          proposal.cost_includes_ru ||
+          proposal.cost_excludes_ru ||
+          proposal.cost_notes_ru ||
+          proposal.total_price != null
+
+        if (!hasCosts) return null
+
+        const cats: { key: CostLine['category']; title: string }[] = [
+          { key: 'hotel', title: 'Проживание' },
+          { key: 'transfer', title: 'Трансферы' },
+          { key: 'activity', title: 'Активности' },
+        ]
+
+        const renderBullets = (text: string) => (
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+            {text.split('\n').filter((l) => l.trim()).map((line, i) => (
+              <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
+            ))}
+          </ul>
+        )
+
+        return (
+          <div style={{ marginTop: '64px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
+              Стоимость
+            </h2>
+
+            {cats.map((cat) => {
+              const catLines = lines.filter((l) => l.category === cat.key)
+              if (catLines.length === 0) return null
+              return (
+                <div key={cat.key} style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+                    {cat.title}
+                  </h3>
+                  {catLines.map((line) => (
+                    <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '10px 0', borderBottom: '1px solid #ECEAE3' }}>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#2C2C2A' }}>
+                          {line.label_ru || '—'}
+                          {line.nights != null && (
+                            <span style={{ color: '#888780' }}> · {line.nights} {line.nights === 1 ? 'ночь' : (line.nights >= 2 && line.nights <= 4 ? 'ночи' : 'ночей')}</span>
+                          )}
+                        </div>
+                        {line.details_ru && (
+                          <div style={{ fontSize: '13px', color: '#888780', marginTop: '2px' }}>{line.details_ru}</div>
+                        )}
+                      </div>
+                      {line.price && (
+                        <div style={{ fontSize: '15px', color: '#2C2C2A', whiteSpace: 'nowrap' }}>
+                          {line.price} {cur}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+
+            {proposal.cost_includes_ru && (
+              <div style={{ marginTop: '32px', marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>В стоимость включено</h3>
+                {renderBullets(proposal.cost_includes_ru)}
+              </div>
+            )}
+
+            {proposal.cost_excludes_ru && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>В стоимость не включено</h3>
+                {renderBullets(proposal.cost_excludes_ru)}
+              </div>
+            )}
+
+            {proposal.cost_notes_ru && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>Примечания</h3>
+                {renderBullets(proposal.cost_notes_ru)}
+              </div>
+            )}
+
+            {proposal.total_price != null && (
+              <div style={{ marginTop: '24px', padding: '24px 32px', background: '#2C2C2A', color: '#FAF8F4', textAlign: 'center', borderRadius: '8px' }}>
+                <div style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.7 }}>
+                  Итого
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: 500 }}>
+                  {proposal.total_price.toLocaleString('en-US')} {cur}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: '#888780' }}>
         {company?.name ?? 'Sky Travel'}
