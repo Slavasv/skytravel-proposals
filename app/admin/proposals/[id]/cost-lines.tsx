@@ -14,9 +14,16 @@ export type CostLine = {
   price: string
 }
 
+export type CostSuggestion = {
+  category: 'hotel' | 'transfer' | 'activity'
+  label_ru: string
+  label_en: string
+}
+
 type Props = {
   lines: CostLine[]
   lang: Lang
+  suggestions?: CostSuggestion[]
   onChange: (lines: CostLine[]) => void
 }
 
@@ -53,7 +60,7 @@ function newId() {
   return `cl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`
 }
 
-export default function CostLines({ lines, lang, onChange }: Props) {
+export default function CostLines({ lines, lang, suggestions = [], onChange }: Props) {
   const isMobile = useIsMobile()
 
   function addLine(category: CostLine['category']) {
@@ -72,6 +79,8 @@ export default function CostLines({ lines, lang, onChange }: Props) {
     ])
   }
 
+  
+
   function updateLine(id: string, patch: Partial<CostLine>) {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
@@ -85,6 +94,18 @@ export default function CostLines({ lines, lang, onChange }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {(['hotel', 'transfer', 'activity'] as const).map((catKey) => {
+        const catSug = suggestions.filter((s) => s.category === catKey && (s.label_ru || s.label_en))
+        if (catSug.length === 0) return null
+        return (
+          <datalist key={`dl-${catKey}`} id={`sug-${catKey}-${lang}`}>
+            {catSug.map((s, i) => {
+              const v = (lang === 'ru' ? s.label_ru : s.label_en) || s.label_en || s.label_ru
+              return <option key={i} value={v} />
+            })}
+          </datalist>
+        )
+      })}
       {CATEGORIES.map((cat) => {
         const catLines = lines.filter((l) => l.category === cat.key)
         const isHotel = cat.key === 'hotel'
@@ -119,6 +140,7 @@ export default function CostLines({ lines, lang, onChange }: Props) {
                       <label style={labelStyle}>{lang === 'ru' ? 'Название' : 'Label'}</label>
                       <input
                         type="text"
+                        list={`sug-${line.category}-${lang}`}
                         value={line[labelKey]}
                         onChange={(e) => updateLine(line.id, { [labelKey]: e.target.value })}
                         style={inputStyle}

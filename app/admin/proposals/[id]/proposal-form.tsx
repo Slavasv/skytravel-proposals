@@ -6,7 +6,8 @@ import { updateProposal } from '../../actions'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
-import CostLines, { type CostLine } from './cost-lines'
+import CostLines, { type CostLine, type CostSuggestion } from './cost-lines'
+import type { Day } from './edit-page-client'
 
 type Proposal = {
   id: string
@@ -74,11 +75,12 @@ type Props = {
   proposal: Proposal
   lang: Lang
   onLangChange: (lang: Lang) => void
+  days?: Day[]
   actions?: React.ReactNode
   itinerary?: React.ReactNode
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, days = [], actions, itinerary }: Props) {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -218,6 +220,30 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
   const includesKey = lang === 'ru' ? 'cost_includes_ru' : 'cost_includes_en'
   const excludesKey = lang === 'ru' ? 'cost_excludes_ru' : 'cost_excludes_en'
   const costNotesKey = lang === 'ru' ? 'cost_notes_ru' : 'cost_notes_en'
+
+  // Подсказки для строк тарифов: блоки из маршрута, сгруппированные по категории.
+  // Дубли по названию убираем. transfer/activity маппятся 1:1, остальные типы (city и пр.) игнорируем.
+  const costSuggestions: CostSuggestion[] = (() => {
+    const out: CostSuggestion[] = []
+    const seen = new Set<string>()
+    for (const day of days) {
+      for (const db of day.day_blocks ?? []) {
+        const b = db.content_blocks
+        if (!b) continue
+        const cat = b.type === 'hotel' ? 'hotel' : b.type === 'transfer' ? 'transfer' : b.type === 'activity' ? 'activity' : null
+        if (!cat) continue
+        const key = `${cat}|${b.title_ru || ''}|${b.title_en || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push({
+          category: cat,
+          label_ru: b.title_ru || '',
+          label_en: b.title_en || '',
+        })
+      }
+    }
+    return out
+  })()
   const titlePlaceholder = lang === 'ru'
     ? 'Например: Путешествие в Прованс для семьи Алиевых'
     : 'e.g.: A Provence Journey for the Aliyev Family'
@@ -383,47 +409,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       {itinerary}
 
-      <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Price & status</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Total price</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.total_price}
-              onChange={(e) => set('total_price', e.target.value === '' ? '' : parseFloat(e.target.value))}
-              style={inputStyle}
-              placeholder="0"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Currency</label>
-            <select
-              value={form.currency}
-              onChange={(e) => set('currency', e.target.value)}
-              style={inputStyle}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => set('status', e.target.value)}
-              style={inputStyle}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
+      
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
@@ -441,6 +427,23 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+          </div>
+
+          <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid #2A2A28' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '4px' }}>
+              {lang === 'ru' ? 'Строки тарифов' : 'Price breakdown'}
+            </div>
+            <p style={{ fontSize: '12px', color: '#888780', margin: '0 0 16px' }}>
+              {lang === 'ru'
+                ? 'Детализация по отелям, трансферам и активностям. Цену пишите как в предложении — мы её не пересчитываем.'
+                : 'Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.'}
+            </p>
+            <CostLines
+              lines={form.cost_lines}
+              lang={lang}
+              suggestions={costSuggestions}
+              onChange={(next) => set('cost_lines', next)}
+            />
           </div>
           <div>
             <label style={labelStyle}>This cost includes</label>
@@ -488,21 +491,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             </p>
           </div>
 
-          <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid #2A2A28' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '4px' }}>
-              {lang === 'ru' ? 'Строки тарифов' : 'Price breakdown'}
-            </div>
-            <p style={{ fontSize: '12px', color: '#888780', margin: '0 0 16px' }}>
-              {lang === 'ru'
-                ? 'Детализация по отелям, трансферам и активностям. Цену пишите как в предложении — мы её не пересчитываем.'
-                : 'Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.'}
-            </p>
-            <CostLines
-              lines={form.cost_lines}
-              lang={lang}
-              onChange={(next) => set('cost_lines', next)}
-            />
-          </div>
+          
         </div>
       </section>
 
@@ -540,6 +529,41 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
               {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Total & status</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
+          <div>
+            <label style={labelStyle}>Total price</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.total_price}
+              onChange={(e) => set('total_price', e.target.value === '' ? '' : parseFloat(e.target.value))}
+              style={inputStyle}
+              placeholder="0"
+            />
+            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+              {lang === 'ru'
+                ? `Валюта берётся из секции Costs (${form.cost_currency}).`
+                : `Currency is taken from the Costs section (${form.cost_currency}).`}
+            </p>
+          </div>
+          <div>
+            <label style={labelStyle}>Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => set('status', e.target.value)}
+              style={inputStyle}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </section>

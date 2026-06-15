@@ -64,6 +64,7 @@ export default function EditPageClient({ proposal, days }: { proposal: Proposal;
       proposal={proposal}
       lang={lang}
       onLangChange={setLang}
+      days={days}
       actions={<ProposalActions slug={proposal.slug} />}
       itinerary={<DaysSection proposalId={proposal.id} days={days} lang={lang} />}
     />
