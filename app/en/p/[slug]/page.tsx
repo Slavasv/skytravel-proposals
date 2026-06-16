@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import ProposalItinerary from '@/app/p/[slug]/proposal-itinerary'
 
 type Params = { slug: string }
 
@@ -143,6 +144,8 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
           {proposal.intro_text_en}
         </p>
       )}
+
+      <ProposalItinerary days={days ?? []} lang="en" endDate={proposal.end_date} />
 
       <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
         Your Itinerary
