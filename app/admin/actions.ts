@@ -29,6 +29,7 @@ type ProposalUpdate = {
   cost_excludes_en?: string | null
   cost_notes_ru?: string | null
   cost_notes_en?: string | null
+  cost_lines?: unknown
   slug?: string
 }
 
@@ -101,6 +102,18 @@ export async function duplicateProposal(id: string) {
       cover_image_url: original.cover_image_url,
       intro_text_ru: original.intro_text_ru,
       intro_text_en: original.intro_text_en,
+      payment_terms_ru: original.payment_terms_ru,
+      payment_terms_en: original.payment_terms_en,
+      cancellation_policy_ru: original.cancellation_policy_ru,
+      cancellation_policy_en: original.cancellation_policy_en,
+      cost_currency: original.cost_currency,
+      cost_includes_ru: original.cost_includes_ru,
+      cost_includes_en: original.cost_includes_en,
+      cost_excludes_ru: original.cost_excludes_ru,
+      cost_excludes_en: original.cost_excludes_en,
+      cost_notes_ru: original.cost_notes_ru,
+      cost_notes_en: original.cost_notes_en,
+      cost_lines: original.cost_lines,
       owner_id: user?.id ?? null,
     })
     .select()
