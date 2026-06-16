@@ -407,6 +407,30 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
         </div>
       </section>
 
+      {(() => {
+        const s = form.start_date, e = form.end_date
+        if (!s || !e || days.length === 0) return null
+        const d1 = new Date(s), d2 = new Date(e)
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
+        const expected = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
+        if (expected <= 0 || expected === days.length) return null
+        return (
+          <div style={{
+            padding: '12px 16px',
+            background: '#2a2417',
+            border: '1px solid #4a3f1e',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#C8A862',
+            lineHeight: 1.5,
+          }}>
+            {lang === 'ru'
+              ? `Заполнено ${days.length} ${days.length === 1 ? 'день' : (days.length >= 2 && days.length <= 4 ? 'дня' : 'дней')} из ${expected}.`
+              : `${days.length} of ${expected} days filled in.`}
+          </div>
+        )
+      })()}
+
       {itinerary}
 
       
