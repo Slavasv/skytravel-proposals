@@ -424,9 +424,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             color: '#C8A862',
             lineHeight: 1.5,
           }}>
-            {lang === 'ru'
-              ? `Заполнено ${days.length} ${days.length === 1 ? 'день' : (days.length >= 2 && days.length <= 4 ? 'дня' : 'дней')} из ${expected}.`
-              : `${days.length} of ${expected} days filled in.`}
+            {`${days.length} of ${expected} days filled in.`}
           </div>
         )
       })()}
@@ -455,12 +453,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
           <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid #2A2A28' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '4px' }}>
-              {lang === 'ru' ? 'Строки тарифов' : 'Price breakdown'}
+              Price breakdown
             </div>
             <p style={{ fontSize: '12px', color: '#888780', margin: '0 0 16px' }}>
-              {lang === 'ru'
-                ? 'Детализация по отелям, трансферам и активностям. Цену пишите как в предложении — мы её не пересчитываем.'
-                : 'Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.'}
+              Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.
             </p>
             <CostLines
               lines={form.cost_lines}
@@ -476,12 +472,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               onChange={(e) => set(includesKey, e.target.value)}
               rows={6}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={lang === 'ru'
-                ? 'Например:\nТрансферы из аэропорта\n2 ночи в Four Seasons — Villa, All Inclusive'
-                : 'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'}
+              placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'}
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+              One item per line.
             </p>
           </div>
           <div>
@@ -491,12 +485,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               onChange={(e) => set(excludesKey, e.target.value)}
               rows={5}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={lang === 'ru'
-                ? 'Например:\nМеждународные перелёты\nВизы\nЛичная страховка'
-                : 'e.g.:\nInternational flights\nVisas\nPersonal insurance'}
+              placeholder={'e.g.:\nInternational flights\nVisas\nPersonal insurance'}
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+              One item per line.
             </p>
           </div>
           <div>
@@ -506,12 +498,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               onChange={(e) => set(costNotesKey, e.target.value)}
               rows={4}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={lang === 'ru'
-                ? 'Например:\nДля Кении нужна ETA до поездки\nБагаж — строго 15 кг в мягких сумках'
-                : 'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'}
+              placeholder={'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'}
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+              One item per line.
             </p>
           </div>
 
@@ -531,12 +521,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               onChange={(e) => set(paymentKey, e.target.value)}
               rows={4}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={lang === 'ru'
-                ? 'Например:\n30% — при подтверждении\n70% — за 45 дней до прибытия'
-                : 'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
+              placeholder={'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+              One item per line.
             </p>
           </div>
           <div>
@@ -546,12 +534,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               onChange={(e) => set(cancellationKey, e.target.value)}
               rows={6}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={lang === 'ru'
-                ? 'Например:\nБолее 120 дней до прибытия — депозит 20% возвращается...\nМенее 30 дней — удерживается 100%'
-                : 'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
+              placeholder={'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru' ? 'Каждый пункт — с новой строки.' : 'One item per line.'}
+              One item per line.
             </p>
           </div>
         </div>
@@ -572,9 +558,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               placeholder="0"
             />
             <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
-              {lang === 'ru'
-                ? `Валюта берётся из секции Costs (${form.cost_currency}).`
-                : `Currency is taken from the Costs section (${form.cost_currency}).`}
+              {`Currency is taken from the Costs section (${form.cost_currency}).`}
             </p>
           </div>
           <div>

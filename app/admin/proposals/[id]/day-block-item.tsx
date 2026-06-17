@@ -264,13 +264,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         {block.type === 'hotel' && (
           <div style={{ marginBottom: '10px' }}>
             <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-              {lang === 'ru' ? 'Тип номера' : 'Room type'} · {lang.toUpperCase()}
+              Room type · {lang.toUpperCase()}
             </label>
             <input
               type="text"
               value={noteForm[roomTypeKey]}
               onChange={(e) => setField(roomTypeKey, e.target.value)}
-              placeholder={lang === 'ru' ? 'Например: Deluxe City View, All Inclusive' : 'e.g.: Deluxe City View, All Inclusive'}
+              placeholder="e.g.: Deluxe City View, All Inclusive"
               style={{
                 width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
                 color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
@@ -284,13 +284,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
             <div>
               <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                {lang === 'ru' ? 'Откуда' : 'From'} · {lang.toUpperCase()}
+                From · {lang.toUpperCase()}
               </label>
               <input
                 type="text"
                 value={noteForm[fromKey]}
                 onChange={(e) => setField(fromKey, e.target.value)}
-                placeholder={lang === 'ru' ? 'Аэропорт Марселя' : 'Marseille Airport'}
+                placeholder="Marseille Airport"
                 style={{
                   width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
                   color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
@@ -300,13 +300,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
             </div>
             <div>
               <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                {lang === 'ru' ? 'Куда' : 'To'} · {lang.toUpperCase()}
+                To · {lang.toUpperCase()}
               </label>
               <input
                 type="text"
                 value={noteForm[toKey]}
                 onChange={(e) => setField(toKey, e.target.value)}
-                placeholder={lang === 'ru' ? 'Отель в Гордесе' : 'Hotel in Gordes'}
+                placeholder="Hotel in Gordes"
                 style={{
                   width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
                   color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
@@ -361,9 +361,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               value={currentNote}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              placeholder={lang === 'ru'
-                ? 'Например: Выезд из отеля в 6:30 утра. Гид встретит вас в холле.'
-                : 'e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.'}
+              placeholder="e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby."
               style={{
                 width: '100%',
                 padding: '8px 10px',

@@ -27,10 +27,10 @@ type Props = {
   onChange: (lines: CostLine[]) => void
 }
 
-const CATEGORIES: { key: CostLine['category']; titleRu: string; titleEn: string }[] = [
-  { key: 'hotel', titleRu: 'Отели', titleEn: 'Hotels' },
-  { key: 'transfer', titleRu: 'Трансферы', titleEn: 'Transfers' },
-  { key: 'activity', titleRu: 'Активности', titleEn: 'Activities' },
+const CATEGORIES: { key: CostLine['category']; title: string }[] = [
+  { key: 'hotel', title: 'Hotels' },
+  { key: 'transfer', title: 'Transfers' },
+  { key: 'activity', title: 'Activities' },
 ]
 
 const labelStyle: React.CSSProperties = {
@@ -112,7 +112,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
         return (
           <div key={cat.key}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '10px' }}>
-              {lang === 'ru' ? cat.titleRu : cat.titleEn}
+              {cat.title}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -137,19 +137,19 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                     gap: '10px',
                   }}>
                     <div>
-                      <label style={labelStyle}>{lang === 'ru' ? 'Название' : 'Label'}</label>
+                      <label style={labelStyle}>Label</label>
                       <input
                         type="text"
                         list={`sug-${line.category}-${lang}`}
                         value={line[labelKey]}
                         onChange={(e) => updateLine(line.id, { [labelKey]: e.target.value })}
                         style={inputStyle}
-                        placeholder={lang === 'ru' ? 'Например: Four Seasons Serengeti' : 'e.g.: Four Seasons Serengeti'}
+                        placeholder="e.g.: Four Seasons Serengeti"
                       />
                     </div>
                     {isHotel && (
                       <div>
-                        <label style={labelStyle}>{lang === 'ru' ? 'Ночей' : 'Nights'}</label>
+                        <label style={labelStyle}>Nights</label>
                         <input
                           type="number"
                           min={0}
@@ -165,25 +165,25 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                       </div>
                     )}
                     <div>
-                      <label style={labelStyle}>{lang === 'ru' ? 'Цена' : 'Price'}</label>
+                      <label style={labelStyle}>Price</label>
                       <input
                         type="text"
                         value={line.price}
                         onChange={(e) => updateLine(line.id, { price: e.target.value })}
                         style={inputStyle}
-                        placeholder={lang === 'ru' ? '13 539,75 за чел.' : '13,539.75 per person'}
+                        placeholder="13,539.75 per person"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label style={labelStyle}>{lang === 'ru' ? 'Описание' : 'Details'}</label>
+                    <label style={labelStyle}>Details</label>
                     <input
                       type="text"
                       value={line[detailsKey]}
                       onChange={(e) => updateLine(line.id, { [detailsKey]: e.target.value })}
                       style={inputStyle}
-                      placeholder={lang === 'ru' ? 'Deluxe City View, All Inclusive' : 'Deluxe City View, All Inclusive'}
+                      placeholder="Deluxe City View, All Inclusive"
                     />
                   </div>
 
@@ -202,7 +202,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                         fontFamily: 'inherit',
                       }}
                     >
-                      {lang === 'ru' ? '✕ Удалить' : '✕ Remove'}
+                      ✕ Remove
                     </button>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                 fontFamily: 'inherit',
               }}
             >
-              {lang === 'ru' ? `+ Добавить ${cat.titleRu.toLowerCase()}` : `+ Add ${cat.titleEn.toLowerCase()}`}
+              {`+ Add ${cat.title.toLowerCase()}`}
             </button>
           </div>
         )
