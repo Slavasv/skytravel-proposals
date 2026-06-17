@@ -33,21 +33,15 @@ type Lang = 'ru' | 'en'
 const T = {
   ru: {
     overview: 'Обзор', transfers: 'Трансферы', accommodation: 'Проживание',
-    colDay: 'День', colActivities: 'Программа дня', colTransfer: 'Трансфер',
-    colDates: 'Даты', colHotel: 'Отель', colNights: 'Ночей',
     emptyTransfers: 'Трансферы не указаны.', emptyAccommodation: 'Проживание не указано.',
     day: 'День',
   },
   en: {
     overview: 'Overview', transfers: 'Transfers', accommodation: 'Accommodation',
-    colDay: 'Day', colActivities: 'Activities', colTransfer: 'Transfer',
-    colDates: 'Dates', colHotel: 'Hotel', colNights: 'Nights',
     emptyTransfers: 'No transfers specified.', emptyAccommodation: 'No accommodation specified.',
     day: 'Day',
   },
 }
-
-const WEEKDAY: Record<Lang, Intl.DateTimeFormatOptions['weekday']> = { ru: 'long', en: 'long' }
 
 function fmtDate(dateStr: string | null, lang: Lang): string {
   if (!dateStr) return ''
@@ -60,7 +54,7 @@ function fmtWeekday(dateStr: string | null, lang: Lang): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: WEEKDAY[lang] })
+  return d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: 'long' })
 }
 
 function fmtShort(dateStr: string | null, lang: Lang): string {
@@ -90,7 +84,7 @@ function nightsWord(n: number, lang: Lang): string {
 type Tab = 'overview' | 'transfers' | 'accommodation'
 
 const cellTd: React.CSSProperties = { padding: '14px 16px', borderTop: '1px solid #ECEAE3', verticalAlign: 'top', fontSize: '15px', color: '#2C2C2A', lineHeight: 1.5 }
-const cellTh: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#888780', fontWeight: 600, background: '#F5F3EE' }
+
 const dayCellSub: React.CSSProperties = { fontSize: '13px', color: '#888780' }
 
 export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]; lang: Lang; endDate: string | null }) {
