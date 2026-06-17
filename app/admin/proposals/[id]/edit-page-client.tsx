@@ -4,6 +4,7 @@ import { useState } from 'react'
 import ProposalForm from './proposal-form'
 import ProposalActions from './proposal-actions'
 import DaysSection from './days-section'
+import type { CostLine } from './cost-lines'
 
 type Proposal = {
   id: string
@@ -21,6 +22,18 @@ type Proposal = {
   cover_image_url: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  payment_terms_ru: string | null
+  payment_terms_en: string | null
+  cancellation_policy_ru: string | null
+  cancellation_policy_en: string | null
+  cost_currency: string | null
+  cost_includes_ru: string | null
+  cost_includes_en: string | null
+  cost_excludes_ru: string | null
+  cost_excludes_en: string | null
+  cost_notes_ru: string | null
+  cost_notes_en: string | null
+  cost_lines: CostLine[] | null
 }
 
 export type ContentBlock = {

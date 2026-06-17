@@ -116,6 +116,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
   }
 
   return (
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#2C2C2A' }}>
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: '#2C2C2A' }}>
       {proposal.cover_image_url && (
         <div
@@ -359,6 +360,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         {company?.name ?? 'Sky Travel'}
         {company?.contact_email ? ` · ${company.contact_email}` : ''}
       </div>
+    </div>
     </div>
   )
 }
