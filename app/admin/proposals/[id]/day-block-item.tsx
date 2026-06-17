@@ -38,6 +38,12 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   const [noteForm, setNoteForm] = useState({
     custom_note_ru: dayBlock.custom_note_ru || '',
     custom_note_en: dayBlock.custom_note_en || '',
+    room_type_ru: dayBlock.room_type_ru || '',
+    room_type_en: dayBlock.room_type_en || '',
+    from_ru: dayBlock.from_ru || '',
+    from_en: dayBlock.from_en || '',
+    to_ru: dayBlock.to_ru || '',
+    to_en: dayBlock.to_en || '',
   })
 
   const hasExistingNote = (lang === 'ru' ? noteForm.custom_note_ru : noteForm.custom_note_en).length > 0
@@ -56,9 +62,17 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   const description = lang === 'ru' ? block.description_ru : block.description_en
 
   const noteKey = lang === 'ru' ? 'custom_note_ru' : 'custom_note_en'
+  const roomTypeKey = lang === 'ru' ? 'room_type_ru' : 'room_type_en'
+  const fromKey = lang === 'ru' ? 'from_ru' : 'from_en'
+  const toKey = lang === 'ru' ? 'to_ru' : 'to_en'
 
   function setNote(value: string) {
     setNoteForm((prev) => ({ ...prev, [noteKey]: value }))
+    setSaveState('editing')
+  }
+
+  function setField(key: keyof typeof noteForm, value: string) {
+    setNoteForm((prev) => ({ ...prev, [key]: value }))
     setSaveState('editing')
   }
 
@@ -71,6 +85,12 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         await updateDayBlock(dayBlock.id, {
           custom_note_ru: currentForm.custom_note_ru || null,
           custom_note_en: currentForm.custom_note_en || null,
+          room_type_ru: currentForm.room_type_ru || null,
+          room_type_en: currentForm.room_type_en || null,
+          from_ru: currentForm.from_ru || null,
+          from_en: currentForm.from_en || null,
+          to_ru: currentForm.to_ru || null,
+          to_en: currentForm.to_en || null,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -239,6 +259,62 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           <p style={{ fontSize: '12px', lineHeight: 1.5, color: '#888780', margin: '0 0 10px' }}>
             {description}
           </p>
+        )}
+
+        {block.type === 'hotel' && (
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+              {lang === 'ru' ? 'Тип номера' : 'Room type'} · {lang.toUpperCase()}
+            </label>
+            <input
+              type="text"
+              value={noteForm[roomTypeKey]}
+              onChange={(e) => setField(roomTypeKey, e.target.value)}
+              placeholder={lang === 'ru' ? 'Например: Deluxe City View, All Inclusive' : 'e.g.: Deluxe City View, All Inclusive'}
+              style={{
+                width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        )}
+
+        {block.type === 'transfer' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                {lang === 'ru' ? 'Откуда' : 'From'} · {lang.toUpperCase()}
+              </label>
+              <input
+                type="text"
+                value={noteForm[fromKey]}
+                onChange={(e) => setField(fromKey, e.target.value)}
+                placeholder={lang === 'ru' ? 'Аэропорт Марселя' : 'Marseille Airport'}
+                style={{
+                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                  color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                {lang === 'ru' ? 'Куда' : 'To'} · {lang.toUpperCase()}
+              </label>
+              <input
+                type="text"
+                value={noteForm[toKey]}
+                onChange={(e) => setField(toKey, e.target.value)}
+                placeholder={lang === 'ru' ? 'Отель в Гордесе' : 'Hotel in Gordes'}
+                style={{
+                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                  color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {!noteEditorOpen ? (

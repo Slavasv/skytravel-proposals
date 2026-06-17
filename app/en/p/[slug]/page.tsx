@@ -72,6 +72,12 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
         sort_order,
         custom_note_ru,
         custom_note_en,
+        room_type_ru,
+        room_type_en,
+        from_ru,
+        from_en,
+        to_ru,
+        to_en,
         content_blocks (
           id, type, title_ru, title_en, description_ru, description_en, image_url, location
         )

@@ -6,6 +6,12 @@ import { revalidatePath } from 'next/cache'
 export type DayBlockUpdate = {
   custom_note_ru?: string | null
   custom_note_en?: string | null
+  room_type_ru?: string | null
+  room_type_en?: string | null
+  from_ru?: string | null
+  from_en?: string | null
+  to_ru?: string | null
+  to_en?: string | null
 }
 
 type CityJoin = { country_id: string; name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }

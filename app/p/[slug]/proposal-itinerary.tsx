@@ -12,6 +12,12 @@ type Block = {
 type DayBlock = {
   id: string
   sort_order: number
+  room_type_ru: string | null
+  room_type_en: string | null
+  from_ru: string | null
+  from_en: string | null
+  to_ru: string | null
+  to_en: string | null
   content_blocks: Block
 }
 
@@ -113,7 +119,7 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
 
   // Accommodation: собрать отели по порядку, посчитать ночи (заезд = дата дня, выезд = след. отель или endDate)
   const hotelStops = sortedDays.flatMap((d) =>
-    d.day_blocks.filter((b) => b.content_blocks?.type === 'hotel').map((b) => ({ day: d, block: b.content_blocks }))
+    d.day_blocks.filter((b) => b.content_blocks?.type === 'hotel').map((b) => ({ day: d, block: b.content_blocks, db: b }))
   )
   const accommodation = hotelStops.map((stop, i) => {
     const checkIn = stop.day.date
@@ -169,7 +175,17 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
                 {rows.map(({ d, blocks }) => (
                   <tr key={d.id}>
                     {dayCell(d)}
-                    <td style={cellTd}>{blocks.map((b) => (<div key={b.id} style={{ marginBottom: '4px' }}>{pick(b.content_blocks?.title_ru, b.content_blocks?.title_en) || '—'}</div>))}</td>
+                    <td style={cellTd}>{blocks.map((b) => {
+                      const from = pick(b.from_ru, b.from_en)
+                      const to = pick(b.to_ru, b.to_en)
+                      const route = from || to ? `${from || '—'} → ${to || '—'}` : ''
+                      return (
+                        <div key={b.id} style={{ marginBottom: '8px' }}>
+                          <div>{pick(b.content_blocks?.title_ru, b.content_blocks?.title_en) || '—'}</div>
+                          {route && <div style={{ fontSize: '13px', color: '#888780', marginTop: '2px' }}>{route}</div>}
+                        </div>
+                      )
+                    })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -181,15 +197,19 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
           accommodation.length === 0 ? <tbody><tr><td style={cellTd} colSpan={3}><span style={{ color: '#888780' }}>{t.emptyAccommodation}</span></td></tr></tbody> : (
             <>
               <tbody>
-                {accommodation.map((a, i) => (
-                  <tr key={`${a.block.id}-${i}`}>
-                    <td style={{ ...cellTd, width: '150px' }}>
-                      {a.checkIn || a.checkOut ? <span style={dayCellSub}>{fmtShort(a.checkIn, lang)}{a.checkOut ? ` – ${fmtShort(a.checkOut, lang)}` : ''}</span> : <span style={{ color: '#B5B3AC' }}>—</span>}
-                    </td>
-                    <td style={cellTd}>{pick(a.block.title_ru, a.block.title_en) || '—'}</td>
-                    <td style={{ ...cellTd, textAlign: 'right' }}>{a.nights != null ? `${a.nights} ${nightsWord(a.nights, lang)}` : '—'}</td>
-                  </tr>
-                ))}
+                {accommodation.map((a, i) => {
+                  const roomType = pick(a.db.room_type_ru, a.db.room_type_en)
+                  return (
+                    <tr key={`${a.block.id}-${i}`}>
+                      <td style={{ ...cellTd, width: '150px' }}>
+                        {a.checkIn || a.checkOut ? <span style={dayCellSub}>{fmtShort(a.checkIn, lang)}{a.checkOut ? ` – ${fmtShort(a.checkOut, lang)}` : ''}</span> : <span style={{ color: '#B5B3AC' }}>—</span>}
+                      </td>
+                      <td style={cellTd}>{pick(a.block.title_ru, a.block.title_en) || '—'}</td>
+                      <td style={cellTd}>{roomType || <span style={{ color: '#B5B3AC' }}>—</span>}</td>
+                      <td style={{ ...cellTd, textAlign: 'right' }}>{a.nights != null ? `${a.nights} ${nightsWord(a.nights, lang)}` : '—'}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </>
           )
