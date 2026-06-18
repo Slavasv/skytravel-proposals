@@ -4,6 +4,37 @@
   --background: #ffffff;
   --foreground: #171717;
   color-scheme: light;
+
+  /* ===== CLIENT (светлая клиентская страница) ===== */
+  --client-bg: #ffffff;
+  --client-text: #2C2C2A;
+  --client-text-secondary: #5F5E5A;
+  --client-text-muted: #888780;
+  --client-text-faint: #B5B3AC;
+  --client-text-on-dark: #FAF8F4;
+  --client-border: #D3D1C7;
+  --client-border-row: #ECEAE3;
+  --client-note-text: #854F0B;
+  --client-note-bg: #FAEEDA;
+  --client-dark-panel: #2C2C2A;
+
+  /* ===== ADMIN (тёмная админка) ===== */
+  --admin-bg: #0D0D0D;
+  --admin-card: #121212;
+  --admin-input: #1A1A1A;
+  --admin-text: #E5E2DA;
+  --admin-text-muted: #888780;
+  --admin-text-faint: #666666;
+  --admin-border: #333333;
+  --admin-border-card: #2A2A28;
+  --admin-border-hover: #444444;
+  --admin-accent: #C8A862;
+  --admin-danger: #E07B7B;
+  --admin-success: #7AA876;
+  --admin-dark-panel: #2C2C2A;
+
+  /* ===== BRAND (акцент бренда, по умолчанию; на клиентской переопределяется из БД) ===== */
+  --brand-accent: #C9A227;
 }
 
 @theme inline {

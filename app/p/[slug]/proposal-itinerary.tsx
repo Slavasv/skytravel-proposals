@@ -83,9 +83,9 @@ function nightsWord(n: number, lang: Lang): string {
 
 type Tab = 'overview' | 'transfers' | 'accommodation'
 
-const cellTd: React.CSSProperties = { padding: '14px 16px', borderTop: '1px solid #ECEAE3', verticalAlign: 'top', fontSize: '15px', color: '#2C2C2A', lineHeight: 1.5 }
+const cellTd: React.CSSProperties = { padding: '14px 16px', borderTop: '1px solid var(--client-border-row)', verticalAlign: 'top', fontSize: '15px', color: 'var(--client-text)', lineHeight: 1.5 }
 
-const dayCellSub: React.CSSProperties = { fontSize: '13px', color: '#888780' }
+const dayCellSub: React.CSSProperties = { fontSize: '13px', color: 'var(--client-text-muted)' }
 
 export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]; lang: Lang; endDate: string | null }) {
   const [tab, setTab] = useState<Tab>('overview')
@@ -124,15 +124,15 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
   return (
     <div style={{ marginBottom: '56px' }}>
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid #ECEAE3' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--client-border-row)' }}>
         {tabs.map((tb) => {
           const active = tab === tb.key
           return (
             <button key={tb.key} type="button" onClick={() => setTab(tb.key)}
               style={{
                 padding: '10px 16px', fontSize: '14px', fontWeight: active ? 600 : 400,
-                color: active ? '#2C2C2A' : '#888780', background: 'transparent', border: 'none',
-                borderBottom: active ? '2px solid #2C2C2A' : '2px solid transparent', marginBottom: '-1px',
+                color: active ? 'var(--client-text)' : 'var(--client-text-muted)', background: 'transparent', border: 'none',
+                borderBottom: active ? '2px solid var(--client-text)' : '2px solid transparent', marginBottom: '-1px',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}>
               {tb.label}
@@ -149,7 +149,7 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
                 <tr key={d.id}>
                   {dayCell(d)}
                   <td style={cellTd}>
-                    {d.day_blocks.length === 0 ? <span style={{ color: '#B5B3AC' }}>—</span> :
+                    {d.day_blocks.length === 0 ? <span style={{ color: 'var(--client-text-faint)' }}>—</span> :
                       d.day_blocks.map((b) => (
                         <div key={b.id} style={{ marginBottom: '4px' }}>{pick(b.content_blocks?.title_ru, b.content_blocks?.title_en) || '—'}</div>
                       ))}
@@ -162,7 +162,7 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
 
         {tab === 'transfers' && (() => {
           const rows = sortedDays.map((d) => ({ d, blocks: d.day_blocks.filter((b) => b.content_blocks?.type === 'transfer') })).filter((x) => x.blocks.length > 0)
-          if (rows.length === 0) return <tbody><tr><td style={cellTd} colSpan={2}><span style={{ color: '#888780' }}>{t.emptyTransfers}</span></td></tr></tbody>
+          if (rows.length === 0) return <tbody><tr><td style={cellTd} colSpan={2}><span style={{ color: 'var(--client-text-muted)' }}>{t.emptyTransfers}</span></td></tr></tbody>
           return (
             <>
               <tbody>
@@ -176,7 +176,7 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
                       return (
                         <div key={b.id} style={{ marginBottom: '8px' }}>
                           <div>{pick(b.content_blocks?.title_ru, b.content_blocks?.title_en) || '—'}</div>
-                          {route && <div style={{ fontSize: '13px', color: '#888780', marginTop: '2px' }}>{route}</div>}
+                          {route && <div style={{ fontSize: '13px', color: 'var(--client-text-muted)', marginTop: '2px' }}>{route}</div>}
                         </div>
                       )
                     })}</td>
@@ -188,7 +188,7 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
         })()}
 
         {tab === 'accommodation' && (
-          accommodation.length === 0 ? <tbody><tr><td style={cellTd} colSpan={3}><span style={{ color: '#888780' }}>{t.emptyAccommodation}</span></td></tr></tbody> : (
+          accommodation.length === 0 ? <tbody><tr><td style={cellTd} colSpan={3}><span style={{ color: 'var(--client-text-muted)' }}>{t.emptyAccommodation}</span></td></tr></tbody> : (
             <>
               <tbody>
                 {accommodation.map((a, i) => {
@@ -196,10 +196,10 @@ export default function ProposalItinerary({ days, lang, endDate }: { days: Day[]
                   return (
                     <tr key={`${a.block.id}-${i}`}>
                       <td style={{ ...cellTd, width: '150px' }}>
-                        {a.checkIn || a.checkOut ? <span style={dayCellSub}>{fmtShort(a.checkIn, lang)}{a.checkOut ? ` – ${fmtShort(a.checkOut, lang)}` : ''}</span> : <span style={{ color: '#B5B3AC' }}>—</span>}
+                        {a.checkIn || a.checkOut ? <span style={dayCellSub}>{fmtShort(a.checkIn, lang)}{a.checkOut ? ` – ${fmtShort(a.checkOut, lang)}` : ''}</span> : <span style={{ color: 'var(--client-text-faint)' }}>—</span>}
                       </td>
                       <td style={cellTd}>{pick(a.block.title_ru, a.block.title_en) || '—'}</td>
-                      <td style={cellTd}>{roomType || <span style={{ color: '#B5B3AC' }}>—</span>}</td>
+                      <td style={cellTd}>{roomType || <span style={{ color: 'var(--client-text-faint)' }}>—</span>}</td>
                       <td style={{ ...cellTd, textAlign: 'right' }}>{a.nights != null ? `${a.nights} ${nightsWord(a.nights, lang)}` : '—'}</td>
                     </tr>
                   )

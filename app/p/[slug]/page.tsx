@@ -58,13 +58,11 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
     notFound()
   }
 
-  // Засчитываем открытие proposal клиентом (счётчик + дата последнего просмотра)
   await supabase.rpc('increment_proposal_views', { p_slug: slug })
 
-  // Подтягиваем бренд (компанию) этого proposal — для метки и футера
   const { data: company } = await supabase
     .from('companies')
-    .select('name, contact_email')
+    .select('name, contact_email, accent_color')
     .eq('id', proposal.company_id)
     .single()
 
@@ -91,7 +89,6 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
     .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
 
-  // Подсчёт блоков по типам
   const typeCounts = { hotel: 0, activity: 0, city: 0 }
   days?.forEach((day) => {
     day.day_blocks?.forEach((db: BlockShape) => {
@@ -116,8 +113,8 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#2C2C2A' }}>
-    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: '#2C2C2A' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--client-bg)', color: 'var(--client-text)', ['--brand-accent' as string]: company?.accent_color || '#C9A227' } as React.CSSProperties}>
+    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px', fontFamily: 'system-ui', color: 'var(--client-text)' }}>
       {proposal.cover_image_url && (
         <div
           className="client-cover"
@@ -145,7 +142,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         </div>
       )}
 
-      <div style={{ color: '#5F5E5A', fontSize: '14px', marginBottom: '32px', lineHeight: 1.6 }}>
+      <div style={{ color: 'var(--client-text-secondary)', fontSize: '14px', marginBottom: '32px', lineHeight: 1.6 }}>
         Для {proposal.client_name_ru || '—'} · {proposal.guest_count} {pluralRu(proposal.guest_count ?? 0, 'гость', 'гостя', 'гостей')} · {formatDateRu(proposal.start_date)} → {formatDateRu(proposal.end_date)}
         {summaryParts.length > 0 && (
           <> · {summaryParts.join(' · ')}</>
@@ -153,14 +150,14 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
       </div>
 
       {proposal.intro_text_ru && (
-        <p style={{ fontSize: '17px', lineHeight: 1.7, marginBottom: '48px', color: '#444441' }}>
+        <p style={{ fontSize: '17px', lineHeight: 1.7, marginBottom: '48px', color: 'var(--client-text)' }}>
           {proposal.intro_text_ru}
         </p>
       )}
 
       <ProposalItinerary days={days ?? []} lang="ru" endDate={proposal.end_date} />
 
-      <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
+      <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid var(--client-border)', paddingBottom: '12px' }}>
         Программа путешествия
       </h2>
 
@@ -171,14 +168,14 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
 
         return (
           <div key={day.id} style={{ marginBottom: '48px' }}>
-            <div style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888780', marginBottom: '4px' }}>
+            <div style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--client-text-muted)', marginBottom: '4px' }}>
               День {day.day_number} · {formatDateRu(day.date)}
             </div>
-            <h3 style={{ fontSize: '24px', fontWeight: 400, margin: '0 0 12px', color: '#2C2C2A' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 400, margin: '0 0 12px', color: 'var(--client-text)' }}>
               {day.title_ru}
             </h3>
             {day.intro_text_ru && (
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#5F5E5A', marginBottom: '24px' }}>
+              <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--client-text-secondary)', marginBottom: '24px' }}>
                 {day.intro_text_ru}
               </p>
             )}
@@ -201,17 +198,17 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
                     />
                   )}
                   <div>
-                    <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--client-text-muted)', marginBottom: '4px' }}>
                       {block.type}
                     </div>
                     <div style={{ fontSize: '17px', fontWeight: 500, marginBottom: '6px' }}>
                       {block.title_ru}
                     </div>
-                    <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#5F5E5A', margin: 0 }}>
+                    <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--client-text-secondary)', margin: 0 }}>
                       {block.description_ru}
                     </p>
                     {db.custom_note_ru && (
-                      <div style={{ fontSize: '13px', color: '#854F0B', backgroundColor: '#FAEEDA', padding: '8px 12px', borderRadius: '4px', marginTop: '10px' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--client-note-text)', backgroundColor: 'var(--client-note-bg)', padding: '8px 12px', borderRadius: '4px', marginTop: '10px' }}>
                         {db.custom_note_ru}
                       </div>
                     )}
@@ -225,16 +222,16 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
 
       {(proposal.payment_terms_ru || proposal.cancellation_policy_ru) && (
         <div style={{ marginTop: '64px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid var(--client-border)', paddingBottom: '12px' }}>
             Условия
           </h2>
 
           {proposal.payment_terms_ru && (
             <div style={{ marginBottom: '32px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>
                 Условия оплаты
               </h3>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--client-text-secondary)' }}>
                 {proposal.payment_terms_ru.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
                   <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
                 ))}
@@ -244,10 +241,10 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
 
           {proposal.cancellation_policy_ru && (
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>
                 Политика отмены
               </h3>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--client-text-secondary)' }}>
                 {proposal.cancellation_policy_ru.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
                   <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
                 ))}
@@ -276,7 +273,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         ]
 
         const renderBullets = (text: string) => (
-          <ul style={{ margin: 0, paddingLeft: '20px', color: '#5F5E5A' }}>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--client-text-secondary)' }}>
             {text.split('\n').filter((l) => l.trim()).map((line, i) => (
               <li key={i} style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '6px' }}>{line}</li>
             ))}
@@ -285,7 +282,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
 
         return (
           <div style={{ marginTop: '64px' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid #D3D1C7', paddingBottom: '12px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid var(--client-border)', paddingBottom: '12px' }}>
               Стоимость
             </h2>
 
@@ -294,24 +291,24 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
               if (catLines.length === 0) return null
               return (
                 <div key={cat.key} style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>
                     {cat.title}
                   </h3>
                   {catLines.map((line) => (
-                    <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '10px 0', borderBottom: '1px solid #ECEAE3' }}>
+                    <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '10px 0', borderBottom: '1px solid var(--client-border-row)' }}>
                       <div>
-                        <div style={{ fontSize: '15px', color: '#2C2C2A' }}>
+                        <div style={{ fontSize: '15px', color: 'var(--client-text)' }}>
                           {line.label_ru || '—'}
                           {line.nights != null && (
-                            <span style={{ color: '#888780' }}> · {line.nights} {line.nights === 1 ? 'ночь' : (line.nights >= 2 && line.nights <= 4 ? 'ночи' : 'ночей')}</span>
+                            <span style={{ color: 'var(--client-text-muted)' }}> · {line.nights} {line.nights === 1 ? 'ночь' : (line.nights >= 2 && line.nights <= 4 ? 'ночи' : 'ночей')}</span>
                           )}
                         </div>
                         {line.details_ru && (
-                          <div style={{ fontSize: '13px', color: '#888780', marginTop: '2px' }}>{line.details_ru}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--client-text-muted)', marginTop: '2px' }}>{line.details_ru}</div>
                         )}
                       </div>
                       {line.price && (
-                        <div style={{ fontSize: '15px', color: '#2C2C2A', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '15px', color: 'var(--client-text)', whiteSpace: 'nowrap' }}>
                           {line.price} {cur}
                         </div>
                       )}
@@ -323,27 +320,27 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
 
             {proposal.cost_includes_ru && (
               <div style={{ marginTop: '32px', marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>В стоимость включено</h3>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>В стоимость включено</h3>
                 {renderBullets(proposal.cost_includes_ru)}
               </div>
             )}
 
             {proposal.cost_excludes_ru && (
               <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>В стоимость не включено</h3>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>В стоимость не включено</h3>
                 {renderBullets(proposal.cost_excludes_ru)}
               </div>
             )}
 
             {proposal.cost_notes_ru && (
               <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: '#2C2C2A' }}>Примечания</h3>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px', color: 'var(--client-text)' }}>Примечания</h3>
                 {renderBullets(proposal.cost_notes_ru)}
               </div>
             )}
 
             {proposal.total_price != null && (
-              <div style={{ marginTop: '24px', padding: '24px 32px', background: '#2C2C2A', color: '#FAF8F4', textAlign: 'center', borderRadius: '8px' }}>
+              <div style={{ marginTop: '24px', padding: '24px 32px', background: 'var(--client-dark-panel)', color: 'var(--client-text-on-dark)', textAlign: 'center', borderRadius: '8px' }}>
                 <div style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.7 }}>
                   Итого
                 </div>
@@ -356,7 +353,7 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
         )
       })()}
 
-      <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: '#888780' }}>
+      <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--client-text-muted)' }}>
         {company?.name ?? 'Sky Travel'}
         {company?.contact_email ? ` · ${company.contact_email}` : ''}
       </div>
