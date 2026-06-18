@@ -13,6 +13,7 @@ type BlockShape = {
     title_en: string
     description_en: string
     image_url: string
+    images: string[] | null
     location: string
   }
   custom_note_en: string | null
