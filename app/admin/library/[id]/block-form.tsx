@@ -7,6 +7,7 @@ import { addBlockToDay } from '@/app/admin/proposals/[id]/block-actions'
 import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
+import GalleryUploader from './gallery-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
@@ -19,6 +20,7 @@ type Block = {
   description_ru: string | null
   description_en: string | null
   image_url: string | null
+  images: string[] | null
   location: string | null
   tags: string[] | null
   notable_amenities_ru: string | null
@@ -88,6 +90,7 @@ export default function BlockForm({ block }: { block: Block }) {
     description_ru: block.description_ru || '',
     description_en: block.description_en || '',
     image_url: block.image_url || '',
+    images: (block.images ?? []) as string[],
     location: block.location || '',
     tags: block.tags || [],
     // hotel
@@ -133,6 +136,7 @@ export default function BlockForm({ block }: { block: Block }) {
           description_ru: currentForm.description_ru || null,
           description_en: currentForm.description_en || null,
           image_url: currentForm.image_url || null,
+          images: currentForm.images,
           location: currentForm.location || null,
           tags: currentForm.tags,
           notable_amenities_ru: currentForm.type === 'hotel' ? (currentForm.notable_amenities_ru || null) : null,
@@ -370,6 +374,20 @@ export default function BlockForm({ block }: { block: Block }) {
               onChange={(url) => set('image_url', url)}
               label="Cover image"
               height={200}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+              Shown first in the client gallery. If empty, the first gallery photo is used instead.
+            </p>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Gallery (additional photos)</label>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
+              Extra photos shown to the client as a gallery. Drag to reorder.
+            </p>
+            <GalleryUploader
+              images={form.images}
+              onChange={(imgs) => set('images', imgs)}
             />
           </div>
         </div>

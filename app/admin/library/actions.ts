@@ -15,6 +15,7 @@ export type BlockUpdate = {
   description_ru?: string | null
   description_en?: string | null
   image_url?: string | null
+  images?: string[]
   location?: string | null
   tags?: string[]
   notable_amenities_ru?: string | null

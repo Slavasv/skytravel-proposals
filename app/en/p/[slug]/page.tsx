@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import ProposalItinerary from '@/app/p/[slug]/proposal-itinerary'
+import BlockGallery from '@/app/p/[slug]/block-gallery'
 
 type Params = { slug: string }
 
@@ -77,7 +78,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
         to_ru,
         to_en,
         content_blocks (
-          id, type, title_ru, title_en, description_ru, description_en, image_url, location
+          id, type, title_ru, title_en, description_ru, description_en, image_url, images, location
         )
       )
     `)
@@ -179,19 +180,14 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
               const block = db.content_blocks
               return (
                 <div key={db.id} className="client-block" style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>
-                  {block.image_url && (
-                    <div
-                      className="client-block-image"
-                      style={{
-                        width: '160px',
-                        height: '110px',
-                        backgroundImage: `url(${block.image_url})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        borderRadius: '6px',
-                      }}
-                    />
-                  )}
+                  {(() => {
+                    const photos = [block.image_url, ...(Array.isArray(block.images) ? block.images : [])].filter(Boolean) as string[]
+                    return photos.length > 0 ? (
+                      <div className="client-block-image">
+                        <BlockGallery photos={photos} alt={block.title_en || ''} width={160} height={110} />
+                      </div>
+                    ) : null
+                  })()}
                   <div>
                     <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--client-text-muted)', marginBottom: '4px' }}>
                       {block.type}
