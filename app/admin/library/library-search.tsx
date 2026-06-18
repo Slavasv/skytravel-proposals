@@ -93,9 +93,9 @@ export default function LibrarySearch({
             padding: '10px 14px',
             paddingLeft: '38px',
             fontSize: '14px',
-            color: '#E5E2DA',
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            color: 'var(--admin-text)',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '8px',
             fontFamily: 'inherit',
             boxSizing: 'border-box',
@@ -108,7 +108,7 @@ export default function LibrarySearch({
           left: '14px',
           top: '50%',
           transform: 'translateY(-50%)',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '14px',
           pointerEvents: 'none',
         }}>
@@ -125,15 +125,15 @@ export default function LibrarySearch({
               transform: 'translateY(-50%)',
               background: 'transparent',
               border: 'none',
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               fontSize: '14px',
               cursor: 'pointer',
               padding: '4px 8px',
               fontFamily: 'inherit',
               transition: 'color 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#E5E2DA' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#888780' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)' }}
           >
             ×
           </button>
@@ -175,22 +175,22 @@ export default function LibrarySearch({
                   fontSize: '13px',
                   borderRadius: '999px',
                   textDecoration: 'none',
-                  background: isActive ? '#FAF8F4' : 'transparent',
-                  color: isActive ? '#2C2C2A' : '#888780',
-                  border: `1px solid ${isActive ? '#FAF8F4' : '#333'}`,
+                  background: isActive ? 'var(--admin-text-on-dark)' : 'transparent',
+                  color: isActive ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+                  border: `1px solid ${isActive ? 'var(--admin-text-on-dark)' : 'var(--admin-border)'}`,
                   fontWeight: isActive ? 500 : 400,
                   transition: 'color 0.15s, border-color 0.15s, background 0.15s',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.color = '#E5E2DA'
-                    e.currentTarget.style.borderColor = '#555'
+                    e.currentTarget.style.color = 'var(--admin-text)'
+                    e.currentTarget.style.borderColor = 'var(--admin-text-faint)'
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.color = '#888780'
-                    e.currentTarget.style.borderColor = '#333'
+                    e.currentTarget.style.color = 'var(--admin-text-muted)'
+                    e.currentTarget.style.borderColor = 'var(--admin-border)'
                   }
                 }}
               >
@@ -210,22 +210,22 @@ export default function LibrarySearch({
             fontSize: '13px',
             borderRadius: '999px',
             textDecoration: 'none',
-            background: showArchived ? '#2A2A28' : 'transparent',
-            color: showArchived ? '#E5E2DA' : '#888780',
-            border: `1px solid ${showArchived ? '#444' : '#333'}`,
+            background: showArchived ? 'var(--admin-border-card)' : 'transparent',
+            color: showArchived ? 'var(--admin-text)' : 'var(--admin-text-muted)',
+            border: `1px solid ${showArchived ? 'var(--admin-border-hover)' : 'var(--admin-border)'}`,
             fontWeight: showArchived ? 500 : 400,
             transition: 'color 0.15s, border-color 0.15s, background 0.15s',
           }}
           onMouseEnter={(e) => {
             if (!showArchived) {
-              e.currentTarget.style.color = '#E5E2DA'
-              e.currentTarget.style.borderColor = '#555'
+              e.currentTarget.style.color = 'var(--admin-text)'
+              e.currentTarget.style.borderColor = 'var(--admin-text-faint)'
             }
           }}
           onMouseLeave={(e) => {
             if (!showArchived) {
-              e.currentTarget.style.color = '#888780'
-              e.currentTarget.style.borderColor = '#333'
+              e.currentTarget.style.color = 'var(--admin-text-muted)'
+              e.currentTarget.style.borderColor = 'var(--admin-border)'
             }
           }}
         >

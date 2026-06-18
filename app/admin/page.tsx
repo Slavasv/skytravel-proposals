@@ -55,8 +55,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     borderRadius: '6px',
     textDecoration: 'none',
     letterSpacing: '0.03em',
-    background: !showAll ? '#FAF8F4' : 'transparent',
-    color: !showAll ? '#2C2C2A' : '#888780',
+    background: !showAll ? 'var(--admin-text-on-dark)' : 'transparent',
+    color: !showAll ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
   }
 
   const allLinkStyle: React.CSSProperties = {
@@ -66,8 +66,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     borderRadius: '6px',
     textDecoration: 'none',
     letterSpacing: '0.03em',
-    background: showAll ? '#FAF8F4' : 'transparent',
-    color: showAll ? '#2C2C2A' : '#888780',
+    background: showAll ? 'var(--admin-text-on-dark)' : 'transparent',
+    color: showAll ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
   }
 
   return (
@@ -77,7 +77,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
           <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
             Proposals
           </h1>
-          <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+          <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
             {proposals.length} {proposals.length === 1 ? 'proposal' : 'proposals'}
             {activeStatus && ` · filtered by ${activeStatus}`}
           </p>
@@ -85,7 +85,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAdmin && (
-            <div style={{ display: 'flex', gap: '2px', background: '#2A2A28', borderRadius: '8px', padding: '3px' }}>
+            <div style={{ display: 'flex', gap: '2px', background: 'var(--admin-border-card)', borderRadius: '8px', padding: '3px' }}>
               <a href="/admin" style={myLinkStyle}>My</a>
               <a href="/admin?view=all" style={allLinkStyle}>All</a>
             </div>
@@ -99,8 +99,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 fontSize: '13px',
                 fontWeight: 500,
                 letterSpacing: '0.03em',
-                background: '#FAF8F4',
-                color: '#2C2C2A',
+                background: 'var(--admin-text-on-dark)',
+                color: 'var(--admin-dark-panel)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -116,7 +116,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       <StatusFilter current={activeStatus} counts={counts} />
 
       {proposals.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#888780', border: '1px dashed #555', borderRadius: '8px', fontSize: '14px' }}>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
           {activeStatus
             ? `No proposals with status "${activeStatus}".`
             : 'No proposals yet. Click + New proposal to create one.'}

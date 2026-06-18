@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isSuperadmin = profile?.role === 'superadmin'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0d', color: '#E5E2DA' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}>
       <AdminHeader isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} />
       {children}
     </div>

@@ -210,13 +210,13 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
           maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
-          background: '#141414',
-          border: '1px solid #2A2A28',
+          background: 'var(--admin-card)',
+          border: '1px solid var(--admin-border-card)',
           borderRadius: '10px',
           boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
           zIndex: 101,
           fontFamily: 'system-ui',
-          color: '#E5E2DA',
+          color: 'var(--admin-text)',
         }}
       >
         {/* Header */}
@@ -225,7 +225,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '20px 24px',
-          borderBottom: '1px solid #2A2A28',
+          borderBottom: '1px solid var(--admin-border-card)',
         }}>
           <div>
             <h2 id="add-block-title" style={{
@@ -236,7 +236,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
             }}>
               Add block to Day {dayNumber}
             </h2>
-            <p style={{ margin: 0, fontSize: '12px', color: '#888780' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--admin-text-muted)' }}>
               {filtered.length} of {blocks.length} blocks
             </p>
           </div>
@@ -247,7 +247,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               fontSize: '22px',
               lineHeight: 1,
               cursor: 'pointer',
@@ -261,7 +261,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
         </div>
 
         {/* Search + filters */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #2A2A28' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--admin-border-card)' }}>
           <div style={{ position: 'relative', marginBottom: '12px' }}>
             <input
               type="text"
@@ -274,9 +274,9 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 padding: '10px 14px',
                 paddingLeft: '38px',
                 fontSize: '14px',
-                color: '#E5E2DA',
-                background: '#1a1a1a',
-                border: '1px solid #333',
+                color: 'var(--admin-text)',
+                background: 'var(--admin-input)',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '8px',
                 fontFamily: 'inherit',
                 boxSizing: 'border-box',
@@ -288,7 +288,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
               left: '14px',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               fontSize: '14px',
               pointerEvents: 'none',
             }}>
@@ -305,7 +305,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                   transform: 'translateY(-50%)',
                   background: 'transparent',
                   border: 'none',
-                  color: '#888780',
+                  color: 'var(--admin-text-muted)',
                   fontSize: '14px',
                   cursor: 'pointer',
                   padding: '4px 8px',
@@ -349,9 +349,9 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                       padding: '5px 12px',
                       fontSize: '12px',
                       borderRadius: '999px',
-                      background: isActive ? '#FAF8F4' : 'transparent',
-                      color: isActive ? '#2C2C2A' : '#888780',
-                      border: `1px solid ${isActive ? '#FAF8F4' : '#333'}`,
+                      background: isActive ? 'var(--admin-text-on-dark)' : 'transparent',
+                      color: isActive ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+                      border: `1px solid ${isActive ? 'var(--admin-text-on-dark)' : 'var(--admin-border)'}`,
                       fontWeight: isActive ? 500 : 400,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
@@ -370,8 +370,8 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 fontSize: '12px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#C8A862',
-                border: '1px dashed #555',
+                color: 'var(--admin-accent)',
+                border: '1px dashed var(--admin-text-faint)',
                 borderRadius: '999px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -387,14 +387,14 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
         {creatingOpen && (
           <div style={{
             padding: '16px 24px',
-            borderBottom: '1px solid #2A2A28',
-            background: '#0f0f0f',
+            borderBottom: '1px solid var(--admin-border-card)',
+            background: 'var(--admin-card)',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '13px', fontWeight: 500, color: '#E5E2DA' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--admin-text)' }}>
                 Новый блок
               </div>
               <button
@@ -403,7 +403,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#888780',
+                  color: 'var(--admin-text-muted)',
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontFamily: 'inherit',
@@ -424,10 +424,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 style={{
                   padding: '8px 10px',
                   fontSize: '13px',
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--admin-input)',
+                  border: '1px solid var(--admin-border)',
                   borderRadius: '6px',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   fontFamily: 'inherit',
                   outline: 'none',
                 }}
@@ -445,10 +445,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 style={{
                   padding: '8px 10px',
                   fontSize: '13px',
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--admin-input)',
+                  border: '1px solid var(--admin-border)',
                   borderRadius: '6px',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   fontFamily: 'inherit',
                   outline: 'none',
                 }}
@@ -461,10 +461,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 style={{
                   padding: '8px 10px',
                   fontSize: '13px',
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--admin-input)',
+                  border: '1px solid var(--admin-border)',
                   borderRadius: '6px',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   fontFamily: 'inherit',
                   outline: 'none',
                 }}
@@ -479,7 +479,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
             )}
 
             {createError && (
-              <div style={{ fontSize: '12px', color: '#E07B7B' }}>{createError}</div>
+              <div style={{ fontSize: '12px', color: 'var(--admin-danger)' }}>{createError}</div>
             )}
 
             <button
@@ -491,8 +491,8 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 padding: '8px 16px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: '#FAF8F4',
-                color: '#2C2C2A',
+                background: 'var(--admin-text-on-dark)',
+                color: 'var(--admin-dark-panel)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: creating ? 'wait' : 'pointer',
@@ -512,15 +512,15 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
           padding: '16px 24px',
         }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#888780', fontSize: '14px' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '14px' }}>
               Loading library...
             </div>
           ) : filtered.length === 0 ? (
             <div style={{
               padding: '32px',
               textAlign: 'center',
-              color: '#888780',
-              border: '1px dashed #333',
+              color: 'var(--admin-text-muted)',
+              border: '1px dashed var(--admin-border)',
               borderRadius: '8px',
               fontSize: '13px',
             }}>
@@ -543,7 +543,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                       gridTemplateColumns: '64px 1fr',
                       gap: '14px',
                       padding: '10px',
-                      border: '1px solid #2A2A28',
+                      border: '1px solid var(--admin-border-card)',
                       borderRadius: '6px',
                       background: 'transparent',
                       color: 'inherit',
@@ -555,13 +555,13 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                     }}
                     onMouseEnter={(e) => {
                       if (!isPending) {
-                        e.currentTarget.style.background = '#1a1a1a'
-                        e.currentTarget.style.borderColor = '#444'
+                        e.currentTarget.style.background = 'var(--admin-input)'
+                        e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
                       }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'transparent'
-                      e.currentTarget.style.borderColor = '#2A2A28'
+                      e.currentTarget.style.borderColor = 'var(--admin-border-card)'
                     }}
                   >
                     <div style={{
@@ -570,21 +570,21 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                       borderRadius: '4px',
                       background: b.image_url
                         ? `url(${b.image_url}) center/cover no-repeat`
-                        : '#222',
+                        : 'var(--admin-card)',
                     }} />
                     <div style={{ minWidth: 0 }}>
                       <div style={{
                         fontSize: '10px',
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
-                        color: '#888780',
+                        color: 'var(--admin-text-muted)',
                         marginBottom: '2px',
                         fontWeight: 500,
                       }}>
                         {b.type}
                         {(() => {
                           const geo = formatLocation(b, lang)
-                          return geo ? <span style={{ color: '#555', fontWeight: 400 }}> · {geo}</span> : null
+                          return geo ? <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {geo}</span> : null
                         })()}
                       </div>
                       <div style={{
@@ -594,10 +594,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}>
-                        {title || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
+                        {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
                       </div>
                       {b.tags && b.tags.length > 0 && (
-                        <div style={{ fontSize: '11px', color: '#888780', marginTop: '4px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
                           {b.tags.slice(0, 4).map((t) => `#${t}`).join(' ')}
                           {b.tags.length > 4 && <span> +{b.tags.length - 4}</span>}
                         </div>

@@ -165,9 +165,9 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
     width: '100%',
     padding: '10px 12px',
     fontSize: '14px',
-    color: '#E5E2DA',
-    background: '#1a1a1a',
-    border: '1px solid #333',
+    color: 'var(--admin-text)',
+    background: 'var(--admin-input)',
+    border: '1px solid var(--admin-border)',
     borderRadius: '6px',
     fontFamily: 'inherit',
     boxSizing: 'border-box',
@@ -184,7 +184,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           fontSize: '11px',
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           marginBottom: '6px',
           fontWeight: 500,
         }}>
@@ -211,7 +211,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
             style={{
               background: 'none',
               border: 'none',
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               cursor: 'pointer',
               fontSize: '16px',
               padding: '0 4px',
@@ -240,8 +240,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           top: 'calc(100% + 4px)',
           left: 0,
           right: 0,
-          background: '#1a1a1a',
-          border: '1px solid #333',
+          background: 'var(--admin-input)',
+          border: '1px solid var(--admin-border)',
           borderRadius: '6px',
           maxHeight: '300px',
           overflowY: 'auto',
@@ -249,7 +249,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
         }}>
           {items.length === 0 ? (
-            <div style={{ padding: '12px', fontSize: '13px', color: '#888780' }}>
+            <div style={{ padding: '12px', fontSize: '13px', color: 'var(--admin-text-muted)' }}>
               {query ? `Ничего не найдено по "${query}"` : 'Начните вводить...'}
             </div>
           ) : (
@@ -260,14 +260,14 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 style={{
                   padding: '10px 12px',
                   fontSize: '14px',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   cursor: 'pointer',
-                  borderBottom: '1px solid #2A2A28',
+                  borderBottom: '1px solid var(--admin-border-card)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
-                {item.name_ru} <span style={{ color: '#888780' }}>· {item.name_en}</span>
+                {item.name_ru} <span style={{ color: 'var(--admin-text-muted)' }}>· {item.name_en}</span>
               </div>
             ))
           )}
@@ -278,12 +278,12 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
               style={{
                 padding: '10px 12px',
                 fontSize: '13px',
-                color: '#C8A862',
+                color: 'var(--admin-accent)',
                 cursor: 'pointer',
-                borderTop: '1px solid #2A2A28',
+                borderTop: '1px solid var(--admin-border-card)',
                 fontWeight: 500,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               + Создать {mode === 'country' ? 'страну' : 'город'}{query ? ` «${query}»` : ''}
@@ -299,8 +299,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           top: 'calc(100% + 4px)',
           left: 0,
           right: 0,
-          background: '#1a1a1a',
-          border: '1px solid #333',
+          background: 'var(--admin-input)',
+          border: '1px solid var(--admin-border)',
           borderRadius: '6px',
           padding: '12px',
           zIndex: 100,
@@ -309,7 +309,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           flexDirection: 'column',
           gap: '8px',
         }}>
-          <div style={{ fontSize: '12px', color: '#888780', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginBottom: '4px' }}>
             Новая {mode === 'country' ? 'страна' : 'город'}
           </div>
           <input
@@ -346,8 +346,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                   padding: '6px 10px',
                   fontSize: '12px',
                   background: 'transparent',
-                  color: '#C8A862',
-                  border: '1px dashed #333',
+                  color: 'var(--admin-accent)',
+                  border: '1px dashed var(--admin-border)',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
@@ -362,14 +362,14 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           {mode === 'city' && creatingCountryInline && (
             <div style={{
               padding: '10px',
-              border: '1px solid #444',
+              border: '1px solid var(--admin-border-hover)',
               borderRadius: '6px',
-              background: '#0f0f0f',
+              background: 'var(--admin-card)',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
             }}>
-              <div style={{ fontSize: '12px', color: '#888780' }}>
+              <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
                 Новая страна
               </div>
               <input
@@ -396,8 +396,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                     padding: '6px 12px',
                     fontSize: '12px',
                     fontWeight: 500,
-                    background: '#FAF8F4',
-                    color: '#2C2C2A',
+                    background: 'var(--admin-text-on-dark)',
+                    color: 'var(--admin-dark-panel)',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: busy ? 'wait' : 'pointer',
@@ -414,8 +414,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                     padding: '6px 12px',
                     fontSize: '12px',
                     background: 'transparent',
-                    color: '#888780',
-                    border: '1px solid #333',
+                    color: 'var(--admin-text-muted)',
+                    border: '1px solid var(--admin-border)',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
@@ -426,7 +426,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
               </div>
             </div>
           )}
-          {error && <div style={{ fontSize: '12px', color: '#E07B7B' }}>{error}</div>}
+          {error && <div style={{ fontSize: '12px', color: 'var(--admin-danger)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
@@ -436,8 +436,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 padding: '8px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: '#FAF8F4',
-                color: '#2C2C2A',
+                background: 'var(--admin-text-on-dark)',
+                color: 'var(--admin-dark-panel)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: busy ? 'wait' : 'pointer',
@@ -454,8 +454,8 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 padding: '8px 14px',
                 fontSize: '13px',
                 background: 'transparent',
-                color: '#888780',
-                border: '1px solid #333',
+                color: 'var(--admin-text-muted)',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',

@@ -72,13 +72,13 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
         justifyContent: 'space-between',
         marginBottom: '20px',
         paddingBottom: '16px',
-        borderBottom: '1px solid #2A2A28',
+        borderBottom: '1px solid var(--admin-border-card)',
       }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
             Itinerary
           </h2>
-          <p style={{ color: '#888780', margin: 0, fontSize: '13px' }}>
+          <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '13px' }}>
             {days.length} {days.length === 1 ? 'day' : 'days'}
           </p>
         </div>
@@ -92,8 +92,8 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
             fontWeight: 500,
             letterSpacing: '0.03em',
             background: 'transparent',
-            color: '#E5E2DA',
-            border: '1px solid #333',
+            color: 'var(--admin-text)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '6px',
             cursor: isPending ? 'wait' : 'pointer',
             fontFamily: 'inherit',
@@ -108,8 +108,8 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
         <div style={{
           padding: '32px',
           textAlign: 'center',
-          color: '#888780',
-          border: '1px dashed #555',
+          color: 'var(--admin-text-muted)',
+          border: '1px dashed var(--admin-text-faint)',
           borderRadius: '8px',
           fontSize: '14px',
         }}>

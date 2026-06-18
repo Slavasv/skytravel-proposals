@@ -13,7 +13,7 @@ const menuItemStyle: React.CSSProperties = {
   display: 'block',
   padding: '8px 12px',
   fontSize: '13px',
-  color: '#E5E2DA',
+  color: 'var(--admin-text)',
   textDecoration: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
@@ -36,7 +36,7 @@ export default function GearMenu({ email, isAdmin }: Props) {
   }
 
   function onHover(e: React.MouseEvent<HTMLElement>) {
-    e.currentTarget.style.background = '#2A2A28'
+    e.currentTarget.style.background = 'var(--admin-border-card)'
   }
   function onLeave(e: React.MouseEvent<HTMLElement>) {
     e.currentTarget.style.background = 'none'
@@ -51,13 +51,13 @@ export default function GearMenu({ email, isAdmin }: Props) {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: open ? '#E5E2DA' : '#888780',
+          color: open ? 'var(--admin-text)' : 'var(--admin-text-muted)',
           padding: '4px',
           display: 'flex',
           alignItems: 'center',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = '#E5E2DA' }}
-        onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = '#888780' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
+        onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = 'var(--admin-text-muted)' }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fillRule="evenodd" clipRule="evenodd" d="M6.5 1a.5.5 0 0 0-.491.404l-.24 1.32a5.2 5.2 0 0 0-.928.537l-1.27-.423a.5.5 0 0 0-.588.224l-1.5 2.598a.5.5 0 0 0 .104.632l1.02.883a5.3 5.3 0 0 0 0 1.65l-1.02.883a.5.5 0 0 0-.104.632l1.5 2.598a.5.5 0 0 0 .588.224l1.27-.423c.291.205.602.383.928.537l.24 1.32A.5.5 0 0 0 6.5 15h3a.5.5 0 0 0 .491-.404l.24-1.32c.326-.154.637-.332.928-.537l1.27.423a.5.5 0 0 0 .588-.224l1.5-2.598a.5.5 0 0 0-.104-.632l-1.02-.883a5.3 5.3 0 0 0 0-1.65l1.02-.883a.5.5 0 0 0 .104-.632l-1.5-2.598a.5.5 0 0 0-.588-.224l-1.27.423a5.2 5.2 0 0 0-.928-.537l-.24-1.32A.5.5 0 0 0 9.5 1h-3zm1.5 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="currentColor"/>
@@ -72,18 +72,18 @@ export default function GearMenu({ email, isAdmin }: Props) {
             right: 0,
             top: 'calc(100% + 8px)',
             zIndex: 20,
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '10px',
             padding: '6px',
             minWidth: '220px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
           }}>
-            <div style={{ padding: '8px 12px', fontSize: '12px', color: '#555' }}>
+            <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--admin-text-faint)' }}>
               {email}
             </div>
 
-            <div style={{ height: '1px', background: '#2A2A28', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
 
             <a
               href="/admin/settings"
@@ -107,11 +107,11 @@ export default function GearMenu({ email, isAdmin }: Props) {
               </a>
             )}
 
-            <div style={{ height: '1px', background: '#2A2A28', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
 
             <button
               onClick={handleSignOut}
-              style={{ ...menuItemStyle, color: '#E07B7B' }}
+              style={{ ...menuItemStyle, color: 'var(--admin-danger)' }}
               onMouseEnter={onHover}
               onMouseLeave={onLeave}
             >

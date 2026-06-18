@@ -24,7 +24,7 @@ export default async function CompaniesPage() {
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
           Компании
         </h1>
-        <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+        <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
           {companies?.length ?? 0} {(companies?.length ?? 0) === 1 ? 'бренд' : 'брендов'}
         </p>
       </div>
@@ -35,12 +35,12 @@ export default async function CompaniesPage() {
         {(companies ?? []).map((c) => (
           <li key={c.id} style={{
             padding: '16px',
-            border: '1px solid #2A2A28',
+            border: '1px solid var(--admin-border-card)',
             borderRadius: '8px',
             background: 'transparent',
           }}>
-            <div style={{ fontWeight: 500, color: '#E5E2DA' }}>{c.name}</div>
-            <div style={{ fontSize: '13px', color: '#888780', marginTop: '4px' }}>
+            <div style={{ fontWeight: 500, color: 'var(--admin-text)' }}>{c.name}</div>
+            <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
               slug: {c.slug}{!c.is_active && ' · архив'}
             </div>
           </li>

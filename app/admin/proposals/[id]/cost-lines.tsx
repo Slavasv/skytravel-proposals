@@ -38,7 +38,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '11px',
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: '#888780',
+  color: 'var(--admin-text-muted)',
   marginBottom: '6px',
   fontWeight: 500,
 }
@@ -47,9 +47,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   fontSize: '14px',
-  color: '#E5E2DA',
-  background: '#1a1a1a',
-  border: '1px solid #333',
+  color: 'var(--admin-text)',
+  background: 'var(--admin-input)',
+  border: '1px solid var(--admin-border)',
   borderRadius: '6px',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -111,7 +111,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
         const isHotel = cat.key === 'hotel'
         return (
           <div key={cat.key}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '10px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '10px' }}>
               {cat.title}
             </div>
 
@@ -120,10 +120,10 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                 <div
                   key={line.id}
                   style={{
-                    border: '1px solid #2A2A28',
+                    border: '1px solid var(--admin-border-card)',
                     borderRadius: '8px',
                     padding: '12px',
-                    background: '#141414',
+                    background: 'var(--admin-card)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
@@ -194,7 +194,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                       style={{
                         padding: '6px 12px',
                         fontSize: '12px',
-                        color: '#E07B7B',
+                        color: 'var(--admin-danger)',
                         background: 'transparent',
                         border: '1px solid #3a2a2a',
                         borderRadius: '6px',
@@ -216,7 +216,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                 marginTop: catLines.length > 0 ? '10px' : '0',
                 padding: '8px 14px',
                 fontSize: '13px',
-                color: '#C8A862',
+                color: 'var(--admin-accent)',
                 background: 'transparent',
                 border: '1px dashed #3a3528',
                 borderRadius: '6px',

@@ -29,8 +29,8 @@ export default async function EditBlockPage({
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
-      <div style={{ fontSize: '13px', color: '#888780', marginBottom: '16px' }}>
-        <Link href={returnTo || '/admin/library'} style={{ color: '#888780', textDecoration: 'none' }}>
+      <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginBottom: '16px' }}>
+        <Link href={returnTo || '/admin/library'} style={{ color: 'var(--admin-text-muted)', textDecoration: 'none' }}>
           {returnTo ? '← К proposal' : '← Back to library'}
         </Link>
       </div>
@@ -39,7 +39,7 @@ export default async function EditBlockPage({
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
           {block.title_ru || block.title_en || 'Untitled block'}
         </h1>
-        <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+        <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
           {block.type} · {usageCount > 0 ? `used in ${usageCount} ${usageCount === 1 ? 'place' : 'places'}` : 'not used yet'}
         </p>
       </div>

@@ -38,7 +38,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '11px',
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: '#888780',
+  color: 'var(--admin-text-muted)',
   marginBottom: '6px',
   fontWeight: 500,
 }
@@ -47,9 +47,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   fontSize: '14px',
-  color: '#E5E2DA',
-  background: '#1a1a1a',
-  border: '1px solid #333',
+  color: 'var(--admin-text)',
+  background: 'var(--admin-input)',
+  border: '1px solid var(--admin-border)',
   borderRadius: '6px',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -162,10 +162,10 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: '#E07B7B' }}>● Error</span>
-    if (saveState === 'saving') return <span style={{ color: '#C8A862' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: '#888780' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: '#7AA876' }}>● Saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved</span>
     return null
   }
 
@@ -179,9 +179,9 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
     transform: CSS.Transform.toString(transform),
     transition,
     position: 'relative',
-    border: '1px solid #2A2A28',
+    border: '1px solid var(--admin-border-card)',
     borderRadius: '8px',
-    background: isDragging ? '#1a1a1a' : 'transparent',
+    background: isDragging ? 'var(--admin-input)' : 'transparent',
     opacity: isPending ? 0.5 : isDragging ? 0.85 : 1,
     boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.5)' : 'none',
     zIndex: isDragging ? 10 : 'auto',
@@ -204,7 +204,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           border: 'none',
           padding: '4px 4px',
           cursor: isPending ? 'not-allowed' : 'grab',
-          color: '#555',
+          color: 'var(--admin-text-faint)',
           fontSize: '14px',
           lineHeight: 1,
           fontFamily: 'inherit',
@@ -213,10 +213,10 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           zIndex: 1,
         }}
         onMouseEnter={(e) => {
-          if (!isPending) e.currentTarget.style.color = '#888780'
+          if (!isPending) e.currentTarget.style.color = 'var(--admin-text-muted)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = '#555'
+          e.currentTarget.style.color = 'var(--admin-text-faint)'
         }}
       >
         ⋮⋮
@@ -241,7 +241,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           transition: 'background 0.15s',
         }}
         onMouseEnter={(e) => {
-          if (!isDragging) e.currentTarget.style.background = '#0d0d0d'
+          if (!isDragging) e.currentTarget.style.background = 'var(--admin-bg)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent'
@@ -252,7 +252,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
             fontSize: '10px',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            color: '#888780',
+            color: 'var(--admin-text-muted)',
             fontWeight: 500,
             minWidth: '50px',
           }}>
@@ -260,15 +260,15 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '14px', fontWeight: 500 }}>
-              {headerTitle || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled day</span>}
+              {headerTitle || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled day</span>}
             </div>
-            <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span>{day.date || 'No date'}</span>
               <span>{blocksCount} {blocksCount === 1 ? 'block' : 'blocks'}</span>
               {expanded && <span style={{ fontSize: '11px' }}>{renderSaveIndicator()}</span>}
             </div>
           </div>
-          <div style={{ fontSize: '14px', color: '#888780' }}>
+          <div style={{ fontSize: '14px', color: 'var(--admin-text-muted)' }}>
             {expanded ? '▾' : '▸'}
           </div>
         </div>
@@ -291,7 +291,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           border: 'none',
           padding: '6px 10px',
           cursor: 'pointer',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '16px',
           lineHeight: 1,
           borderRadius: '6px',
@@ -300,11 +300,11 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           zIndex: 1,
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#E5E2DA'
-          e.currentTarget.style.background = '#1a1a1a'
+          e.currentTarget.style.color = 'var(--admin-text)'
+          e.currentTarget.style.background = 'var(--admin-input)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.color = 'var(--admin-text-muted)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
@@ -321,8 +321,8 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
             position: 'absolute',
             top: '46px',
             right: '12px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '8px',
             padding: '4px',
             minWidth: '140px',
@@ -341,7 +341,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                color: '#E07B7B',
+                color: 'var(--admin-danger)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 borderRadius: '4px',
@@ -360,7 +360,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
       {expanded && (
         <div style={{
           padding: '0 16px 16px 16px',
-          borderTop: '1px solid #2A2A28',
+          borderTop: '1px solid var(--admin-border-card)',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}>
             <div>
@@ -392,7 +392,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           {errorMsg && (
             <div style={{
               fontSize: '12px',
-              color: '#E07B7B',
+              color: 'var(--admin-danger)',
               marginTop: '10px',
             }}>
               Error: {errorMsg}
@@ -411,7 +411,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 fontSize: '11px',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: '#888780',
+                color: 'var(--admin-text-muted)',
                 fontWeight: 500,
               }}>
                 Blocks
@@ -426,8 +426,8 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                   fontWeight: 500,
                   letterSpacing: '0.03em',
                   background: 'transparent',
-                  color: '#E5E2DA',
-                  border: '1px solid #333',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
                   borderRadius: '6px',
                   cursor: isPending ? 'wait' : 'pointer',
                   fontFamily: 'inherit',
@@ -436,12 +436,12 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 }}
                 onMouseEnter={(e) => {
                   if (!isPending) {
-                    e.currentTarget.style.borderColor = '#555'
-                    e.currentTarget.style.background = '#1a1a1a'
+                    e.currentTarget.style.borderColor = 'var(--admin-text-faint)'
+                    e.currentTarget.style.background = 'var(--admin-input)'
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#333'
+                  e.currentTarget.style.borderColor = 'var(--admin-border)'
                   e.currentTarget.style.background = 'transparent'
                 }}
               >
@@ -453,8 +453,8 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
               <div style={{
                 padding: '20px',
                 textAlign: 'center',
-                color: '#888780',
-                border: '1px dashed #333',
+                color: 'var(--admin-text-muted)',
+                border: '1px dashed var(--admin-border)',
                 borderRadius: '6px',
                 fontSize: '13px',
               }}>

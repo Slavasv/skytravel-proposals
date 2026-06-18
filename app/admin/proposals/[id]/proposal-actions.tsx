@@ -13,8 +13,8 @@ const buttonStyle: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.03em',
   background: 'transparent',
-  color: '#E5E2DA',
-  border: '1px solid #333',
+  color: 'var(--admin-text)',
+  border: '1px solid var(--admin-border)',
   borderRadius: '6px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -76,8 +76,8 @@ export default function ProposalActions({ slug }: Props) {
         onClick={() => copyLink('ru')}
         style={{
           ...buttonStyle,
-          color: copiedKey === 'ru' ? '#7AA876' : '#E5E2DA',
-          borderColor: copiedKey === 'ru' ? '#7AA876' : '#333',
+          color: copiedKey === 'ru' ? 'var(--admin-success)' : 'var(--admin-text)',
+          borderColor: copiedKey === 'ru' ? 'var(--admin-success)' : 'var(--admin-border)',
         }}
       >
         {copiedKey === 'ru' ? '✓ Copied' : 'Copy RU link'}
@@ -87,8 +87,8 @@ export default function ProposalActions({ slug }: Props) {
         onClick={() => copyLink('en')}
         style={{
           ...buttonStyle,
-          color: copiedKey === 'en' ? '#7AA876' : '#E5E2DA',
-          borderColor: copiedKey === 'en' ? '#7AA876' : '#333',
+          color: copiedKey === 'en' ? 'var(--admin-success)' : 'var(--admin-text)',
+          borderColor: copiedKey === 'en' ? 'var(--admin-success)' : 'var(--admin-border)',
         }}
       >
         {copiedKey === 'en' ? '✓ Copied' : 'Copy EN link'}

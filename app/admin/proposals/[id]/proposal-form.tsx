@@ -53,7 +53,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '11px',
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: '#888780',
+  color: 'var(--admin-text-muted)',
   marginBottom: '6px',
   fontWeight: 500,
 }
@@ -62,9 +62,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   fontSize: '14px',
-  color: '#E5E2DA',
-  background: '#1a1a1a',
-  border: '1px solid #333',
+  color: 'var(--admin-text)',
+  background: 'var(--admin-input)',
+  border: '1px solid var(--admin-border)',
   borderRadius: '6px',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -256,18 +256,18 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
   function renderSaveIndicator() {
     if (saveState === 'error') {
-      return <span style={{ color: '#E07B7B' }}>● Error: {errorMsg}</span>
+      return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
     }
     if (saveState === 'saving') {
-      return <span style={{ color: '#C8A862' }}>● Saving...</span>
+      return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
     }
     if (saveState === 'editing') {
-      return <span style={{ color: '#888780' }}>● Editing...</span>
+      return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
     }
     if (saveState === 'saved' && savedAt) {
-      return <span style={{ color: '#7AA876' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
+      return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
     }
-    return <span style={{ color: '#888780' }}>● All changes saved</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
   }
 
   return (
@@ -279,13 +279,13 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
         justifyContent: 'space-between',
         gap: '12px',
         paddingBottom: '16px',
-        borderBottom: '1px solid #2A2A28',
+        borderBottom: '1px solid var(--admin-border-card)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500 }}>
+          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
             Editing in
           </span>
-          <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid #333' }}>
+          <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             <button
               type="button"
               onClick={() => onLangChange('ru')}
@@ -293,8 +293,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
                 padding: '6px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: lang === 'ru' ? '#FAF8F4' : 'transparent',
-                color: lang === 'ru' ? '#2C2C2A' : '#888780',
+                background: lang === 'ru' ? 'var(--admin-text-on-dark)' : 'transparent',
+                color: lang === 'ru' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -309,8 +309,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
                 padding: '6px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: lang === 'en' ? '#FAF8F4' : 'transparent',
-                color: lang === 'en' ? '#2C2C2A' : '#888780',
+                background: lang === 'en' ? 'var(--admin-text-on-dark)' : 'transparent',
+                color: lang === 'en' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -326,8 +326,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       </div>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-          Client & dates <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+          Client & dates <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
@@ -372,8 +372,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       </section>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-          Trip details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+          Trip details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -421,7 +421,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             border: '1px solid #4a3f1e',
             borderRadius: '8px',
             fontSize: '13px',
-            color: '#C8A862',
+            color: 'var(--admin-accent)',
             lineHeight: 1.5,
           }}>
             {`${days.length} of ${expected} days filled in.`}
@@ -434,8 +434,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-          Costs <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+          Costs <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ maxWidth: '200px' }}>
@@ -451,11 +451,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             </select>
           </div>
 
-          <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid #2A2A28' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#E5E2DA', marginBottom: '4px' }}>
+          <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '4px' }}>
               Price breakdown
             </div>
-            <p style={{ fontSize: '12px', color: '#888780', margin: '0 0 16px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
               Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.
             </p>
             <CostLines
@@ -474,7 +474,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               One item per line.
             </p>
           </div>
@@ -487,7 +487,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'e.g.:\nInternational flights\nVisas\nPersonal insurance'}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               One item per line.
             </p>
           </div>
@@ -500,7 +500,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               One item per line.
             </p>
           </div>
@@ -510,8 +510,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       </section>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-          Terms & Conditions <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+          Terms & Conditions <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -523,7 +523,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               One item per line.
             </p>
           </div>
@@ -536,7 +536,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               One item per line.
             </p>
           </div>
@@ -544,7 +544,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       </section>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Total & status</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Total & status</h2>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Total price</label>
@@ -557,7 +557,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               style={inputStyle}
               placeholder="0"
             />
-            <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
               {`Currency is taken from the Costs section (${form.cost_currency}).`}
             </p>
           </div>
@@ -577,7 +577,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       </section>
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>URL</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>URL</h2>
         <div>
           <label style={labelStyle}>Slug</label>
           <input
@@ -587,7 +587,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             style={inputStyle}
             placeholder="e.g.: aliyev-provence-jul26"
           />
-          <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
             Public URL: /p/{form.slug} (RU) · /en/p/{form.slug} (EN)
           </p>
         </div>
@@ -599,7 +599,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
         justifyContent: 'space-between',
         gap: '16px',
         paddingTop: '24px',
-        borderTop: '1px solid #2A2A28',
+        borderTop: '1px solid var(--admin-border-card)',
         flexWrap: 'wrap',
         flexDirection: isMobile ? 'column' : 'row',
       }}>
@@ -612,8 +612,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             fontSize: '13px',
             fontWeight: 500,
             letterSpacing: '0.03em',
-            background: '#FAF8F4',
-            color: '#2C2C2A',
+            background: 'var(--admin-text-on-dark)',
+            color: 'var(--admin-dark-panel)',
             border: 'none',
             borderRadius: '8px',
             cursor: saveState === 'saving' ? 'wait' : 'pointer',
@@ -626,7 +626,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             if (saveState !== 'saving') e.currentTarget.style.background = '#FFFFFF'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#FAF8F4'
+            e.currentTarget.style.background = 'var(--admin-text-on-dark)'
           }}
         >
           Done

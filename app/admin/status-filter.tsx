@@ -34,9 +34,9 @@ export default function StatusFilter({
               fontSize: '13px',
               borderRadius: '999px',
               textDecoration: 'none',
-              background: isActive ? '#FAF8F4' : 'transparent',
-              color: isActive ? '#2C2C2A' : '#888780',
-              border: `1px solid ${isActive ? '#FAF8F4' : '#333'}`,
+              background: isActive ? 'var(--admin-text-on-dark)' : 'transparent',
+              color: isActive ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+              border: `1px solid ${isActive ? 'var(--admin-text-on-dark)' : 'var(--admin-border)'}`,
               fontWeight: isActive ? 500 : 400,
             }}
           >

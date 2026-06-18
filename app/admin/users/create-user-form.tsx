@@ -37,8 +37,8 @@ export default function CreateUserForm() {
           fontSize: '13px',
           fontWeight: 500,
           letterSpacing: '0.03em',
-          background: '#FAF8F4',
-          color: '#2C2C2A',
+          background: 'var(--admin-text-on-dark)',
+          color: 'var(--admin-dark-panel)',
           border: 'none',
           borderRadius: '8px',
           cursor: 'pointer',
@@ -53,11 +53,11 @@ export default function CreateUserForm() {
   return (
     <div style={{
       padding: '20px',
-      border: '1px solid #2A2A28',
+      border: '1px solid var(--admin-border-card)',
       borderRadius: '8px',
-      background: '#1a1a1a',
+      background: 'var(--admin-input)',
     }}>
-      <h2 style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
+      <h2 style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
         New user
       </h2>
 
@@ -73,10 +73,10 @@ export default function CreateUserForm() {
             style={{
               padding: '10px 12px',
               fontSize: '14px',
-              background: '#0f0f0f',
-              border: '1px solid #333',
+              background: 'var(--admin-card)',
+              border: '1px solid var(--admin-border)',
               borderRadius: '6px',
-              color: '#E5E2DA',
+              color: 'var(--admin-text)',
               fontFamily: 'inherit',
               outline: 'none',
             }}
@@ -90,10 +90,10 @@ export default function CreateUserForm() {
             style={{
               padding: '10px 12px',
               fontSize: '14px',
-              background: '#0f0f0f',
-              border: '1px solid #333',
+              background: 'var(--admin-card)',
+              border: '1px solid var(--admin-border)',
               borderRadius: '6px',
-              color: '#E5E2DA',
+              color: 'var(--admin-text)',
               fontFamily: 'inherit',
               outline: 'none',
             }}
@@ -104,10 +104,10 @@ export default function CreateUserForm() {
             style={{
               padding: '10px 12px',
               fontSize: '14px',
-              background: '#0f0f0f',
-              border: '1px solid #333',
+              background: 'var(--admin-card)',
+              border: '1px solid var(--admin-border)',
               borderRadius: '6px',
-              color: '#E5E2DA',
+              color: 'var(--admin-text)',
               fontFamily: 'inherit',
               outline: 'none',
             }}
@@ -118,7 +118,7 @@ export default function CreateUserForm() {
         </div>
 
         {error && (
-          <div style={{ color: '#E07B7B', fontSize: '13px', marginTop: '10px' }}>
+          <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginTop: '10px' }}>
             {error}
           </div>
         )}
@@ -131,8 +131,8 @@ export default function CreateUserForm() {
               padding: '10px 18px',
               fontSize: '13px',
               fontWeight: 500,
-              background: '#FAF8F4',
-              color: '#2C2C2A',
+              background: 'var(--admin-text-on-dark)',
+              color: 'var(--admin-dark-panel)',
               border: 'none',
               borderRadius: '8px',
               cursor: loading ? 'wait' : 'pointer',
@@ -149,8 +149,8 @@ export default function CreateUserForm() {
               padding: '10px 18px',
               fontSize: '13px',
               background: 'none',
-              color: '#888780',
-              border: '1px solid #333',
+              color: 'var(--admin-text-muted)',
+              border: '1px solid var(--admin-border)',
               borderRadius: '8px',
               cursor: 'pointer',
               fontFamily: 'inherit',

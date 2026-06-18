@@ -69,7 +69,7 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
           display: 'block',
           padding: '16px',
           paddingRight: '60px',
-          border: '1px solid #2A2A28',
+          border: '1px solid var(--admin-border-card)',
           borderRadius: '8px',
           textDecoration: 'none',
           color: 'inherit',
@@ -77,27 +77,27 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
           transition: 'border-color 0.15s, background 0.15s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#444'
-          e.currentTarget.style.background = '#0d0d0d'
+          e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
+          e.currentTarget.style.background = 'var(--admin-bg)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#2A2A28'
+          e.currentTarget.style.borderColor = 'var(--admin-border-card)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
         <div style={{ fontWeight: 500 }}>{title}</div>
-        <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+        <div style={{ fontSize: '14px', color: 'var(--admin-text-faint)', marginTop: '4px' }}>
           {client} · {proposal.guest_count ?? 1} гостей · {proposal.start_date || '—'} → {proposal.end_date || '—'}
         </div>
         {showOwner && proposal.owner_email && (
-          <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--admin-text-faint)', marginTop: '4px' }}>
             {proposal.owner_email}
           </div>
         )}
-        <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--admin-text-faint)', marginTop: '8px' }}>
           Slug: {proposal.slug} · Status: {proposal.status}
         </div>
-        <div style={{ fontSize: '12px', color: isViewed ? '#7FA87F' : '#666', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: isViewed ? 'var(--admin-success)' : 'var(--admin-text-faint)', marginTop: '4px' }}>
           {isViewed ? '● ' : '○ '}{viewedLabel(proposal.last_viewed_at)}
         </div>
       </Link>
@@ -114,7 +114,7 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
           border: 'none',
           padding: '6px 10px',
           cursor: 'pointer',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '18px',
           lineHeight: 1,
           borderRadius: '6px',
@@ -122,11 +122,11 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
           transition: 'color 0.15s, background 0.15s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#E5E2DA'
-          e.currentTarget.style.background = '#1a1a1a'
+          e.currentTarget.style.color = 'var(--admin-text)'
+          e.currentTarget.style.background = 'var(--admin-input)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.color = 'var(--admin-text-muted)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
@@ -140,8 +140,8 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
             position: 'absolute',
             top: '44px',
             right: '14px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '8px',
             padding: '4px',
             minWidth: '140px',
@@ -151,14 +151,14 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
             <button
               onClick={handleDuplicate}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Duplicate
             </button>
             <button
               onClick={handleDelete}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: '#E07B7B', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >

@@ -157,7 +157,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
         fontSize: '11px',
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
-        color: '#888780',
+        color: 'var(--admin-text-muted)',
         marginBottom: '6px',
         fontWeight: 500,
       }}>
@@ -175,17 +175,17 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
           position: 'relative',
           height: `${height}px`,
           borderRadius: '8px',
-          border: `1px ${isDragOver ? 'solid' : 'dashed'} ${isDragOver ? '#FAF8F4' : '#333'}`,
+          border: `1px ${isDragOver ? 'solid' : 'dashed'} ${isDragOver ? 'var(--admin-text-on-dark)' : 'var(--admin-border)'}`,
           background: hasImage
             ? `url(${value}) center/cover no-repeat`
-            : isDragOver ? '#1a1a1a' : '#0d0d0d',
+            : isDragOver ? 'var(--admin-input)' : 'var(--admin-bg)',
           cursor: isBusy ? 'wait' : hasImage ? 'default' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'column',
           gap: '8px',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '13px',
           overflow: 'hidden',
           transition: 'border-color 0.15s, background-color 0.15s',
@@ -193,12 +193,12 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
         }}
         onMouseEnter={(e) => {
           if (!hasImage && !isBusy) {
-            e.currentTarget.style.borderColor = '#555'
+            e.currentTarget.style.borderColor = 'var(--admin-text-faint)'
           }
         }}
         onMouseLeave={(e) => {
           if (!hasImage && !isBusy && !isDragOver) {
-            e.currentTarget.style.borderColor = '#333'
+            e.currentTarget.style.borderColor = 'var(--admin-border)'
           }
         }}
       >
@@ -214,35 +214,35 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
             gap: '12px',
             padding: '20px',
           }}>
-            <div style={{ fontSize: '13px', color: '#E5E2DA' }}>
+            <div style={{ fontSize: '13px', color: 'var(--admin-text)' }}>
               {stage === 'compressing' ? 'Compressing...' : 'Uploading...'}
             </div>
             <div style={{
               width: '60%',
               maxWidth: '300px',
               height: '4px',
-              background: '#2A2A28',
+              background: 'var(--admin-border-card)',
               borderRadius: '2px',
               overflow: 'hidden',
             }}>
               <div style={{
                 width: `${percent}%`,
                 height: '100%',
-                background: '#C8A862',
+                background: 'var(--admin-accent)',
                 transition: 'width 0.2s',
               }} />
             </div>
-            <div style={{ fontSize: '11px', color: '#888780' }}>{percent}%</div>
+            <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{percent}%</div>
           </div>
         )}
 
         {!hasImage && !isBusy && (
           <>
-            <div style={{ fontSize: '24px', color: '#555', lineHeight: 1 }}>↑</div>
-            <div style={{ fontSize: '13px', color: '#888780' }}>
+            <div style={{ fontSize: '24px', color: 'var(--admin-text-faint)', lineHeight: 1 }}>↑</div>
+            <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>
               {isDragOver ? 'Drop image here' : 'Drop image here, or click to browse'}
             </div>
-            <div style={{ fontSize: '11px', color: '#555' }}>
+            <div style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
               JPG, PNG, WebP, HEIC · also paste from clipboard
             </div>
           </>
@@ -264,8 +264,8 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 fontSize: '12px',
                 fontWeight: 500,
                 background: 'rgba(20, 20, 20, 0.85)',
-                color: '#E5E2DA',
-                border: '1px solid #444',
+                color: 'var(--admin-text)',
+                border: '1px solid var(--admin-border-hover)',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -274,11 +274,11 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(40, 40, 40, 0.95)'
-                e.currentTarget.style.borderColor = '#666'
+                e.currentTarget.style.borderColor = 'var(--admin-text-faint)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(20, 20, 20, 0.85)'
-                e.currentTarget.style.borderColor = '#444'
+                e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
               }}
             >
               Replace
@@ -291,8 +291,8 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 fontSize: '12px',
                 fontWeight: 500,
                 background: 'rgba(20, 20, 20, 0.85)',
-                color: '#E07B7B',
-                border: '1px solid #444',
+                color: 'var(--admin-danger)',
+                border: '1px solid var(--admin-border-hover)',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -305,7 +305,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(20, 20, 20, 0.85)'
-                e.currentTarget.style.borderColor = '#444'
+                e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
               }}
             >
               Remove
@@ -324,7 +324,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
 
       {/* Error message */}
       {stage === 'error' && errorMsg && (
-        <div style={{ fontSize: '12px', color: '#E07B7B', marginTop: '6px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--admin-danger)', marginTop: '6px' }}>
           {errorMsg}
         </div>
       )}
@@ -339,17 +339,17 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
               background: 'transparent',
               border: 'none',
               padding: 0,
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               fontSize: '12px',
               cursor: 'pointer',
               fontFamily: 'inherit',
               textDecoration: 'underline',
               textUnderlineOffset: '3px',
-              textDecorationColor: '#444',
+              textDecorationColor: 'var(--admin-border-hover)',
               transition: 'color 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#E5E2DA' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#888780' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)' }}
           >
             Or paste URL (Unsplash, etc.)
           </button>
@@ -364,9 +364,9 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 flex: 1,
                 padding: '8px 10px',
                 fontSize: '12px',
-                color: '#E5E2DA',
-                background: '#1a1a1a',
-                border: '1px solid #333',
+                color: 'var(--admin-text)',
+                background: 'var(--admin-input)',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '6px',
                 fontFamily: 'inherit',
                 outline: 'none',
@@ -380,8 +380,8 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 padding: '8px 14px',
                 fontSize: '12px',
                 fontWeight: 500,
-                background: '#FAF8F4',
-                color: '#2C2C2A',
+                background: 'var(--admin-text-on-dark)',
+                color: 'var(--admin-dark-panel)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -389,7 +389,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 transition: 'background 0.15s',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = '#FFFFFF' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#FAF8F4' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--admin-text-on-dark)' }}
             >
               Apply
             </button>
@@ -400,14 +400,14 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 padding: '8px 10px',
                 fontSize: '12px',
                 background: 'transparent',
-                color: '#888780',
+                color: 'var(--admin-text-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#E5E2DA' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#888780' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)' }}
             >
               Cancel
             </button>

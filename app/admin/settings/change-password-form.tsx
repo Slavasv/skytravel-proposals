@@ -43,10 +43,10 @@ export default function ChangePasswordForm() {
   const inputStyle = {
     padding: '10px 12px',
     fontSize: '14px',
-    background: '#0f0f0f',
-    border: '1px solid #333',
+    background: 'var(--admin-card)',
+    border: '1px solid var(--admin-border)',
     borderRadius: '6px',
-    color: '#E5E2DA',
+    color: 'var(--admin-text)',
     fontFamily: 'inherit',
     outline: 'none',
     width: '100%',
@@ -56,9 +56,9 @@ export default function ChangePasswordForm() {
   return (
     <form onSubmit={handleSubmit} style={{
       padding: '20px',
-      border: '1px solid #2A2A28',
+      border: '1px solid var(--admin-border-card)',
       borderRadius: '8px',
-      background: '#1a1a1a',
+      background: 'var(--admin-input)',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ position: 'relative' }}>
@@ -73,7 +73,7 @@ export default function ChangePasswordForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#888780', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}
+            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}
           >
             {showPassword ? 'Hide' : 'Show'}
           </button>
@@ -91,13 +91,13 @@ export default function ChangePasswordForm() {
       </div>
 
       {error && (
-        <div style={{ color: '#E07B7B', fontSize: '13px', marginTop: '10px' }}>
+        <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginTop: '10px' }}>
           {error}
         </div>
       )}
 
       {success && (
-        <div style={{ color: '#7AA876', fontSize: '13px', marginTop: '10px' }}>
+        <div style={{ color: 'var(--admin-success)', fontSize: '13px', marginTop: '10px' }}>
           Password updated successfully.
         </div>
       )}
@@ -110,8 +110,8 @@ export default function ChangePasswordForm() {
           padding: '10px 18px',
           fontSize: '13px',
           fontWeight: 500,
-          background: '#FAF8F4',
-          color: '#2C2C2A',
+          background: 'var(--admin-text-on-dark)',
+          color: 'var(--admin-dark-panel)',
           border: 'none',
           borderRadius: '8px',
           cursor: loading ? 'wait' : 'pointer',

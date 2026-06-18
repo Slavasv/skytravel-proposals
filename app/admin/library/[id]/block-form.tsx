@@ -49,7 +49,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '11px',
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: '#888780',
+  color: 'var(--admin-text-muted)',
   marginBottom: '6px',
   fontWeight: 500,
 }
@@ -58,9 +58,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   fontSize: '14px',
-  color: '#E5E2DA',
-  background: '#1a1a1a',
-  border: '1px solid #333',
+  color: 'var(--admin-text)',
+  background: 'var(--admin-input)',
+  border: '1px solid var(--admin-border)',
   borderRadius: '6px',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -219,11 +219,11 @@ export default function BlockForm({ block }: { block: Block }) {
   const notableKey = lang === 'ru' ? 'notable_ru' : 'notable_en'
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: '#E07B7B' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: '#C8A862' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: '#888780' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: '#7AA876' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: '#888780' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
   }
 
   return (
@@ -235,13 +235,13 @@ export default function BlockForm({ block }: { block: Block }) {
         justifyContent: 'space-between',
         gap: '12px',
         paddingBottom: '16px',
-        borderBottom: '1px solid #2A2A28',
+        borderBottom: '1px solid var(--admin-border-card)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500 }}>
+          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
             Editing in
           </span>
-          <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid #333' }}>
+          <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             <button
               type="button"
               onClick={() => setLang('ru')}
@@ -249,18 +249,18 @@ export default function BlockForm({ block }: { block: Block }) {
                 padding: '6px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: lang === 'ru' ? '#FAF8F4' : 'transparent',
-                color: lang === 'ru' ? '#2C2C2A' : '#888780',
+                background: lang === 'ru' ? 'var(--admin-text-on-dark)' : 'transparent',
+                color: lang === 'ru' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'color 0.15s, background 0.15s',
               }}
               onMouseEnter={(e) => {
-                if (lang !== 'ru') e.currentTarget.style.color = '#E5E2DA'
+                if (lang !== 'ru') e.currentTarget.style.color = 'var(--admin-text)'
               }}
               onMouseLeave={(e) => {
-                if (lang !== 'ru') e.currentTarget.style.color = '#888780'
+                if (lang !== 'ru') e.currentTarget.style.color = 'var(--admin-text-muted)'
               }}
             >
               RU
@@ -272,18 +272,18 @@ export default function BlockForm({ block }: { block: Block }) {
                 padding: '6px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: lang === 'en' ? '#FAF8F4' : 'transparent',
-                color: lang === 'en' ? '#2C2C2A' : '#888780',
+                background: lang === 'en' ? 'var(--admin-text-on-dark)' : 'transparent',
+                color: lang === 'en' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'color 0.15s, background 0.15s',
               }}
               onMouseEnter={(e) => {
-                if (lang !== 'en') e.currentTarget.style.color = '#E5E2DA'
+                if (lang !== 'en') e.currentTarget.style.color = 'var(--admin-text)'
               }}
               onMouseLeave={(e) => {
-                if (lang !== 'en') e.currentTarget.style.color = '#888780'
+                if (lang !== 'en') e.currentTarget.style.color = 'var(--admin-text-muted)'
               }}
             >
               EN
@@ -297,7 +297,7 @@ export default function BlockForm({ block }: { block: Block }) {
 
       {/* Type selector */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Type</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Type</h2>
         <select
           value={form.type}
           onChange={(e) => set('type', e.target.value as BlockType)}
@@ -307,15 +307,15 @@ export default function BlockForm({ block }: { block: Block }) {
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
-        <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
           Changing type will show different specific fields below
         </p>
       </section>
 
       {/* Common fields */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-          Basic info <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+          Basic info <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -343,7 +343,7 @@ export default function BlockForm({ block }: { block: Block }) {
 
       {/* Location & image */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Location & image</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Location & image</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {form.type === 'hotel' && (
@@ -375,12 +375,12 @@ export default function BlockForm({ block }: { block: Block }) {
         </div>
       </section>
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>Tags</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Tags</h2>
         <TagsInput
           value={form.tags}
           onChange={(tags) => set('tags', tags)}
         />
-        <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
           Press Enter or comma to add. Used for search. Same for both languages.
         </p>
       </section>
@@ -388,8 +388,8 @@ export default function BlockForm({ block }: { block: Block }) {
       {/* Type-specific fields */}
       {form.type === 'hotel' && (
         <section>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-            Hotel details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+            Hotel details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div>
             <label style={labelStyle}>Notable amenities</label>
@@ -406,8 +406,8 @@ export default function BlockForm({ block }: { block: Block }) {
 
       {form.type === 'activity' && (
         <section>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-            Activity details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+            Activity details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '16px' }}>
@@ -422,7 +422,7 @@ export default function BlockForm({ block }: { block: Block }) {
                   style={inputStyle}
                   placeholder="4"
                 />
-                <p style={{ fontSize: '12px', color: '#888780', margin: '6px 0 0' }}>Same for both languages</p>
+                <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>Same for both languages</p>
               </div>
               <div>
                 <label style={labelStyle}>Best season</label>
@@ -441,8 +441,8 @@ export default function BlockForm({ block }: { block: Block }) {
 
       {form.type === 'transfer' && (
         <section>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-            Transfer details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+            Transfer details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
@@ -481,15 +481,15 @@ export default function BlockForm({ block }: { block: Block }) {
                 />
               </div>
             </div>
-            <p style={{ fontSize: '12px', color: '#888780', margin: '0' }}>Duration and passengers are same for both languages</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0' }}>Duration and passengers are same for both languages</p>
           </div>
         </section>
       )}
 
       {form.type === 'city' && (
         <section>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: '#E5E2DA' }}>
-            City details <span style={{ color: '#888780', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
+            City details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div>
             <label style={labelStyle}>Notable</label>
@@ -511,7 +511,7 @@ export default function BlockForm({ block }: { block: Block }) {
         justifyContent: 'flex-end',
         gap: '16px',
         paddingTop: '24px',
-        borderTop: '1px solid #2A2A28',
+        borderTop: '1px solid var(--admin-border-card)',
       }}>
         <button
           onClick={handleDone}
@@ -521,8 +521,8 @@ export default function BlockForm({ block }: { block: Block }) {
             fontSize: '13px',
             fontWeight: 500,
             letterSpacing: '0.03em',
-            background: '#FAF8F4',
-            color: '#2C2C2A',
+            background: 'var(--admin-text-on-dark)',
+            color: 'var(--admin-dark-panel)',
             border: 'none',
             borderRadius: '8px',
             cursor: saveState === 'saving' ? 'wait' : 'pointer',
@@ -534,7 +534,7 @@ export default function BlockForm({ block }: { block: Block }) {
             if (saveState !== 'saving') e.currentTarget.style.background = '#FFFFFF'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#FAF8F4'
+            e.currentTarget.style.background = 'var(--admin-text-on-dark)'
           }}
         >
           Done

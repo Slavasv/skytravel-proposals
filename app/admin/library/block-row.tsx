@@ -125,7 +125,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           alignItems: 'center',
           padding: '12px 16px',
           paddingRight: '50px',
-          border: '1px solid #2A2A28',
+          border: '1px solid var(--admin-border-card)',
           borderRadius: '8px',
           textDecoration: 'none',
           color: 'inherit',
@@ -133,11 +133,11 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           transition: 'border-color 0.15s, background 0.15s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#444'
-          e.currentTarget.style.background = '#0d0d0d'
+          e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
+          e.currentTarget.style.background = 'var(--admin-bg)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#2A2A28'
+          e.currentTarget.style.borderColor = 'var(--admin-border-card)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
@@ -147,7 +147,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           borderRadius: '4px',
           background: block.image_url
             ? `url(${block.image_url}) center/cover no-repeat`
-            : '#222',
+            : 'var(--admin-card)',
           flexShrink: 0,
           filter: isArchived ? 'grayscale(0.8)' : 'none',
           opacity: isArchived ? 0.6 : 1,
@@ -160,13 +160,13 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            color: isArchived ? '#888780' : 'inherit',
+            color: isArchived ? 'var(--admin-text-muted)' : 'inherit',
           }}>
-            {block.title_ru || block.title_en || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
+            {block.title_ru || block.title_en || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
           </div>
           <div style={{
             fontSize: '12px',
-            color: '#888780',
+            color: 'var(--admin-text-muted)',
             marginTop: '2px',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -196,22 +196,22 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
               <span style={{
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: '#888780',
+                color: 'var(--admin-text-muted)',
                 padding: '3px 7px',
-                border: '1px solid #333',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '4px',
                 fontWeight: 500,
               }}>
                 {block.type}
               </span>
               {isArchived && (
-                <span style={{ color: '#888780', fontStyle: 'italic', fontSize: '11px' }}>Archived</span>
+                <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic', fontSize: '11px' }}>Archived</span>
               )}
               {!hasEn && !isArchived && (
-                <span style={{ color: '#C8A862', fontSize: '11px' }}>RU only</span>
+                <span style={{ color: 'var(--admin-accent)', fontSize: '11px' }}>RU only</span>
               )}
               {isUsed && (
-                <span style={{ color: '#888780', fontSize: '11px' }}>Used {usageCount}×</span>
+                <span style={{ color: 'var(--admin-text-muted)', fontSize: '11px' }}>Used {usageCount}×</span>
               )}
             </div>
           )}
@@ -222,9 +222,9 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             fontSize: '10px',
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
-            color: '#888780',
+            color: 'var(--admin-text-muted)',
             padding: '4px 8px',
-            border: '1px solid #333',
+            border: '1px solid var(--admin-border)',
             borderRadius: '4px',
             fontWeight: 500,
           }}>
@@ -233,14 +233,14 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
         )}
 
         {!isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: '#888780' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--admin-text-muted)' }}>
             {isArchived && (
-              <span title="Archived — not shown in library or add menu" style={{ color: '#888780', fontStyle: 'italic' }}>
+              <span title="Archived — not shown in library or add menu" style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
                 Archived
               </span>
             )}
             {!hasEn && !isArchived && (
-              <span title="No English version" style={{ color: '#C8A862' }}>RU only</span>
+              <span title="No English version" style={{ color: 'var(--admin-accent)' }}>RU only</span>
             )}
             {isUsed && (
               <span title={`Used in ${usageCount} ${usageCount === 1 ? 'day' : 'days'} across proposals`}>
@@ -264,7 +264,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           border: 'none',
           padding: '6px 10px',
           cursor: 'pointer',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '16px',
           lineHeight: 1,
           borderRadius: '6px',
@@ -272,11 +272,11 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           transition: 'color 0.15s, background 0.15s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#E5E2DA'
-          e.currentTarget.style.background = '#1a1a1a'
+          e.currentTarget.style.color = 'var(--admin-text)'
+          e.currentTarget.style.background = 'var(--admin-input)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.color = 'var(--admin-text-muted)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
@@ -291,8 +291,8 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
             top: '50%',
             right: '12px',
             marginTop: '8px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '8px',
             padding: '4px',
             minWidth: '180px',
@@ -309,14 +309,14 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
                   padding: '8px 12px',
                   background: 'transparent',
                   border: 'none',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   fontSize: '13px',
                   cursor: 'pointer',
                   borderRadius: '4px',
                   fontFamily: 'inherit',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
                 Unarchive
@@ -331,14 +331,14 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
                   padding: '8px 12px',
                   background: 'transparent',
                   border: 'none',
-                  color: '#E5E2DA',
+                  color: 'var(--admin-text)',
                   fontSize: '13px',
                   cursor: 'pointer',
                   borderRadius: '4px',
                   fontFamily: 'inherit',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
                 Archive
@@ -355,7 +355,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
                 padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                color: isUsed ? '#555' : '#E07B7B',
+                color: isUsed ? 'var(--admin-text-faint)' : 'var(--admin-danger)',
                 fontSize: '13px',
                 cursor: isUsed ? 'not-allowed' : 'pointer',
                 borderRadius: '4px',
@@ -382,7 +382,7 @@ export default function BlockRow({ block, usageCount }: { block: Block; usageCou
           bottom: '-22px',
           right: '12px',
           fontSize: '11px',
-          color: '#E07B7B',
+          color: 'var(--admin-danger)',
         }}>
           {error}
         </div>

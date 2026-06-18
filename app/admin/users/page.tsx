@@ -21,7 +21,7 @@ export default async function UsersPage() {
     .single()
 
   if (!meProfile?.company_id) {
-    return <div style={{ padding: '40px', color: '#888780' }}>Компания не найдена.</div>
+    return <div style={{ padding: '40px', color: 'var(--admin-text-muted)' }}>Компания не найдена.</div>
   }
 
   // Грузим только профили своей компании
@@ -70,7 +70,7 @@ export default async function UsersPage() {
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
           Users
         </h1>
-        <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+        <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
           {enriched.length} {enriched.length === 1 ? 'user' : 'users'}
         </p>
       </div>

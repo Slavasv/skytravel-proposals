@@ -149,10 +149,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: '#E07B7B' }}>● Error</span>
-    if (saveState === 'saving') return <span style={{ color: '#C8A862' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: '#888780' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: '#7AA876' }}>● Saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved</span>
     return null
   }
 
@@ -167,9 +167,9 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     gap: isMobile ? '0' : '10px',
     padding: '12px',
     paddingRight: isMobile ? '12px' : '40px',
-    border: '1px solid #2A2A28',
+    border: '1px solid var(--admin-border-card)',
     borderRadius: '6px',
-    background: isDragging ? '#1a1a1a' : '#0d0d0d',
+    background: isDragging ? 'var(--admin-input)' : 'var(--admin-bg)',
     opacity: isPending || blockedByOuter ? 0.4 : isDragging ? 0.85 : 1,
     boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.5)' : 'none',
     zIndex: isDragging ? 10 : 'auto',
@@ -182,11 +182,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
       style={containerStyle}
       onMouseEnter={(e) => {
         if (!isDragging && !isPending && !blockedByOuter) {
-          e.currentTarget.style.borderColor = '#444'
+          e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
         }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#2A2A28'
+        e.currentTarget.style.borderColor = 'var(--admin-border-card)'
       }}
     >
       {/* Drag handle */}
@@ -198,10 +198,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         aria-label="Drag to reorder"
         style={{
           background: isMobile ? 'rgba(20, 20, 20, 0.85)' : 'transparent',
-          border: isMobile ? '1px solid #444' : 'none',
+          border: isMobile ? '1px solid var(--admin-border-hover)' : 'none',
           padding: isMobile ? '4px 8px' : '4px',
           cursor: isPending || blockedByOuter ? 'not-allowed' : 'grab',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '14px',
           lineHeight: 1,
           fontFamily: 'inherit',
@@ -218,10 +218,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           } : {}),
         }}
         onMouseEnter={(e) => {
-          if (!isPending && !blockedByOuter && !isMobile) e.currentTarget.style.color = '#E5E2DA'
+          if (!isPending && !blockedByOuter && !isMobile) e.currentTarget.style.color = 'var(--admin-text)'
         }}
         onMouseLeave={(e) => {
-          if (!isMobile) e.currentTarget.style.color = '#888780'
+          if (!isMobile) e.currentTarget.style.color = 'var(--admin-text-muted)'
         }}
       >
         ⋮⋮
@@ -234,7 +234,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         borderRadius: '4px',
         background: block.image_url
           ? `url(${block.image_url}) center/cover no-repeat`
-          : '#222',
+          : 'var(--admin-card)',
         flexShrink: 0,
         marginBottom: isMobile ? '12px' : '0',
       }} />
@@ -245,25 +245,25 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           fontSize: '10px',
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           marginBottom: '4px',
           fontWeight: 500,
         }}>
           {block.type}
-          {block.location && <span style={{ color: '#555', fontWeight: 400 }}> · {block.location}</span>}
+          {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
         </div>
         <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
-          {title || <span style={{ color: '#888780', fontStyle: 'italic' }}>Untitled</span>}
+          {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
         </div>
         {description && (
-          <p style={{ fontSize: '12px', lineHeight: 1.5, color: '#888780', margin: '0 0 10px' }}>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
             {description}
           </p>
         )}
 
         {block.type === 'hotel' && (
           <div style={{ marginBottom: '10px' }}>
-            <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
               Room type · {lang.toUpperCase()}
             </label>
             <input
@@ -273,7 +273,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               placeholder="e.g.: Deluxe City View, All Inclusive"
               style={{
                 width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
                 borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
               }}
             />
@@ -283,7 +283,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         {block.type === 'transfer' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
             <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                 From · {lang.toUpperCase()}
               </label>
               <input
@@ -293,13 +293,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 placeholder="Marseille Airport"
                 style={{
                   width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
                   borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
             </div>
             <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                 To · {lang.toUpperCase()}
               </label>
               <input
@@ -309,7 +309,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 placeholder="Hotel in Gordes"
                 style={{
                   width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: '#E5E2DA', background: '#1a1a1a', border: '1px solid #333',
+                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
                   borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
@@ -325,13 +325,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               background: 'transparent',
               border: 'none',
               padding: 0,
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               fontSize: '12px',
               cursor: 'pointer',
               fontFamily: 'inherit',
               textDecoration: 'underline',
               textUnderlineOffset: '3px',
-              textDecorationColor: '#444',
+              textDecorationColor: 'var(--admin-border-hover)',
             }}
           >
             + Add note for this trip
@@ -348,7 +348,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 fontSize: '10px',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: '#888780',
+                color: 'var(--admin-text-muted)',
                 fontWeight: 500,
               }}>
                 Note for this trip · {lang.toUpperCase()}
@@ -367,9 +367,9 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 padding: '8px 10px',
                 fontSize: '12px',
                 lineHeight: 1.5,
-                color: '#E5E2DA',
-                background: '#1a1a1a',
-                border: '1px solid #333',
+                color: 'var(--admin-text)',
+                background: 'var(--admin-input)',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
                 boxSizing: 'border-box',
@@ -377,11 +377,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 resize: 'vertical',
               }}
             />
-            <p style={{ fontSize: '10px', color: '#555', margin: '4px 0 0' }}>
+            <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
               Visible to client on this trip only. The library block stays unchanged.
             </p>
             {errorMsg && (
-              <p style={{ fontSize: '11px', color: '#E07B7B', margin: '4px 0 0' }}>
+              <p style={{ fontSize: '11px', color: 'var(--admin-danger)', margin: '4px 0 0' }}>
                 Error: {errorMsg}
               </p>
             )}
@@ -407,7 +407,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           border: 'none',
           padding: '6px 8px',
           cursor: isPending || blockedByOuter ? 'wait' : 'pointer',
-          color: '#888780',
+          color: 'var(--admin-text-muted)',
           fontSize: '14px',
           lineHeight: 1,
           borderRadius: '4px',
@@ -415,11 +415,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           transition: 'color 0.15s, background 0.15s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#E5E2DA'
-          e.currentTarget.style.background = '#1a1a1a'
+          e.currentTarget.style.color = 'var(--admin-text)'
+          e.currentTarget.style.background = 'var(--admin-input)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = '#888780'
+          e.currentTarget.style.color = 'var(--admin-text-muted)'
           e.currentTarget.style.background = 'transparent'
         }}
       >
@@ -436,8 +436,8 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
             position: 'absolute',
             top: '34px',
             right: '8px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--admin-input)',
+            border: '1px solid var(--admin-border)',
             borderRadius: '8px',
             padding: '4px',
             minWidth: '140px',
@@ -453,14 +453,14 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                color: '#E5E2DA',
+                color: 'var(--admin-text)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
                 transition: 'background 0.12s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#222' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               Duplicate
@@ -474,7 +474,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                color: '#E07B7B',
+                color: 'var(--admin-danger)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 borderRadius: '4px',

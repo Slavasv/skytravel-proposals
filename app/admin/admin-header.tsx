@@ -38,8 +38,8 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: isMobile ? '12px 16px' : '20px 40px',
-      borderBottom: '1px solid #2A2A28',
-      background: '#0f0f0f',
+      borderBottom: '1px solid var(--admin-border-card)',
+      background: 'var(--admin-card)',
     }}>
       <Link
         href={isSuperadmin ? '/admin/companies' : '/admin'}
@@ -47,7 +47,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
           fontSize: isMobile ? '10px' : '12px',
           fontWeight: 500,
           letterSpacing: isMobile ? '0.08em' : '0.12em',
-          color: '#E5E2DA',
+          color: 'var(--admin-text)',
           textDecoration: 'none',
           transition: 'opacity 0.15s',
           whiteSpace: 'nowrap',
@@ -55,7 +55,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
       >
-        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: '#555', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
+        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '24px' }}>
@@ -70,19 +70,19 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
                 fontWeight: 500,
                 letterSpacing: isMobile ? '0.02em' : '0.04em',
                 textTransform: 'uppercase',
-                color: active ? '#FAF8F4' : '#888780',
+                color: active ? 'var(--admin-text-on-dark)' : 'var(--admin-text-muted)',
                 textDecoration: 'none',
                 paddingBottom: '2px',
                 marginBottom: '-2px',
-                borderBottom: `2px solid ${active ? '#FAF8F4' : 'transparent'}`,
+                borderBottom: `2px solid ${active ? 'var(--admin-text-on-dark)' : 'transparent'}`,
                 transition: 'color 0.15s, border-color 0.15s',
                 whiteSpace: 'nowrap',
               }}
               onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.color = '#E5E2DA'
+                if (!active) e.currentTarget.style.color = 'var(--admin-text)'
               }}
               onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.color = '#888780'
+                if (!active) e.currentTarget.style.color = 'var(--admin-text-muted)'
               }}
             >
               {item.label}

@@ -19,7 +19,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
-  const [color, setColor] = useState(company.accent_color || '#C9A227')
+  const [color, setColor] = useState(company.accent_color || 'var(--admin-accent)')
   const [logo, setLogo] = useState(company.logo_url || '')
 
   const socials = company.socials || {}
@@ -42,10 +42,10 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
   const inputStyle: React.CSSProperties = {
     padding: '10px 12px',
     fontSize: '14px',
-    background: '#0f0f0f',
-    border: '1px solid #333',
+    background: 'var(--admin-card)',
+    border: '1px solid var(--admin-border)',
     borderRadius: '6px',
-    color: '#E5E2DA',
+    color: 'var(--admin-text)',
     fontFamily: 'inherit',
     outline: 'none',
     width: '100%',
@@ -54,7 +54,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
 
   const labelStyle: React.CSSProperties = {
     fontSize: '12px',
-    color: '#888780',
+    color: 'var(--admin-text-muted)',
     marginBottom: '4px',
     display: 'block',
   }
@@ -62,9 +62,9 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
   return (
     <form onSubmit={handleSubmit} style={{
       padding: '20px',
-      border: '1px solid #2A2A28',
+      border: '1px solid var(--admin-border-card)',
       borderRadius: '8px',
-      background: '#1a1a1a',
+      background: 'var(--admin-input)',
       marginBottom: '32px',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -86,14 +86,14 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              style={{ width: '44px', height: '38px', padding: '2px', background: '#0f0f0f', border: '1px solid #333', borderRadius: '6px', cursor: 'pointer' }}
+              style={{ width: '44px', height: '38px', padding: '2px', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer' }}
             />
             <input
               type="text"
               name="accent_color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              placeholder="#C9A227"
+              placeholder="var(--admin-accent)"
               style={{ ...inputStyle, width: '120px' }}
             />
           </div>
@@ -119,8 +119,8 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
           <input type="text" name="footer_note" defaultValue={company.footer_note || ''} placeholder="Sky Travel · Dubai" style={inputStyle} />
         </div>
 
-        <div style={{ height: '1px', background: '#2A2A28' }} />
-        <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#555' }}>
+        <div style={{ height: '1px', background: 'var(--admin-border-card)' }} />
+        <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
           Соцсети
         </div>
 
@@ -147,10 +147,10 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
       </div>
 
       {error && (
-        <div style={{ color: '#E07B7B', fontSize: '13px', marginTop: '12px' }}>{error}</div>
+        <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</div>
       )}
       {saved && (
-        <div style={{ color: '#7AA876', fontSize: '13px', marginTop: '12px' }}>Сохранено.</div>
+        <div style={{ color: 'var(--admin-success)', fontSize: '13px', marginTop: '12px' }}>Сохранено.</div>
       )}
 
       <button
@@ -161,8 +161,8 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
           padding: '10px 18px',
           fontSize: '13px',
           fontWeight: 500,
-          background: '#FAF8F4',
-          color: '#2C2C2A',
+          background: 'var(--admin-text-on-dark)',
+          color: 'var(--admin-dark-panel)',
           border: 'none',
           borderRadius: '8px',
           cursor: isPending ? 'wait' : 'pointer',

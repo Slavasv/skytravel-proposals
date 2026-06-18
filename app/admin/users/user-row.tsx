@@ -51,17 +51,17 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '12px 16px',
-      border: '1px solid #2A2A28',
+      border: '1px solid var(--admin-border-card)',
       borderRadius: '8px',
-      background: '#1a1a1a',
+      background: 'var(--admin-input)',
       opacity: loading ? 0.5 : 1,
       transition: 'opacity 0.15s',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '14px', color: '#E5E2DA' }}>{user.email}</span>
+          <span style={{ fontSize: '14px', color: 'var(--admin-text)' }}>{user.email}</span>
           {isSelf && (
-            <span style={{ fontSize: '11px', color: '#888780', letterSpacing: '0.06em' }}>you</span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', letterSpacing: '0.06em' }}>you</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -69,18 +69,18 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
             fontSize: '11px',
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
-            color: user.role === 'admin' ? '#C8A862' : '#888780',
+            color: user.role === 'admin' ? 'var(--admin-accent)' : 'var(--admin-text-muted)',
           }}>
             {user.role}
           </span>
-          <span style={{ fontSize: '11px', color: '#555' }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
             · {user.proposal_count} {user.proposal_count === 1 ? 'proposal' : 'proposals'}
           </span>
-          <span style={{ fontSize: '11px', color: '#555' }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
             · joined {formatDate(user.created_at)}
           </span>
           {user.last_sign_in && (
-            <span style={{ fontSize: '11px', color: '#555' }}>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
               · last login {formatDate(user.last_sign_in)}
             </span>
           )}
@@ -94,7 +94,7 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
             style={{
               background: 'none',
               border: 'none',
-              color: '#888780',
+              color: 'var(--admin-text-muted)',
               cursor: 'pointer',
               padding: '4px 8px',
               fontSize: '16px',
@@ -112,8 +112,8 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                 right: 0,
                 top: '100%',
                 zIndex: 20,
-                background: '#1a1a1a',
-                border: '1px solid #333',
+                background: 'var(--admin-input)',
+                border: '1px solid var(--admin-border)',
                 borderRadius: '8px',
                 padding: '4px',
                 minWidth: '180px',
@@ -121,24 +121,24 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
               }}>
                 <button
                   onClick={handleToggleRole}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: '#E5E2DA', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#2A2A28' }}
+                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
                   Make {user.role === 'admin' ? 'manager' : 'admin'}
                 </button>
                 <button
                   onClick={handleResetPassword}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: '#E5E2DA', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#2A2A28' }}
+                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
                   Reset password
                 </button>
                 <button
                   onClick={handleDelete}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: '#E07B7B', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#2A2A28' }}
+                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
                   Delete user

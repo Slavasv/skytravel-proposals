@@ -108,9 +108,9 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-            Library{showArchived && <span style={{ color: '#888780', fontWeight: 400 }}> · Archive</span>}
+            Library{showArchived && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · Archive</span>}
           </h1>
-          <p style={{ color: '#888780', margin: 0, fontSize: '14px' }}>
+          <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
             {blocks?.length ?? 0} of {totalInScope} {totalInScope === 1 ? 'block' : 'blocks'}
             {query && ` matching "${query}"`}
             {activeType && ` · type: ${activeType}`}
@@ -124,8 +124,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
               fontSize: '13px',
               fontWeight: 500,
               letterSpacing: '0.03em',
-              background: '#FAF8F4',
-              color: '#2C2C2A',
+              background: 'var(--admin-text-on-dark)',
+              color: 'var(--admin-dark-panel)',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -150,7 +150,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       />
 
       {(!blocks || blocks.length === 0) ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#888780', border: '1px dashed #555', borderRadius: '8px', fontSize: '14px' }}>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
           {query || activeType
             ? 'No blocks match your search.'
             : showArchived
