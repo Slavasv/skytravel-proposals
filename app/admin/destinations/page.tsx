@@ -1,19 +1,16 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { createProposal } from './actions'
-import ProposalCard from './proposal-card'
-import StatusFilter from './status-filter'
+import { createDestination } from '../actions'
+import ProposalCard from '../proposal-card'
 
-type SearchParams = { status?: string; view?: string }
+type SearchParams = { view?: string }
 
-export default async function AdminHome({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const { status, view } = await searchParams
-  const activeStatus = status ?? null
+export default async function DestinationsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const { view } = await searchParams
 
   const profile = await getProfile()
 
-  // Superadmin не работает с proposals — его место в кабинете компаний
   if (profile?.role === 'superadmin') {
     redirect('/admin/companies')
   }
@@ -26,28 +23,20 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   let query = supabase
     .from('proposals')
     .select('*, profiles(email)')
-    .eq('kind', 'individual')
+    .eq('kind', 'destination')
     .order('updated_at', { ascending: false })
 
   if (isAdmin && !showAll) {
     query = query.eq('owner_id', profile!.id)
   }
 
-  const { data: allProposals, error } = await query
+  const { data: allDestinations, error } = await query
 
   if (error) {
-    return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
+    return <div style={{ padding: '40px', color: 'red' }}>Error: {error.message}</div>
   }
 
-  const counts: Record<string, number> = {}
-  for (const p of allProposals ?? []) {
-    const s = p.status || 'draft'
-    counts[s] = (counts[s] ?? 0) + 1
-  }
-
-  const proposals = activeStatus
-    ? (allProposals ?? []).filter((p) => p.status === activeStatus)
-    : allProposals ?? []
+  const destinations = allDestinations ?? []
 
   const myLinkStyle: React.CSSProperties = {
     padding: '6px 14px',
@@ -76,23 +65,22 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-            Proposals
+            Destinations
           </h1>
           <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-            {proposals.length} {proposals.length === 1 ? 'proposal' : 'proposals'}
-            {activeStatus && ` · filtered by ${activeStatus}`}
+            {destinations.length} {destinations.length === 1 ? 'destination' : 'destinations'}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAdmin && (
             <div style={{ display: 'flex', gap: '2px', background: 'var(--admin-border-card)', borderRadius: '8px', padding: '3px' }}>
-              <a href="/admin" style={myLinkStyle}>My</a>
-              <a href="/admin?view=all" style={allLinkStyle}>All</a>
+              <a href="/admin/destinations" style={myLinkStyle}>My</a>
+              <a href="/admin/destinations?view=all" style={allLinkStyle}>All</a>
             </div>
           )}
 
-          <form action={createProposal}>
+          <form action={createDestination}>
             <button
               type="submit"
               style={{
@@ -108,23 +96,19 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 fontFamily: 'inherit',
               }}
             >
-              + New proposal
+              + New destination
             </button>
           </form>
         </div>
       </div>
 
-      <StatusFilter current={activeStatus} counts={counts} />
-
-      {proposals.length === 0 ? (
+      {destinations.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          {activeStatus
-            ? `No proposals with status "${activeStatus}".`
-            : 'No proposals yet. Click + New proposal to create one.'}
+          No destinations yet. Click + New destination to create one.
         </div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {proposals.map((p) => {
+          {destinations.map((p) => {
             const ownerEmail = Array.isArray(p.profiles)
               ? p.profiles[0]?.email
               : (p.profiles as { email: string } | null)?.email

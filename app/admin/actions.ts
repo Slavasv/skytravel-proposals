@@ -33,7 +33,7 @@ type ProposalUpdate = {
   slug?: string
 }
 
-export async function createProposal() {
+async function createProposalOfKind(kind: 'individual' | 'destination') {
   const slug = `untitled-${Date.now().toString(36)}`
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,6 +42,7 @@ export async function createProposal() {
     .from('proposals')
     .insert({
       slug,
+      kind,
       client_name_ru: null,
       client_name_en: null,
       trip_title_ru: null,
@@ -57,7 +58,16 @@ export async function createProposal() {
   if (error || !data) throw new Error(error?.message || 'Failed to create proposal')
 
   revalidatePath('/admin')
+  revalidatePath('/admin/destinations')
   redirect(`/admin/proposals/${data.id}`)
+}
+
+export async function createProposal() {
+  await createProposalOfKind('individual')
+}
+
+export async function createDestination() {
+  await createProposalOfKind('destination')
 }
 
 export async function deleteProposal(id: string) {

@@ -22,6 +22,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
       ]
     : [
         { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
+        { href: '/admin/destinations', label: 'Destinations', matchPrefix: '/admin/destinations' },
         { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
       ]
 
