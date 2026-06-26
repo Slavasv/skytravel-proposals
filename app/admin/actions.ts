@@ -31,6 +31,11 @@ type ProposalUpdate = {
   cost_notes_en?: string | null
   cost_lines?: unknown
   slug?: string
+  season_ru?: string | null
+  season_en?: string | null
+  tagline_ru?: string | null
+  tagline_en?: string | null
+  price_from?: boolean
 }
 
 async function createProposalOfKind(kind: 'individual' | 'destination') {
@@ -59,7 +64,7 @@ async function createProposalOfKind(kind: 'individual' | 'destination') {
 
   revalidatePath('/admin')
   revalidatePath('/admin/destinations')
-  redirect(`/admin/proposals/${data.id}`)
+  redirect(kind === 'destination' ? `/admin/destinations/${data.id}` : `/admin/proposals/${data.id}`)
 }
 
 export async function createProposal() {
