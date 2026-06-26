@@ -23,6 +23,9 @@ import {
   type DestinationSection,
   type SectionType,
 } from './destination-actions'
+import SectionGallery from './section-gallery'
+
+type Lang = 'ru' | 'en'
 
 const SECTION_TYPES: { type: SectionType; label: string; desc: string }[] = [
   { type: 'route', label: 'Route', desc: 'Sample itinerary (one per destination)' },
@@ -39,11 +42,19 @@ function typeLabel(type: SectionType): string {
 
 function SortableSection({
   section,
+  lang,
+  expanded,
+  onToggle,
   onDelete,
+  onLocalChange,
   disabled,
 }: {
   section: DestinationSection
+  lang: Lang
+  expanded: boolean
+  onToggle: (id: string) => void
   onDelete: (id: string) => void
+  onLocalChange: (id: string, patch: Partial<DestinationSection>) => void
   disabled: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -55,54 +66,70 @@ function SortableSection({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '14px 16px',
     border: '1px solid var(--admin-border-card)',
     borderRadius: '8px',
     background: 'var(--admin-card)',
     marginBottom: '8px',
+    overflow: 'hidden',
   }
 
   const title = section.title_ru || section.title_en || ''
 
   return (
     <div ref={setNodeRef} style={style}>
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label="Drag to reorder"
-        style={{
-          background: 'transparent', border: 'none', padding: '2px 6px',
-          cursor: disabled ? 'not-allowed' : 'grab', color: 'var(--admin-text-muted)',
-          fontSize: '14px', fontFamily: 'inherit', touchAction: 'none',
-        }}
-      >
-        ⋮⋮
-      </button>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
-          {typeLabel(section.type)}
-          {title && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {title}</span>}
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--admin-text-faint)', marginTop: '2px' }}>
-          Empty — open to fill (editing coming next step)
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px' }}>
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+          style={{
+            background: 'transparent', border: 'none', padding: '2px 6px',
+            cursor: disabled ? 'not-allowed' : 'grab', color: 'var(--admin-text-muted)',
+            fontSize: '14px', fontFamily: 'inherit', touchAction: 'none',
+          }}
+        >
+          ⋮⋮
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggle(section.id)}
+          style={{
+            flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent',
+            border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+          }}
+        >
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
+            <span style={{ color: 'var(--admin-text-muted)', marginRight: '6px' }}>{expanded ? '▾' : '▸'}</span>
+            {typeLabel(section.type)}
+            {title && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {title}</span>}
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(section.id)}
+          disabled={disabled}
+          style={{
+            padding: '4px 10px', fontSize: '12px', color: 'var(--admin-danger)',
+            background: 'transparent', border: '1px solid var(--admin-border-card)',
+            borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          ✕ Remove
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => onDelete(section.id)}
-        disabled={disabled}
-        style={{
-          padding: '4px 10px', fontSize: '12px', color: 'var(--admin-danger)',
-          background: 'transparent', border: '1px solid var(--admin-border-card)',
-          borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-        }}
-      >
-        ✕ Remove
-      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--admin-border-card)' }}>
+          {section.type === 'gallery' ? (
+            <SectionGallery section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : (
+            <div style={{ paddingTop: '12px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+              Editing for &quot;{typeLabel(section.type)}&quot; is coming in the next step.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -116,6 +143,8 @@ export default function SectionList({
 }) {
   const [sections, setSections] = useState<DestinationSection[]>(initialSections)
   const [addOpen, setAddOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [lang, setLang] = useState<Lang>('ru')
   const [isPending, startTransition] = useTransition()
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -126,17 +155,25 @@ export default function SectionList({
     setAddOpen(false)
     startTransition(async () => {
       await addSection(proposalId, type)
-      // оптимистично — добавим заглушку, серверный revalidate обновит
       window.location.reload()
     })
   }
 
   function handleDelete(id: string) {
     if (!confirm('Remove this section?')) return
+    if (expandedId === id) setExpandedId(null)
     setSections((prev) => prev.filter((s) => s.id !== id))
     startTransition(async () => {
       await deleteSection(id)
     })
+  }
+
+  function handleToggle(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id))
+  }
+
+  function handleLocalChange(id: string, patch: Partial<DestinationSection>) {
+    setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   }
 
   function handleDragEnd(e: DragEndEvent) {
@@ -154,7 +191,22 @@ export default function SectionList({
 
   return (
     <section>
-      <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Sections</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>Sections</h2>
+        <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
+          {(['ru', 'en'] as const).map((l) => (
+            <button key={l} type="button" onClick={() => setLang(l)}
+              style={{
+                padding: '4px 12px', fontSize: '12px', fontWeight: 500,
+                background: lang === l ? 'var(--admin-text-on-dark)' : 'transparent',
+                color: lang === l ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
       <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
         Build the destination page from sections. Drag to reorder. All optional except Cover &amp; Costs.
       </p>
@@ -164,7 +216,16 @@ export default function SectionList({
           <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <div>
               {sections.map((s) => (
-                <SortableSection key={s.id} section={s} onDelete={handleDelete} disabled={isPending} />
+                <SortableSection
+                  key={s.id}
+                  section={s}
+                  lang={lang}
+                  expanded={expandedId === s.id}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onLocalChange={handleLocalChange}
+                  disabled={isPending}
+                />
               ))}
             </div>
           </SortableContext>
