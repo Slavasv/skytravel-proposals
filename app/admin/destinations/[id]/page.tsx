@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import DestinationForm from './destination-form'
+import { getSections } from './destination-actions'
 
 export default async function EditDestinationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -18,6 +19,8 @@ export default async function EditDestinationPage({ params }: { params: Promise<
   if (error || !proposal) {
     notFound()
   }
+
+  const sections = await getSections(proposal.id)
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -36,7 +39,7 @@ export default async function EditDestinationPage({ params }: { params: Promise<
         </p>
       </div>
 
-      <DestinationForm proposal={proposal} />
+      <DestinationForm proposal={proposal} sections={sections} />
     </div>
   )
 }

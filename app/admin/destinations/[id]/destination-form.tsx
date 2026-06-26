@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { updateProposal } from '@/app/admin/actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import CostLines, { type CostLine } from '@/app/admin/proposals/[id]/cost-lines'
+import SectionList from './section-list'
+import type { DestinationSection } from './destination-actions'
 
 type Lang = 'ru' | 'en'
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -56,7 +58,7 @@ const inputStyle: React.CSSProperties = {
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'CHF']
 
-export default function DestinationForm({ proposal }: { proposal: Proposal }) {
+export default function DestinationForm({ proposal, sections }: { proposal: Proposal; sections: DestinationSection[] }) {
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -256,8 +258,8 @@ export default function DestinationForm({ proposal }: { proposal: Proposal }) {
         </div>
       </section>
 
-      <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-        Sections (place stories, hotels, activities, etc.) will be added below in the next step.
+      <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <SectionList proposalId={proposal.id} initialSections={sections} />
       </div>
     </div>
   )
