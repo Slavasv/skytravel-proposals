@@ -73,7 +73,6 @@ const inputStyle: React.CSSProperties = {
 
 type Props = {
   proposal: Proposal
-  kind: 'individual' | 'destination'
   lang: Lang
   onLangChange: (lang: Lang) => void
   days?: Day[]
@@ -81,7 +80,7 @@ type Props = {
   itinerary?: React.ReactNode
 }
 
-export default function ProposalForm({ proposal, kind, lang, onLangChange, days = [], actions, itinerary }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, days = [], actions, itinerary }: Props) {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -328,38 +327,29 @@ export default function ProposalForm({ proposal, kind, lang, onLangChange, days 
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          {kind === 'destination' ? 'Sample dates' : 'Client & dates'} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          Client & dates <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
-        {kind === 'destination' && (
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-            Illustrative dates shown on the destination page (e.g. a sample season). No client is attached to a destination.
-          </p>
-        )}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
-          {kind !== 'destination' && (
-            <>
-              <div>
-                <label style={labelStyle}>Client name</label>
-                <input
-                  type="text"
-                  value={form[clientKey]}
-                  onChange={(e) => set(clientKey, e.target.value)}
-                  style={inputStyle}
-                  placeholder={clientPlaceholder}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Guests</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.guest_count}
-                  onChange={(e) => set('guest_count', parseInt(e.target.value) || 1)}
-                  style={inputStyle}
-                />
-              </div>
-            </>
-          )}
+          <div>
+            <label style={labelStyle}>Client name</label>
+            <input
+              type="text"
+              value={form[clientKey]}
+              onChange={(e) => set(clientKey, e.target.value)}
+              style={inputStyle}
+              placeholder={clientPlaceholder}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Guests</label>
+            <input
+              type="number"
+              min={1}
+              value={form.guest_count}
+              onChange={(e) => set('guest_count', parseInt(e.target.value) || 1)}
+              style={inputStyle}
+            />
+          </div>
           <div>
             <label style={labelStyle}>Start date</label>
             <input
