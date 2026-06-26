@@ -104,6 +104,12 @@ export async function duplicateProposal(id: string) {
     .from('proposals')
     .insert({
       slug: `${original.slug}-copy-${Date.now().toString(36)}`,
+      kind: original.kind,
+      season_ru: original.season_ru,
+      season_en: original.season_en,
+      tagline_ru: original.tagline_ru,
+      tagline_en: original.tagline_en,
+      price_from: original.price_from,
       client_name_ru: original.client_name_ru,
       client_name_en: original.client_name_en,
       trip_title_ru: original.trip_title_ru ? `${original.trip_title_ru} (копия)` : null,

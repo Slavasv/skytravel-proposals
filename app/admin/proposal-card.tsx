@@ -15,6 +15,7 @@ type Proposal = {
   start_date: string | null
   end_date: string | null
   status: string | null
+  kind?: string | null
   owner_email?: string | null
   last_viewed_at?: string | null
 }
@@ -25,6 +26,9 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
 
   const title = proposal.trip_title_ru || proposal.trip_title_en || 'Untitled'
   const client = proposal.client_name_ru || proposal.client_name_en || '—'
+  const editHref = proposal.kind === 'destination'
+    ? `/admin/destinations/${proposal.id}`
+    : `/admin/proposals/${proposal.id}`
 
   function viewedLabel(dateStr: string | null | undefined): string {
     if (!dateStr) return 'Ещё не открывал'
@@ -64,7 +68,7 @@ export default function ProposalCard({ proposal, showOwner }: { proposal: Propos
   return (
     <li style={{ marginBottom: '12px', position: 'relative', opacity: isPending ? 0.4 : 1, transition: 'opacity 0.15s' }}>
       <Link
-        href={`/admin/proposals/${proposal.id}`}
+        href={editHref}
         style={{
           display: 'block',
           padding: '16px',
