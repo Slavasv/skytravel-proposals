@@ -116,3 +116,25 @@ export async function reorderSections(proposalId: string, orderedIds: string[]) 
 
   revalidatePath(`/admin/destinations/${proposalId}`)
 }
+
+// Получить краткую инфу о блоке (для превью выбранного city/hotel в секции)
+export type BlockBrief = {
+  id: string
+  type: string
+  title_ru: string | null
+  title_en: string | null
+  image_url: string | null
+  facts_ru: string | null
+  facts_en: string | null
+}
+
+export async function getBlockBrief(blockId: string): Promise<BlockBrief | null> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('content_blocks')
+    .select('id, type, title_ru, title_en, image_url, facts_ru, facts_en')
+    .eq('id', blockId)
+    .single()
+  if (error || !data) return null
+  return data as BlockBrief
+}
