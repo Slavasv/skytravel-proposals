@@ -259,7 +259,7 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
       </section>
 
       <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <SectionList proposalId={proposal.id} initialSections={sections} />
+        <SectionList proposalId={proposal.id} initialSections={sections} lang={lang} />
       </div>
     </div>
   )

@@ -24,6 +24,11 @@ import {
   type SectionType,
 } from './destination-actions'
 import SectionGallery from './section-gallery'
+import SectionSampleDay from './section-sample-day'
+import SectionRoute from './section-route'
+import SectionCity from './section-city'
+import SectionActivities from './section-activities'
+import SectionHotel from './section-hotel'
 
 type Lang = 'ru' | 'en'
 
@@ -73,7 +78,7 @@ function SortableSection({
     overflow: 'hidden',
   }
 
-  const title = section.title_ru || section.title_en || ''
+  const title = (lang === 'ru' ? section.title_ru : section.title_en) || ''
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -123,6 +128,16 @@ function SortableSection({
         <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--admin-border-card)' }}>
           {section.type === 'gallery' ? (
             <SectionGallery section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'sample_day' ? (
+            <SectionSampleDay section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'route' ? (
+            <SectionRoute section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'city' ? (
+            <SectionCity section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'activities' ? (
+            <SectionActivities section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'hotel' ? (
+            <SectionHotel section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
           ) : (
             <div style={{ paddingTop: '12px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
               Editing for &quot;{typeLabel(section.type)}&quot; is coming in the next step.
@@ -137,14 +152,15 @@ function SortableSection({
 export default function SectionList({
   proposalId,
   initialSections,
+  lang,
 }: {
   proposalId: string
   initialSections: DestinationSection[]
+  lang: Lang
 }) {
   const [sections, setSections] = useState<DestinationSection[]>(initialSections)
   const [addOpen, setAddOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [lang, setLang] = useState<Lang>('ru')
   const [isPending, startTransition] = useTransition()
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -191,22 +207,7 @@ export default function SectionList({
 
   return (
     <section>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>Sections</h2>
-        <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
-          {(['ru', 'en'] as const).map((l) => (
-            <button key={l} type="button" onClick={() => setLang(l)}
-              style={{
-                padding: '4px 12px', fontSize: '12px', fontWeight: 500,
-                background: lang === l ? 'var(--admin-text-on-dark)' : 'transparent',
-                color: lang === l ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
-                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+      <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Sections</h2>
       <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
         Build the destination page from sections. Drag to reorder. All optional except Cover &amp; Costs.
       </p>
