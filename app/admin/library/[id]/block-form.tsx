@@ -9,6 +9,7 @@ import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
 import GalleryUploader from './gallery-uploader'
+import RoomsEditor, { normalizeRooms, type Room } from './rooms-editor'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
@@ -37,6 +38,7 @@ type Block = {
   notable_en: string | null
   facts_ru: string | null
   facts_en: string | null
+  rooms: unknown
 }
 
 type Lang = 'ru' | 'en'
@@ -115,6 +117,7 @@ export default function BlockForm({ block }: { block: Block }) {
     notable_en: block.notable_en || '',
     facts_ru: block.facts_ru || '',
     facts_en: block.facts_en || '',
+    rooms: normalizeRooms(block.rooms) as Room[],
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -165,6 +168,7 @@ export default function BlockForm({ block }: { block: Block }) {
           notable_en: currentForm.type === 'city' ? (currentForm.notable_en || null) : null,
           facts_ru: currentForm.type === 'city' ? (currentForm.facts_ru || null) : null,
           facts_en: currentForm.type === 'city' ? (currentForm.facts_en || null) : null,
+          rooms: currentForm.type === 'hotel' ? currentForm.rooms : [],
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -436,6 +440,13 @@ export default function BlockForm({ block }: { block: Block }) {
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={lang === 'ru' ? 'Мишлен, спа, выход к пляжу...' : 'Michelin, spa, beach access...'}
             />
+          </div>
+          <div style={{ marginTop: '24px' }}>
+            <label style={labelStyle}>Rooms</label>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
+              Room types for this hotel (name, size, photos). Reused across destinations and proposals.
+            </p>
+            <RoomsEditor rooms={form.rooms} lang={lang} onChange={(rooms) => set('rooms', rooms)} />
           </div>
         </section>
       )}

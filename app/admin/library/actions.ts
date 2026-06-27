@@ -31,6 +31,7 @@ export type BlockUpdate = {
   notable_en?: string | null
   facts_ru?: string | null
   facts_en?: string | null
+  rooms?: unknown
 }
 
 export async function createBlock() {
