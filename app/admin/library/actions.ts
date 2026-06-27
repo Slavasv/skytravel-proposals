@@ -29,6 +29,8 @@ export type BlockUpdate = {
   max_passengers?: number | null
   notable_ru?: string | null
   notable_en?: string | null
+  facts_ru?: string | null
+  facts_en?: string | null
 }
 
 export async function createBlock() {

@@ -34,6 +34,8 @@ type Block = {
   max_passengers: number | null
   notable_ru: string | null
   notable_en: string | null
+  facts_ru: string | null
+  facts_en: string | null
 }
 
 type Lang = 'ru' | 'en'
@@ -108,6 +110,8 @@ export default function BlockForm({ block }: { block: Block }) {
     // city
     notable_ru: block.notable_ru || '',
     notable_en: block.notable_en || '',
+    facts_ru: block.facts_ru || '',
+    facts_en: block.facts_en || '',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -156,6 +160,8 @@ export default function BlockForm({ block }: { block: Block }) {
             : null,
           notable_ru: currentForm.type === 'city' ? (currentForm.notable_ru || null) : null,
           notable_en: currentForm.type === 'city' ? (currentForm.notable_en || null) : null,
+          facts_ru: currentForm.type === 'city' ? (currentForm.facts_ru || null) : null,
+          facts_en: currentForm.type === 'city' ? (currentForm.facts_en || null) : null,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -221,6 +227,7 @@ export default function BlockForm({ block }: { block: Block }) {
   const seasonKey = lang === 'ru' ? 'best_season_ru' : 'best_season_en'
   const vehicleKey = lang === 'ru' ? 'vehicle_ru' : 'vehicle_en'
   const notableKey = lang === 'ru' ? 'notable_ru' : 'notable_en'
+  const factsKey = lang === 'ru' ? 'facts_ru' : 'facts_en'
 
   function renderSaveIndicator() {
     if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
@@ -518,6 +525,21 @@ export default function BlockForm({ block }: { block: Block }) {
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={lang === 'ru' ? 'UNESCO, рынок по субботам...' : 'UNESCO, Saturday market...'}
             />
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <label style={labelStyle}>Facts</label>
+            <textarea
+              value={form[factsKey]}
+              onChange={(e) => set(factsKey, e.target.value)}
+              rows={6}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+              placeholder={lang === 'ru'
+                ? 'Найроби — единственная столица с нацпарком в черте города\nСредняя температура круглый год — около 22°С'
+                : 'Nairobi is the only capital with a national park inside the city\nAverage temperature year-round — about 22°C'}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+              One fact per line. Shown as a list on destination pages.
+            </p>
           </div>
         </section>
       )}
