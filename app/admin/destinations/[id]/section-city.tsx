@@ -122,6 +122,8 @@ export default function SectionCity({
         lang={lang}
         returnTo={returnTo}
         title={lang === 'ru' ? 'Выберите город' : 'Choose a city'}
+        attachKind="city"
+        attachSectionId={section.id}
       />
     </div>
   )

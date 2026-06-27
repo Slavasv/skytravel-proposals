@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { updateBlock, type BlockType } from '../actions'
 import { addBlockToDay } from '@/app/admin/proposals/[id]/block-actions'
+import { attachBlockToSection } from '@/app/admin/destinations/[id]/destination-actions'
 import TagsInput from './tags-input'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
@@ -77,6 +78,8 @@ export default function BlockForm({ block }: { block: Block }) {
   const searchParams = useSearchParams()
   const returnTo = searchParams.get('returnTo')
   const addToDay = searchParams.get('addToDay')
+  const addToSection = searchParams.get('addToSection')
+  const attachKind = searchParams.get('attachKind') as 'city' | 'hotel' | 'blocks' | null
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -214,6 +217,14 @@ export default function BlockForm({ block }: { block: Block }) {
         await addBlockToDay(addToDay, block.id)
       } catch {
         // Если не удалось — всё равно вернёмся, не блокируем поток
+      }
+    }
+
+    if (addToSection && attachKind) {
+      try {
+        await attachBlockToSection(addToSection, block.id, attachKind)
+      } catch {
+        // не блокируем возврат
       }
     }
 

@@ -16,6 +16,8 @@ type Props = {
   lang: Lang
   returnTo: string // куда вернуться после создания нового блока (URL направления)
   title?: string
+  attachKind?: 'city' | 'hotel' | 'blocks'
+  attachSectionId?: string
 }
 
 const TYPE_LABEL: Record<PickType, string> = {
@@ -24,7 +26,7 @@ const TYPE_LABEL: Record<PickType, string> = {
   activity: 'activity',
 }
 
-export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockType, lang, returnTo, title }: Props) {
+export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockType, lang, returnTo, title, attachKind, attachSectionId }: Props) {
   const router = useRouter()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
   const [loading, setLoading] = useState(false)
@@ -84,7 +86,10 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
         type: blockType, title_ru: newTitleRu, title_en: newTitleEn, city_id: null, country_id: null,
       })
       const ret = encodeURIComponent(returnTo)
-      router.push(`/admin/library/${newId}?returnTo=${ret}`)
+      const attach = (attachKind && attachSectionId)
+        ? `&addToSection=${attachSectionId}&attachKind=${attachKind}`
+        : ''
+      router.push(`/admin/library/${newId}?returnTo=${ret}${attach}`)
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Error')
       setCreating(false)
