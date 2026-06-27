@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { updateProposal } from '@/app/admin/actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import CostLines, { type CostLine } from '@/app/admin/proposals/[id]/cost-lines'
@@ -61,6 +62,7 @@ const inputStyle: React.CSSProperties = {
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'CHF']
 
 export default function DestinationForm({ proposal, sections }: { proposal: Proposal; sections: DestinationSection[] }) {
+  const router = useRouter()
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -120,7 +122,10 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
           cost_notes_ru: currentForm.cost_notes_ru || null,
           cost_notes_en: currentForm.cost_notes_en || null,
           cost_lines: currentForm.cost_lines,
-          total_price: currentForm.total_price === '' ? null : Number(currentForm.total_price),
+          total_price: (() => {
+            const cleaned = String(currentForm.total_price).replace(/[^\d.]/g, '')
+            return cleaned === '' ? null : Number(cleaned)
+          })(),
           price_from: currentForm.price_from,
         })
         setSavedAt(new Date())
@@ -154,6 +159,20 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
   const excludesKey = lang === 'ru' ? 'cost_excludes_ru' : 'cost_excludes_en'
   const notesKey = lang === 'ru' ? 'cost_notes_ru' : 'cost_notes_en'
 
+  async function handleDone() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    if (saveState === 'editing' || saveState === 'error') {
+      await saveNow(form)
+    }
+    if (inFlight.current) {
+      await inFlight.current
+    }
+    router.push('/admin/destinations')
+  }
+
   function renderSaveIndicator() {
     if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
     if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
@@ -184,9 +203,6 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
         </div>
         <div style={{ fontSize: '12px' }}>{renderSaveIndicator()}</div>
       </div>
-
-      {/* Preview / share */}
-      <ProposalActions slug={proposal.slug} kind="destination" />
 
       {/* COVER */}
       <section>
@@ -267,6 +283,33 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
           </div>
         </div>
       </section>
+
+      {/* Preview / share + Done */}
+      <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <ProposalActions slug={proposal.slug} kind="destination" />
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={handleDone}
+            disabled={saveState === 'saving'}
+            style={{
+              padding: '10px 24px',
+              fontSize: '13px',
+              fontWeight: 500,
+              letterSpacing: '0.03em',
+              background: 'var(--admin-text-on-dark)',
+              color: 'var(--admin-dark-panel)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: saveState === 'saving' ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: saveState === 'saving' ? 0.6 : 1,
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
