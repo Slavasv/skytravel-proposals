@@ -5,6 +5,7 @@ import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Props = {
   slug: string
+  kind?: 'individual' | 'destination'
 }
 
 const buttonStyle: React.CSSProperties = {
@@ -21,9 +22,11 @@ const buttonStyle: React.CSSProperties = {
   transition: 'border-color 0.15s, color 0.15s',
 }
 
-export default function ProposalActions({ slug }: Props) {
+export default function ProposalActions({ slug, kind = 'individual' }: Props) {
   const [copiedKey, setCopiedKey] = useState<'ru' | 'en' | null>(null)
   const isMobile = useIsMobile()
+
+  const base = kind === 'destination' ? 'd' : 'p'
 
   function getOrigin() {
     if (typeof window === 'undefined') return ''
@@ -31,12 +34,12 @@ export default function ProposalActions({ slug }: Props) {
   }
 
   function openPreview(lang: 'ru' | 'en') {
-    const path = lang === 'ru' ? `/p/${slug}` : `/en/p/${slug}`
+    const path = lang === 'ru' ? `/${base}/${slug}` : `/en/${base}/${slug}`
     window.open(path, '_blank', 'noopener,noreferrer')
   }
 
   async function copyLink(lang: 'ru' | 'en') {
-    const path = lang === 'ru' ? `/p/${slug}` : `/en/p/${slug}`
+    const path = lang === 'ru' ? `/${base}/${slug}` : `/en/${base}/${slug}`
     const url = `${getOrigin()}${path}`
     try {
       await navigator.clipboard.writeText(url)

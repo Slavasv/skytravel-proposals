@@ -6,12 +6,14 @@ import ImageUploader from '@/app/admin/_components/image-uploader'
 import CostLines, { type CostLine } from '@/app/admin/proposals/[id]/cost-lines'
 import SectionList from './section-list'
 import type { DestinationSection } from './destination-actions'
+import ProposalActions from '@/app/admin/proposals/[id]/proposal-actions'
 
 type Lang = 'ru' | 'en'
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 type Proposal = {
   id: string
+  slug: string
   trip_title_ru: string | null
   trip_title_en: string | null
   season_ru: string | null
@@ -183,6 +185,9 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
         <div style={{ fontSize: '12px' }}>{renderSaveIndicator()}</div>
       </div>
 
+      {/* Preview / share */}
+      <ProposalActions slug={proposal.slug} kind="destination" />
+
       {/* COVER */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
@@ -211,8 +216,13 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
         </div>
       </section>
 
-      {/* COSTS */}
-      <section>
+      {/* SECTIONS */}
+      <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <SectionList proposalId={proposal.id} initialSections={sections} lang={lang} />
+      </div>
+
+      {/* COSTS (last — filled last) */}
+      <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Costs</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>Pricing for this destination. Required.</p>
 
@@ -257,10 +267,6 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
           </div>
         </div>
       </section>
-
-      <div style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <SectionList proposalId={proposal.id} initialSections={sections} lang={lang} />
-      </div>
     </div>
   )
 }
