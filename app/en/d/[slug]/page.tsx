@@ -7,10 +7,10 @@ type Params = { slug: string }
 type CostLine = {
   id: string
   category: 'hotel' | 'transfer' | 'activity'
-  label_en: string
+  label_ru: string
   label_en: string
   nights: number | null
-  details_en: string
+  details_ru: string
   details_en: string
   price: string
 }
