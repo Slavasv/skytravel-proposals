@@ -17,6 +17,7 @@ type BlockShape = {
     location: string
   }
   custom_note_ru: string | null
+  room_type_ru: string | null
   sort_order: number
 }
 
@@ -201,6 +202,11 @@ export default async function ProposalPage({ params }: { params: Promise<Params>
                     <div style={{ fontSize: '17px', fontWeight: 500, marginBottom: '6px' }}>
                       {block.title_ru}
                     </div>
+                    {block.type === 'hotel' && db.room_type_ru && (
+                      <div style={{ fontSize: '13px', color: 'var(--brand-accent)', fontWeight: 500, marginBottom: '6px' }}>
+                        {db.room_type_ru}
+                      </div>
+                    )}
                     <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--client-text-secondary)', margin: 0 }}>
                       {block.description_ru}
                     </p>
