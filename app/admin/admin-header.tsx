@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
@@ -15,6 +16,7 @@ type Props = {
 export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const navItems = isSuperadmin
     ? [
@@ -33,8 +35,16 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
     return pathname.startsWith(item.matchPrefix)
   }
 
+  const linkBase: React.CSSProperties = {
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+  }
+
   return (
     <nav style={{
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -59,40 +69,94 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
         {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '24px' }}>
-        {navItems.map((item) => {
-          const active = isActive(item)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                fontSize: isMobile ? '11px' : '13px',
-                fontWeight: 500,
-                letterSpacing: isMobile ? '0.02em' : '0.04em',
-                textTransform: 'uppercase',
-                color: active ? 'var(--admin-text-on-dark)' : 'var(--admin-text-muted)',
-                textDecoration: 'none',
-                paddingBottom: '2px',
-                marginBottom: '-2px',
-                borderBottom: `2px solid ${active ? 'var(--admin-text-on-dark)' : 'transparent'}`,
-                transition: 'color 0.15s, border-color 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.color = 'var(--admin-text)'
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.color = 'var(--admin-text-muted)'
-              }}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
+      {isMobile ? (
+        /* Mobile: burger + dropdown */
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            style={{
+              display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px',
+              width: '32px', height: '32px', padding: '6px',
+              background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
+            <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
+            <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
+          </button>
 
-        <GearMenu isAdmin={isAdmin} email={email} />
-      </div>
+          <GearMenu isAdmin={isAdmin} email={email} />
+
+          {menuOpen && (
+            <>
+              {/* overlay для закрытия по тапу вне меню */}
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div style={{
+                position: 'absolute', top: '100%', right: '16px', marginTop: '8px',
+                minWidth: '200px', background: 'var(--admin-card)',
+                border: '1px solid var(--admin-border-card)', borderRadius: '10px',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 41,
+                padding: '6px', display: 'flex', flexDirection: 'column',
+              }}>
+                {navItems.map((item) => {
+                  const active = isActive(item)
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      style={{
+                        ...linkBase,
+                        fontSize: '13px',
+                        letterSpacing: '0.04em',
+                        padding: '12px 14px',
+                        borderRadius: '6px',
+                        color: active ? 'var(--admin-text-on-dark)' : 'var(--admin-text-muted)',
+                        background: active ? 'var(--admin-input)' : 'transparent',
+                      }}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        /* Desktop: inline nav */
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          {navItems.map((item) => {
+            const active = isActive(item)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  ...linkBase,
+                  fontSize: '13px',
+                  letterSpacing: '0.04em',
+                  color: active ? 'var(--admin-text-on-dark)' : 'var(--admin-text-muted)',
+                  paddingBottom: '2px',
+                  marginBottom: '-2px',
+                  borderBottom: `2px solid ${active ? 'var(--admin-text-on-dark)' : 'transparent'}`,
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = 'var(--admin-text)' }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = 'var(--admin-text-muted)' }}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+
+          <GearMenu isAdmin={isAdmin} email={email} />
+        </div>
+      )}
     </nav>
   )
 }

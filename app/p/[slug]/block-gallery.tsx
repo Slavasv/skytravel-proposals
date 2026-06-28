@@ -19,6 +19,7 @@ export default function BlockGallery({ photos, alt = '', width = 160, height = 1
 
   return (
     <div
+      className={width ? undefined : 'gallery-fluid'}
       style={{
         position: 'relative',
         width: width ? `${width}px` : '100%',
