@@ -46,6 +46,7 @@ export type ContentBlock = {
   image_url: string | null
   location: string | null
   tags: string[] | null
+  rooms?: unknown
 }
 
 export type DayBlock = {

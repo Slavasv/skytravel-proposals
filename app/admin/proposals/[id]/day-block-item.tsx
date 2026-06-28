@@ -9,6 +9,7 @@ import {
   updateDayBlock,
 } from './block-actions'
 import type { DayBlock, Lang } from './edit-page-client'
+import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Props = {
@@ -261,24 +262,65 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           </p>
         )}
 
-        {block.type === 'hotel' && (
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-              Room type · {lang.toUpperCase()}
-            </label>
-            <input
-              type="text"
-              value={noteForm[roomTypeKey]}
-              onChange={(e) => setField(roomTypeKey, e.target.value)}
-              placeholder="e.g.: Deluxe City View, All Inclusive"
-              style={{
-                width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
-            />
-          </div>
-        )}
+        {block.type === 'hotel' && (() => {
+          const hotelRooms = normalizeRooms(block.rooms)
+          const inputStyle: React.CSSProperties = {
+            width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+            color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+            borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+          }
+          const currentValue = noteForm[roomTypeKey]
+          // совпадает ли текущее значение с одним из номеров отеля
+          const matchesRoom = hotelRooms.some((r) => (lang === 'ru' ? r.title_ru : r.title_en) === currentValue)
+          const selectValue = currentValue === '' ? '' : (matchesRoom ? currentValue : '__custom__')
+
+          return (
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                Room type · {lang.toUpperCase()}
+              </label>
+              {hotelRooms.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <select
+                    value={selectValue}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (v === '__custom__') setField(roomTypeKey, ' ')
+                      else setField(roomTypeKey, v)
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="">— not specified —</option>
+                    {hotelRooms.map((r) => {
+                      const rt = lang === 'ru' ? r.title_ru : r.title_en
+                      const rs = lang === 'ru' ? r.subtitle_ru : r.subtitle_en
+                      return <option key={r.id} value={rt}>{rt}{rs ? ` · ${rs}` : ''}</option>
+                    })}
+                    <option value="__custom__">Custom…</option>
+                  </select>
+                  {selectValue === '__custom__' && (
+                    <input
+                      type="text"
+                      value={currentValue}
+                      onChange={(e) => setField(roomTypeKey, e.target.value)}
+                      placeholder="e.g.: Deluxe City View, All Inclusive"
+                      style={inputStyle}
+                      autoFocus
+                    />
+                  )}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={currentValue}
+                  onChange={(e) => setField(roomTypeKey, e.target.value)}
+                  placeholder="e.g.: Deluxe City View, All Inclusive"
+                  style={inputStyle}
+                />
+              )}
+            </div>
+          )
+        })()}
 
         {block.type === 'transfer' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>

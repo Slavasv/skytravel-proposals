@@ -36,7 +36,8 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
           description_en,
           image_url,
           location,
-          tags
+          tags,
+          rooms
         )
       )
     `)
