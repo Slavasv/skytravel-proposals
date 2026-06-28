@@ -270,10 +270,17 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
             borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
           }
           const currentValue = noteForm[roomTypeKey]
-          // совпадает ли текущее значение с одним из номеров отеля
-          const matchesRoom = hotelRooms.some((r) => (lang === 'ru' ? r.title_ru : r.title_en) === currentValue)
-          const selectValue = currentValue === '' ? '' : (matchesRoom ? currentValue : '__custom__')
+          const norm = (s: string) => s.trim().toLowerCase()
+          // ищем номер, чьё название совпадает с сохранённым значением (без чувствительности к пробелам/регистру)
+          const matchedRoom = hotelRooms.find((r) => {
+            const rt = lang === 'ru' ? r.title_ru : r.title_en
+            return rt && norm(rt) === norm(currentValue)
+          })
+          const selectValue = currentValue.trim() === ''
+            ? ''
+            : (matchedRoom ? (lang === 'ru' ? matchedRoom.title_ru : matchedRoom.title_en) : '__custom__')
 
+          
           return (
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
