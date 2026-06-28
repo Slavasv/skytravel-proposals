@@ -19,7 +19,7 @@ type Section = {
   id: string
   type: string
   sort_order: number
-  title_en: string | null
+  title_ru: string | null
   title_en: string | null
   data: Record<string, unknown> | null
   city_block_id: string | null
@@ -29,19 +29,19 @@ type Section = {
 type CBlock = {
   id: string
   type: string
+  title_ru: string | null
   title_en: string | null
-  title_en: string | null
-  description_en: string | null
+  description_ru: string | null
   description_en: string | null
   image_url: string | null
   images: string[] | null
-  facts_en: string | null
+  facts_ru: string | null
   facts_en: string | null
   duration_hours: number | null
   rooms: unknown
 }
 
-type Room = { id: string; title_en: string; title_en: string; subtitle_en: string; subtitle_en: string; images: string[] }
+type Room = { id: string; title_ru: string; title_en: string; subtitle_ru: string; subtitle_en: string; images: string[] }
 
 function normalizeRooms(data: unknown): Room[] {
   if (!Array.isArray(data)) return []
@@ -49,9 +49,9 @@ function normalizeRooms(data: unknown): Room[] {
     .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
     .map((x) => ({
       id: typeof x.id === 'string' ? x.id : Math.random().toString(36).slice(2),
+      title_ru: typeof x.title_ru === 'string' ? x.title_ru : '',
       title_en: typeof x.title_en === 'string' ? x.title_en : '',
-      title_en: typeof x.title_en === 'string' ? x.title_en : '',
-      subtitle_en: typeof x.subtitle_en === 'string' ? x.subtitle_en : '',
+      subtitle_ru: typeof x.subtitle_ru === 'string' ? x.subtitle_ru : '',
       subtitle_en: typeof x.subtitle_en === 'string' ? x.subtitle_en : '',
       images: Array.isArray(x.images) ? x.images.filter((i): i is string => typeof i === 'string') : [],
     }))
