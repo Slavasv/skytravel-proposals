@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { updateVoucher, type Guest } from './voucher-actions'
 import VoucherHotels from './voucher-hotels'
 import type { VoucherHotel } from './voucher-actions'
+import DateInput from '@/app/admin/_components/date-input'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -209,7 +210,7 @@ export default function VoucherForm({
           </div>
           <div>
             <label style={labelStyle}>Issue date</label>
-            <input type="text" value={form.issue_date} onChange={(e) => set('issue_date', e.target.value)} style={inputStyle} placeholder="05/07/2026" />
+            <DateInput value={form.issue_date} onChange={(v) => set('issue_date', v)} />
           </div>
           <div>
             <label style={labelStyle}>Booking Ref.</label>
@@ -258,7 +259,9 @@ export default function VoucherForm({
                 </div>
                 {child && (
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px' }}>
-                    <input type="text" value={g.birth_date} onChange={(e) => changeGuest(g.id, { birth_date: e.target.value })} style={{ ...inputStyle, flex: 1 }} placeholder="Date of birth, DD/MM/YYYY" />
+                    <div style={{ flex: 1 }}>
+                      <DateInput value={g.birth_date} onChange={(v) => changeGuest(g.id, { birth_date: v })} placeholder="Date of birth dd/mm/yyyy" />
+                    </div>
                     {age && (
                       <span style={{ fontSize: '13px', color: 'var(--admin-accent)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                         {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>at last check-out</span>

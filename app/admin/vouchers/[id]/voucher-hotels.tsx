@@ -11,6 +11,25 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   addHotel, updateHotel, deleteHotel, reorderHotels, type VoucherHotel,
 } from './voucher-actions'
+import DateInput from '@/app/admin/_components/date-input'
+
+// парсинг ДД/ММ/ГГГГ (или ДД.ММ.ГГГГ)
+function parseDMY(str: string): Date | null {
+  const m = str.trim().match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)
+  if (!m) return null
+  const d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10)
+  const date = new Date(y, mo - 1, d)
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null
+  return date
+}
+
+// ночей между заездом и выездом (null если не распарсить)
+function calcNights(checkIn: string, checkOut: string): number | null {
+  const a = parseDMY(checkIn), b = parseDMY(checkOut)
+  if (!a || !b) return null
+  const diff = Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
+  return diff > 0 ? diff : null
+}
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -51,6 +70,18 @@ function HotelCard({
   function set(field: Field, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
+
+  // авто-расчёт ночей
+  const autoNights = calcNights(form.check_in, form.check_out)
+  const nightsDisplay = autoNights != null ? String(autoNights) : (form.nights || '')
+
+  // если авто-ночи посчитались и отличаются от сохранённого — обновим (попадёт в автосейв)
+  useEffect(() => {
+    if (autoNights != null && String(autoNights) !== form.nights) {
+      setForm((prev) => ({ ...prev, nights: String(autoNights) }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoNights])
 
   useEffect(() => {
     if (isInitial.current) { isInitial.current = false; return }
@@ -119,15 +150,15 @@ function HotelCard({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           <div>
             <label style={labelStyle}>Check-in</label>
-            <input type="text" value={form.check_in} onChange={(e) => set('check_in', e.target.value)} style={inputStyle} placeholder="12.01.2026" />
+            <DateInput value={form.check_in} onChange={(v) => set('check_in', v)} />
           </div>
           <div>
             <label style={labelStyle}>Check-out</label>
-            <input type="text" value={form.check_out} onChange={(e) => set('check_out', e.target.value)} style={inputStyle} placeholder="22.01.2026" />
+            <DateInput value={form.check_out} onChange={(v) => set('check_out', v)} />
           </div>
           <div>
-            <label style={labelStyle}>Nights</label>
-            <input type="text" value={form.nights} onChange={(e) => set('nights', e.target.value)} style={inputStyle} placeholder="10" />
+            <label style={labelStyle}>Nights {autoNights != null && <span style={{ color: 'var(--admin-success)', textTransform: 'none', letterSpacing: 0 }}>· auto</span>}</label>
+            <input type="text" value={nightsDisplay} onChange={(e) => set('nights', e.target.value)} readOnly={autoNights != null} style={{ ...inputStyle, opacity: autoNights != null ? 0.7 : 1, cursor: autoNights != null ? 'default' : 'text' }} placeholder="10" title={autoNights != null ? 'Calculated from check-in / check-out' : 'Enter dates as DD/MM/YYYY to auto-calculate'} />
           </div>
         </div>
 
