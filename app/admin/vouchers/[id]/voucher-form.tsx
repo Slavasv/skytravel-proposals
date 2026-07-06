@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { updateVoucher, type Guest } from './voucher-actions'
+import VoucherHotels from './voucher-hotels'
+import type { VoucherHotel } from './voucher-actions'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -16,7 +18,32 @@ type Voucher = {
   notes: string | null
 }
 
-const TITLES = ['', 'Mr', 'Mrs', 'Ms', 'Miss']
+// Обращения: взрослые и детские
+const ADULT_TITLES = ['Mr', 'Mrs']
+const CHILD_TITLES = ['Miss', 'Mstr', 'Chd', 'Inf']
+const CHILD_SET = new Set(CHILD_TITLES)
+
+function isChildTitle(title: string): boolean {
+  return CHILD_SET.has(title)
+}
+
+// парсинг ДД/ММ/ГГГГ (или ДД.ММ.ГГГГ)
+function parseDMY(s: string): Date | null {
+  const m = s.trim().match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)
+  if (!m) return null
+  const d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10)
+  const date = new Date(y, mo - 1, d)
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null
+  return date
+}
+
+// полных лет от birth до ref
+function fullYearsBetween(birth: Date, ref: Date): number {
+  let age = ref.getFullYear() - birth.getFullYear()
+  const m = ref.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age--
+  return age
+}
 
 function normalizeGuests(data: unknown): Guest[] {
   if (!Array.isArray(data)) return []
@@ -46,7 +73,13 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
-export default function VoucherForm({ voucher }: { voucher: Voucher }) {
+export default function VoucherForm({
+  voucher, hotels, lastCheckout,
+}: {
+  voucher: Voucher
+  hotels: VoucherHotel[]
+  lastCheckout: string | null
+}) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -106,24 +139,45 @@ export default function VoucherForm({ voucher }: { voucher: Voucher }) {
 
   // ---- Guests ----
   function addGuest() {
-    set('guests', [...form.guests, { id: Math.random().toString(36).slice(2), title: '', name: '', is_child: false, birth_date: '' }])
+    set('guests', [...form.guests, { id: Math.random().toString(36).slice(2), title: 'Mr', name: '', is_child: false, birth_date: '' }])
   }
   function changeGuest(id: string, patch: Partial<Guest>) {
     set('guests', form.guests.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+  }
+  function changeTitle(id: string, title: string) {
+    const child = isChildTitle(title)
+    set('guests', form.guests.map((g) => (g.id === id
+      ? { ...g, title, is_child: child, birth_date: child ? g.birth_date : '' }
+      : g)))
   }
   function removeGuest(id: string) {
     set('guests', form.guests.filter((g) => g.id !== id))
   }
 
-  // авто-Pax
-  const adults = form.guests.filter((g) => !g.is_child).length
-  const children = form.guests.filter((g) => g.is_child).length
-  const paxString = [adults > 0 ? `${adults} ADL` : '', children > 0 ? `${children} CHD` : ''].filter(Boolean).join(', ') || '—'
+  // авто-Pax (ADL = взрослые, CHD = дети; Inf считаем отдельно как INF)
+  const adults = form.guests.filter((g) => !isChildTitle(g.title)).length
+  const infants = form.guests.filter((g) => g.title === 'Inf').length
+  const children = form.guests.filter((g) => isChildTitle(g.title) && g.title !== 'Inf').length
+  const paxParts = [
+    adults > 0 ? `${adults} ADL` : '',
+    children > 0 ? `${children} CHD` : '',
+    infants > 0 ? `${infants} INF` : '',
+  ].filter(Boolean)
+  const paxString = paxParts.join(', ') || '—'
+
+  // возраст ребёнка на последний check-out
+  const refDate = lastCheckout ? parseDMY(lastCheckout) : null
+  function childAge(birth_date: string): string {
+    if (!refDate) return ''
+    const b = parseDMY(birth_date)
+    if (!b) return ''
+    const age = fullYearsBetween(b, refDate)
+    if (age < 0) return ''
+    return `${age} y.o.`
+  }
 
   // ---- Transfers ----
-  function addTransfer() {
-    set('transfers', [...form.transfers, ''])
-  }
+  function addTransfer() { set('transfers', [...form.transfers, '']) }
   function changeTransfer(i: number, value: string) {
     set('transfers', form.transfers.map((t, idx) => (idx === i ? value : t)))
   }
@@ -141,7 +195,6 @@ export default function VoucherForm({ voucher }: { voucher: Voucher }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* Save indicator */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '16px', borderBottom: '1px solid var(--admin-border-card)', fontSize: '12px' }}>
         {renderSaveIndicator()}
       </div>
@@ -156,7 +209,7 @@ export default function VoucherForm({ voucher }: { voucher: Voucher }) {
           </div>
           <div>
             <label style={labelStyle}>Issue date</label>
-            <input type="text" value={form.issue_date} onChange={(e) => set('issue_date', e.target.value)} style={inputStyle} placeholder="05.07.2026" />
+            <input type="text" value={form.issue_date} onChange={(e) => set('issue_date', e.target.value)} style={inputStyle} placeholder="05/07/2026" />
           </div>
           <div>
             <label style={labelStyle}>Booking Ref.</label>
@@ -165,12 +218,13 @@ export default function VoucherForm({ voucher }: { voucher: Voucher }) {
         </div>
       </section>
 
-      {/* HOTELS placeholder (Step C) */}
+      {/* HOTELS */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Accommodation</h2>
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: 0 }}>
-          Hotel blocks will be added here in the next step.
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+          One or more hotels. Drag to reorder. Nights are calculated automatically from check-in / check-out.
         </p>
+        <VoucherHotels voucherId={voucher.id} initialHotels={hotels} />
       </section>
 
       {/* GUESTS */}
@@ -179,29 +233,42 @@ export default function VoucherForm({ voucher }: { voucher: Voucher }) {
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>Guests</h2>
           <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>Pax: <b style={{ color: 'var(--admin-text)' }}>{paxString}</b></span>
         </div>
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 14px' }}>Shared across the whole voucher. Pax is calculated automatically.</p>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 14px' }}>
+          Shared across the whole voucher. Adults: Mr/Mrs. Children: Miss/Mstr/Chd/Inf (date of birth required).
+          {!refDate && <span> Add hotel check-out dates to calculate child ages.</span>}
+        </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {form.guests.map((g) => (
-            <div key={g.id} style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '10px', background: 'var(--admin-input)' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select value={g.title} onChange={(e) => changeGuest(g.id, { title: e.target.value })} style={{ ...inputStyle, width: '90px', flexShrink: 0 }}>
-                  {TITLES.map((t) => <option key={t || 'none'} value={t}>{t || '—'}</option>)}
-                </select>
-                <input type="text" value={g.name} onChange={(e) => changeGuest(g.id, { name: e.target.value })} style={inputStyle} placeholder="Pertsev Yurii" />
-                <button type="button" onClick={() => removeGuest(g.id)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--admin-text)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={g.is_child} onChange={(e) => changeGuest(g.id, { is_child: e.target.checked, birth_date: e.target.checked ? g.birth_date : '' })} />
-                  Child
-                </label>
-                {g.is_child && (
-                  <input type="text" value={g.birth_date} onChange={(e) => changeGuest(g.id, { birth_date: e.target.value })} style={{ ...inputStyle, flex: 1 }} placeholder="Date of birth, e.g. 21/04/2015" />
+          {form.guests.map((g) => {
+            const child = isChildTitle(g.title)
+            const age = child ? childAge(g.birth_date) : ''
+            return (
+              <div key={g.id} style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '10px', background: 'var(--admin-input)' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select value={g.title} onChange={(e) => changeTitle(g.id, e.target.value)} style={{ ...inputStyle, width: '110px', flexShrink: 0 }}>
+                    <optgroup label="Adult">
+                      {ADULT_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </optgroup>
+                    <optgroup label="Child">
+                      {CHILD_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </optgroup>
+                  </select>
+                  <input type="text" value={g.name} onChange={(e) => changeGuest(g.id, { name: e.target.value })} style={inputStyle} placeholder="Pertsev Yurii" />
+                  <button type="button" onClick={() => removeGuest(g.id)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+                </div>
+                {child && (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px' }}>
+                    <input type="text" value={g.birth_date} onChange={(e) => changeGuest(g.id, { birth_date: e.target.value })} style={{ ...inputStyle, flex: 1 }} placeholder="Date of birth, DD/MM/YYYY" />
+                    {age && (
+                      <span style={{ fontSize: '13px', color: 'var(--admin-accent)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>at last check-out</span>
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <button type="button" onClick={addGuest} style={{ marginTop: '10px', padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
           + Add guest

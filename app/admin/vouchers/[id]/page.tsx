@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import VoucherForm from './voucher-form'
+import { getHotels } from './voucher-actions'
 
 export default async function EditVoucherPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -16,6 +17,8 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
   if (error || !voucher) {
     notFound()
   }
+
+  const hotels = await getHotels(voucher.id)
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -34,7 +37,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
         </p>
       </div>
 
-      <VoucherForm voucher={voucher} />
+      <VoucherForm voucher={voucher} hotels={hotels} />
     </div>
   )
 }
