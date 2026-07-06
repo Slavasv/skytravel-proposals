@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { deleteVoucher } from '../actions'
 
 type Guest = { name?: string; title?: string }
+type Hotel = { name?: string | null; city?: string | null; country?: string | null; check_in?: string | null; check_out?: string | null; sort_order?: number }
 
 export type VoucherRow = {
   id: string
@@ -14,6 +15,7 @@ export type VoucherRow = {
   updated_at: string
   owner_id: string | null
   guests: unknown
+  voucher_hotels?: Hotel[] | null
   profiles?: { email: string } | { email: string }[] | null
 }
 
@@ -25,20 +27,40 @@ function guestNames(guests: unknown): string[] {
     .filter(Boolean)
 }
 
+// первый гость (по порядку в массиве)
+function firstGuestName(guests: unknown): string {
+  const names = guestNames(guests)
+  return names[0] || 'Untitled voucher'
+}
+
+// первый отель (по sort_order) + даты
+function firstHotelLine(hotels: Hotel[] | null | undefined): string {
+  if (!hotels || hotels.length === 0) return ''
+  const sorted = [...hotels].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+  const h = sorted[0]
+  const parts: string[] = []
+  if (h.name) parts.push(h.name)
+  const place = [h.city, h.country].filter(Boolean).join(' | ')
+  if (place && !h.name) parts.push(place)
+  const dates = [h.check_in, h.check_out].filter(Boolean).join(' – ')
+  if (dates) parts.push(dates)
+  return parts.join(' · ')
+}
+
 export default function VouchersList({ vouchers, showOwner }: { vouchers: VoucherRow[]; showOwner: boolean }) {
+  const safeVouchers = Array.isArray(vouchers) ? vouchers : []
   const [search, setSearch] = useState('')
   const [isPending, startTransition] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return vouchers
-    return vouchers.filter((v) => {
+    if (!q) return safeVouchers
+    return safeVouchers.filter((v) => {
       const names = guestNames(v.guests).join(' ').toLowerCase()
-      const no = (v.voucher_no ?? '').toLowerCase()
-      return names.includes(q) || no.includes(q)
+      return names.includes(q)
     })
-  }, [vouchers, search])
+  }, [safeVouchers, search])
 
   function handleDelete(e: React.MouseEvent, id: string) {
     e.preventDefault()
@@ -73,15 +95,15 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
 
       {filtered.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          {vouchers.length === 0 ? 'No vouchers yet. Click + New voucher to create one.' : 'Nothing matches your search.'}
+          {safeVouchers.length === 0 ? 'No vouchers yet. Click + New voucher to create one.' : 'Nothing matches your search.'}
         </div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map((v) => {
             const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
-            const title = v.voucher_no ? `Voucher #${v.voucher_no}` : 'Untitled voucher'
-            const names = guestNames(v.guests)
-            const namesPreview = names.length > 0 ? names.join(', ') : 'No guests'
+            const mainName = firstGuestName(v.guests)
+            const hotelLine = firstHotelLine(v.voucher_hotels)
+            const guestCount = guestNames(v.guests).length
             return (
               <li key={v.id} style={{ opacity: deletingId === v.id ? 0.4 : 1 }}>
                 <Link href={`/admin/vouchers/${v.id}`} style={{
@@ -90,15 +112,18 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
                   background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit',
                 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>{title}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
+                      {mainName}
+                      {guestCount > 1 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> +{guestCount - 1}</span>}
+                    </div>
                     <div style={{ fontSize: '13px', color: 'var(--admin-text)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {namesPreview}
+                      {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>No hotel yet</span>}
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
-                      {v.booking_ref ? `Booking ref. ${v.booking_ref}` : 'No booking ref'}
-                      {v.issue_date ? ` · ${v.issue_date}` : ''}
-                      {showOwner && ownerEmail ? ` · ${ownerEmail}` : ''}
-                    </div>
+                    {showOwner && ownerEmail && (
+                      <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
+                        {ownerEmail}
+                      </div>
+                    )}
                   </div>
                   <button
                     type="button"

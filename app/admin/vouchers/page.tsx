@@ -21,7 +21,7 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
 
   let query = supabase
     .from('vouchers')
-    .select('id, voucher_no, booking_ref, issue_date, updated_at, owner_id, guests, profiles(email)')
+    .select('id, voucher_no, booking_ref, issue_date, updated_at, owner_id, guests, voucher_hotels(name, city, country, check_in, check_out, sort_order), profiles(email)')
     .order('updated_at', { ascending: false })
 
   if (isAdmin && !showAll) {
