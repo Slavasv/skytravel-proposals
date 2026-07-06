@@ -235,3 +235,13 @@ export async function createVoucher() {
   revalidatePath('/admin/vouchers')
   redirect(`/admin/vouchers/${data.id}`)
 }
+
+export async function deleteVoucher(id: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('vouchers')
+    .delete()
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/vouchers')
+}
