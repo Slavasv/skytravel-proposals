@@ -198,3 +198,40 @@ export async function updateProposal(id: string, updates: ProposalUpdate) {
   revalidatePath('/admin')
   revalidatePath(`/admin/proposals/${id}`)
 }
+export async function createVoucher() {
+  const slug = `voucher-${Date.now().toString(36)}`
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // company_id из профиля (для брендинга футера)
+  let companyId: string | null = null
+  if (user) {
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    companyId = me?.company_id ?? null
+  }
+
+  const { data, error } = await supabase
+    .from('vouchers')
+    .insert({
+      slug,
+      company_id: companyId,
+      owner_id: user?.id ?? null,
+      voucher_no: null,
+      issue_date: null,
+      booking_ref: null,
+      guests: [],
+      show_transfer: false,
+      transfers: [],
+    })
+    .select()
+    .single()
+
+  if (error || !data) throw new Error(error?.message || 'Failed to create voucher')
+
+  revalidatePath('/admin/vouchers')
+  redirect(`/admin/vouchers/${data.id}`)
+}
