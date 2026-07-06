@@ -99,6 +99,12 @@ export default function VoucherForm({
   const isInitial = useRef(true)
   const inFlight = useRef<Promise<void> | null>(null)
 
+  // даты выезда из отелей в реальном времени (для расчёта возраста без перезагрузки)
+  const initialCheckouts = hotels.map((h) => h.check_out || '').filter(Boolean)
+  const [liveCheckouts, setLiveCheckouts] = useState<string[]>(
+    lastCheckout ? [lastCheckout] : initialCheckouts
+  )
+
   function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
     setSaveState('editing')
@@ -166,8 +172,13 @@ export default function VoucherForm({
   ].filter(Boolean)
   const paxString = paxParts.join(', ') || '—'
 
-  // возраст ребёнка на последний check-out
-  const refDate = lastCheckout ? parseDMY(lastCheckout) : null
+  // возраст ребёнка на последний check-out (из живых дат выезда отелей)
+  let refDate: Date | null = null
+  for (const c of liveCheckouts) {
+    const d = parseDMY(c)
+    if (d && (!refDate || d > refDate)) refDate = d
+  }
+  if (!refDate && lastCheckout) refDate = parseDMY(lastCheckout)
   function childAge(birth_date: string): string {
     if (!refDate) return ''
     const b = parseDMY(birth_date)
@@ -225,7 +236,7 @@ export default function VoucherForm({
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
           One or more hotels. Drag to reorder. Nights are calculated automatically from check-in / check-out.
         </p>
-        <VoucherHotels voucherId={voucher.id} initialHotels={hotels} />
+        <VoucherHotels voucherId={voucher.id} initialHotels={hotels} onCheckoutsChange={setLiveCheckouts} />
       </section>
 
       {/* GUESTS */}

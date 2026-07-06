@@ -44,11 +44,12 @@ const inputStyle: React.CSSProperties = {
 type Field = keyof Omit<VoucherHotel, 'id' | 'voucher_id' | 'sort_order'>
 
 function HotelCard({
-  hotel, index, onRemove,
+  hotel, index, onRemove, onCheckoutChange,
 }: {
   hotel: VoucherHotel
   index: number
   onRemove: (id: string) => void
+  onCheckoutChange: (id: string, checkOut: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: hotel.id })
   const [form, setForm] = useState({
@@ -70,6 +71,12 @@ function HotelCard({
   function set(field: Field, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
+
+  // сообщаем дату выезда наверх (для расчёта возраста детей в реальном времени)
+  useEffect(() => {
+    onCheckoutChange(hotel.id, form.check_out)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.check_out])
 
   // авто-расчёт ночей
   const autoNights = calcNights(form.check_in, form.check_out)
@@ -183,13 +190,20 @@ function HotelCard({
 }
 
 export default function VoucherHotels({
-  voucherId, initialHotels,
+  voucherId, initialHotels, onCheckoutsChange,
 }: {
   voucherId: string
   initialHotels: VoucherHotel[]
+  onCheckoutsChange?: (checkouts: string[]) => void
 }) {
   const [hotels, setHotels] = useState<VoucherHotel[]>(initialHotels)
+  const checkoutsRef = useRef<Record<string, string>>({})
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  function handleCheckoutChange(id: string, checkOut: string) {
+    checkoutsRef.current[id] = checkOut
+    if (onCheckoutsChange) onCheckoutsChange(Object.values(checkoutsRef.current))
+  }
 
   async function handleAdd() {
     const created = await addHotel(voucherId)
@@ -197,6 +211,8 @@ export default function VoucherHotels({
   }
   async function handleRemove(id: string) {
     if (!confirm('Remove this hotel?')) return
+    delete checkoutsRef.current[id]
+    if (onCheckoutsChange) onCheckoutsChange(Object.values(checkoutsRef.current))
     setHotels((prev) => prev.filter((h) => h.id !== id))
     await deleteHotel(id)
   }
@@ -218,7 +234,7 @@ export default function VoucherHotels({
           <SortableContext items={hotels.map((h) => h.id)} strategy={verticalListSortingStrategy}>
             <div>
               {hotels.map((h, i) => (
-                <HotelCard key={h.id} hotel={h} index={i} onRemove={handleRemove} />
+                <HotelCard key={h.id} hotel={h} index={i} onRemove={handleRemove} onCheckoutChange={handleCheckoutChange} />
               ))}
             </div>
           </SortableContext>
