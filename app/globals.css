@@ -24,7 +24,7 @@
   --admin-input: #1A1A1A;
   --admin-text: #E5E2DA;
   --admin-text-muted: #888780;
-  --admin-text-faint: #666666;
+  --admin-text-faint: #422828;
   --admin-border: #333333;
   --admin-border-card: #2A2A28;
   --admin-border-hover: #444444;
@@ -33,6 +33,18 @@
   --admin-success: #7AA876;
   --admin-dark-panel: #2C2C2A;
   --admin-text-on-dark: #E5E2DA;
+
+  /* ===== VOUCHER (клиентский документ-ваучер, кремовая палитра) ===== */
+  --voucher-page-bg: #EFE9DF;      /* фон всей страницы — кремовый */
+  --voucher-paper: #FEFCF8;        /* «бумага» документа — почти белый тёплый */
+  --voucher-card-bg: #FBF6EE;      /* фон карточки отеля — светло-кремовый */
+  --voucher-card-border: #EBE3D6;  /* рамка карточки отеля */
+  --voucher-text: #3A3A38;         /* основной текст — тёмный графит */
+  --voucher-text-soft: #6B6862;    /* вторичный текст (адрес, описания) */
+  --voucher-text-muted: #9A968C;   /* метки (DATES, ROOM TYPE), приглушённые */
+  --voucher-note-bg: #F6EDE1;      /* фон плашки «Early check-in» */
+  --voucher-note-icon: #C88A5E;    /* иконка-кружок в плашке (терракота) */
+  --voucher-divider: #E0D8CA;      /* тонкие разделители внутри */
 
   /* ===== BRAND (акцент бренда, по умолчанию; на клиентской переопределяется из БД) ===== */
   --brand-accent: #C9A227;
