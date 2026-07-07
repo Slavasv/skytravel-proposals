@@ -35,7 +35,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         await updateCompany(formData)
         setSaved(true)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка сохранения')
+        setError(err instanceof Error ? err.message : 'Save failed')
       }
     })
   }
@@ -74,14 +74,14 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
           <ImageUploader
             value={logo}
             onChange={setLogo}
-            label="Логотип"
+            label="Logo"
             height={140}
           />
           <input type="hidden" name="logo_url" value={logo} />
         </div>
 
         <div>
-          <label style={labelStyle}>Акцентный цвет</label>
+          <label style={labelStyle}>Accent color</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
               type="color"
@@ -106,28 +106,28 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         </div>
 
         <div>
-          <label style={labelStyle}>Телефон</label>
+          <label style={labelStyle}>Phone</label>
           <input type="text" name="contact_phone" defaultValue={company.contact_phone || ''} placeholder="+971 ..." style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>Сайт</label>
+          <label style={labelStyle}>Website</label>
           <input type="text" name="website_url" defaultValue={company.website_url || ''} placeholder="https://..." style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>Адрес офиса</label>
+          <label style={labelStyle}>Office address</label>
           <input type="text" name="office_address" defaultValue={company.office_address || ''} placeholder="9 Rue de la Paix, Paris, France" style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>Подпись в футере</label>
+          <label style={labelStyle}>Footer note</label>
           <input type="text" name="footer_note" defaultValue={company.footer_note || ''} placeholder="Sky Travel · Dubai" style={inputStyle} />
         </div>
 
         <div style={{ height: '1px', background: 'var(--admin-border-card)' }} />
         <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
-          Соцсети
+          Social links
         </div>
 
         <div>
@@ -156,7 +156,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</div>
       )}
       {saved && (
-        <div style={{ color: 'var(--admin-success)', fontSize: '13px', marginTop: '12px' }}>Сохранено.</div>
+        <div style={{ color: 'var(--admin-success)', fontSize: '13px', marginTop: '12px' }}>Saved.</div>
       )}
 
       <button
@@ -176,7 +176,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
           fontFamily: 'inherit',
         }}
       >
-        {isPending ? 'Сохранение...' : 'Сохранить'}
+        {isPending ? 'Saving...' : 'Save'}
       </button>
     </form>
   )

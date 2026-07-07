@@ -43,7 +43,7 @@ export default async function SettingsPage() {
       {company && (
         <>
           <div style={{ marginBottom: '8px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
-            Настройки бренда
+            Brand settings
           </div>
           <BrandSettingsForm company={company} />
         </>
