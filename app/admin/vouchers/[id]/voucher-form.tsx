@@ -5,11 +5,13 @@ import { updateVoucher, type Guest } from './voucher-actions'
 import VoucherHotels from './voucher-hotels'
 import type { VoucherHotel } from './voucher-actions'
 import DateInput from '@/app/admin/_components/date-input'
+import VoucherActions from './voucher-actions-ui'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 type Voucher = {
   id: string
+  slug: string
   issue_date: string | null
   guests: unknown
   show_transfer: boolean | null
@@ -326,6 +328,11 @@ export default function VoucherForm({
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 12px', color: 'var(--admin-text)' }}>Notes (optional)</h2>
         <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Any additional notes for this voucher..." />
+      </section>
+
+      {/* SHARE + DONE */}
+      <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <VoucherActions voucherId={voucher.id} initialSlug={voucher.slug} />
       </section>
     </div>
   )

@@ -52,7 +52,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
 
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-          {voucher.voucher_no ? `Voucher #${voucher.voucher_no}` : 'New voucher'}
+          Voucher
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
           Hotel voucher (English only)

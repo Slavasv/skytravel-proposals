@@ -29,6 +29,47 @@ export async function updateVoucher(id: string, updates: VoucherUpdate) {
   revalidatePath(`/admin/vouchers/${id}`)
 }
 
+// ============ Слаг ваучера ============
+
+// чистит слаг: нижний регистр, пробелы→дефисы, только буквы/цифры/дефис
+function cleanSlug(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+// возвращает { ok, error } — проверяет уникальность
+export async function updateVoucherSlug(id: string, rawSlug: string): Promise<{ ok: boolean; slug?: string; error?: string }> {
+  const slug = cleanSlug(rawSlug)
+  if (!slug) return { ok: false, error: 'Slug cannot be empty' }
+
+  const supabase = await createSupabaseServer()
+
+  // занят ли слаг другим ваучером?
+  const { data: existing } = await supabase
+    .from('vouchers')
+    .select('id')
+    .eq('slug', slug)
+    .neq('id', id)
+    .maybeSingle()
+
+  if (existing) return { ok: false, error: 'This link is already taken' }
+
+  const { error } = await supabase
+    .from('vouchers')
+    .update({ slug, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath(`/admin/vouchers/${id}`)
+  return { ok: true, slug }
+}
+
 // ============ Блоки отелей ваучера ============
 
 export type VoucherHotel = {
