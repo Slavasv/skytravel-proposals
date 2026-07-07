@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTransition } from 'react'
 import { updateCompany } from './actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import GreetingField from './greeting-field'
 
 type Company = {
   logo_url: string | null
@@ -12,6 +13,8 @@ type Company = {
   contact_phone: string | null
   website_url: string | null
   office_address: string | null
+  tagline: string | null
+  greeting_message: string | null
   footer_note: string | null
   socials: Record<string, string> | null
 }
@@ -81,6 +84,11 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         </div>
 
         <div>
+          <label style={labelStyle}>Tagline</label>
+          <input type="text" name="tagline" defaultValue={company.tagline || ''} placeholder="At Your Service, Always in Motion" style={inputStyle} />
+        </div>
+
+        <div>
           <label style={labelStyle}>Accent color</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
@@ -124,6 +132,8 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
           <label style={labelStyle}>Footer note</label>
           <input type="text" name="footer_note" defaultValue={company.footer_note || ''} placeholder="Sky Travel · Dubai" style={inputStyle} />
         </div>
+
+        <GreetingField defaultValue={company.greeting_message || ''} />
 
         <div style={{ height: '1px', background: 'var(--admin-border-card)' }} />
         <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>

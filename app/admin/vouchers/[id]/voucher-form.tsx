@@ -12,6 +12,7 @@ type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 type Voucher = {
   id: string
   slug: string
+  greeting_for: string | null
   issue_date: string | null
   guests: unknown
   show_transfer: boolean | null
@@ -59,22 +60,23 @@ function normalizeGuests(data: unknown): Guest[] {
     }))
 }
 
-export type Transfer = { date: string; from: string; to: string }
+export type Transfer = { date: string; from: string; to: string; type: string }
 
 function normalizeTransfers(data: unknown): Transfer[] {
   if (!Array.isArray(data)) return []
   return data
     .map((x) => {
-      if (typeof x === 'string') return { date: '', from: x, to: '' } // миграция старых строк
+      if (typeof x === 'string') return { date: '', from: x, to: '', type: '' } // миграция старых строк
       if (x && typeof x === 'object') {
         const o = x as Record<string, unknown>
         return {
           date: typeof o.date === 'string' ? o.date : '',
           from: typeof o.from === 'string' ? o.from : '',
           to: typeof o.to === 'string' ? o.to : '',
+          type: typeof o.type === 'string' ? o.type : '',
         }
       }
-      return { date: '', from: '', to: '' }
+      return { date: '', from: '', to: '', type: '' }
     })
 }
 
@@ -101,6 +103,7 @@ export default function VoucherForm({
 
   const [form, setForm] = useState({
     issue_date: voucher.issue_date || '',
+    greeting_for: voucher.greeting_for || '',
     guests: normalizeGuests(voucher.guests),
     show_transfer: voucher.show_transfer ?? false,
     transfers: normalizeTransfers(voucher.transfers),
@@ -129,6 +132,7 @@ export default function VoucherForm({
       try {
         await updateVoucher(voucher.id, {
           issue_date: current.issue_date || null,
+          greeting_for: current.greeting_for || null,
           guests: current.guests,
           show_transfer: current.show_transfer,
           transfers: current.transfers,
@@ -199,7 +203,7 @@ export default function VoucherForm({
   }
 
   // ---- Transfers ----
-  function addTransfer() { set('transfers', [...form.transfers, { date: '', from: '', to: '' }]) }
+  function addTransfer() { set('transfers', [...form.transfers, { date: '', from: '', to: '', type: '' }]) }
   function changeTransfer(i: number, patch: Partial<Transfer>) {
     set('transfers', form.transfers.map((t, idx) => (idx === i ? { ...t, ...patch } : t)))
   }
@@ -224,9 +228,15 @@ export default function VoucherForm({
       {/* HEADER */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Voucher details</h2>
-        <div style={{ maxWidth: '220px' }}>
-          <label style={labelStyle}>Issue date</label>
-          <DateInput value={form.issue_date} onChange={(v) => set('issue_date', v)} />
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <label style={labelStyle}>For (greeting names)</label>
+            <input type="text" value={form.greeting_for} onChange={(e) => set('greeting_for', e.target.value)} style={inputStyle} placeholder="Iryna and Vitalii" />
+          </div>
+          <div style={{ width: '180px' }}>
+            <label style={labelStyle}>Issue date</label>
+            <DateInput value={form.issue_date} onChange={(v) => set('issue_date', v)} />
+          </div>
         </div>
       </section>
 
@@ -312,6 +322,10 @@ export default function VoucherForm({
                   <div style={{ flex: 1 }}>
                     <label style={{ ...labelStyle, marginBottom: '4px' }}>To</label>
                     <input type="text" value={t.to} onChange={(e) => changeTransfer(i, { to: e.target.value })} style={inputStyle} placeholder="Dubai" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ ...labelStyle, marginBottom: '4px' }}>Type</label>
+                    <input type="text" value={t.type} onChange={(e) => changeTransfer(i, { type: e.target.value })} style={inputStyle} placeholder="Private car" />
                   </div>
                   <button type="button" onClick={() => removeTransfer(i)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '9px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
                 </div>

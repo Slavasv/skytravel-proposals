@@ -32,6 +32,7 @@
   --admin-danger: #E07B7B;
   --admin-success: #7AA876;
   --admin-dark-panel: #2C2C2A;
+  --admin-text-on-dark: #E5E2DA;
 
   /* ===== BRAND (акцент бренда, по умолчанию; на клиентской переопределяется из БД) ===== */
   --brand-accent: #C9A227;

@@ -21,7 +21,7 @@ export default async function SettingsPage() {
       if (me?.company_id) {
         const { data } = await supabase
           .from('companies')
-          .select('logo_url, accent_color, contact_email, contact_phone, website_url, office_address, footer_note, socials')
+          .select('logo_url, accent_color, contact_email, contact_phone, website_url, office_address, tagline, greeting_message, footer_note, socials')
           .eq('id', me.company_id)
           .single()
         company = data

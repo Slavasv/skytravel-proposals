@@ -13,6 +13,7 @@ export type Guest = {
 
 export type VoucherUpdate = {
   issue_date?: string | null
+  greeting_for?: string | null
   guests?: unknown
   show_transfer?: boolean
   transfers?: unknown
