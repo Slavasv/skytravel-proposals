@@ -11,6 +11,7 @@ type Company = {
   contact_email: string | null
   contact_phone: string | null
   website_url: string | null
+  office_address: string | null
   footer_note: string | null
   socials: Record<string, string> | null
 }
@@ -112,6 +113,11 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         <div>
           <label style={labelStyle}>Сайт</label>
           <input type="text" name="website_url" defaultValue={company.website_url || ''} placeholder="https://..." style={inputStyle} />
+        </div>
+
+        <div>
+          <label style={labelStyle}>Адрес офиса</label>
+          <input type="text" name="office_address" defaultValue={company.office_address || ''} placeholder="9 Rue de la Paix, Paris, France" style={inputStyle} />
         </div>
 
         <div>

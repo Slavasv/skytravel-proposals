@@ -42,6 +42,7 @@ export async function updateCompany(formData: FormData) {
       contact_email: (formData.get('contact_email') as string)?.trim() || null,
       contact_phone: (formData.get('contact_phone') as string)?.trim() || null,
       website_url: (formData.get('website_url') as string)?.trim() || null,
+      office_address: (formData.get('office_address') as string)?.trim() || null,
       footer_note: (formData.get('footer_note') as string)?.trim() || null,
       socials,
     })

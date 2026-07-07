@@ -53,7 +53,8 @@ function HotelCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: hotel.id })
   const [form, setForm] = useState({
-    city_country: hotel.city_country || '',
+    city: hotel.city || '',
+    country: hotel.country || '',
     name: hotel.name || '',
     address: hotel.address || '',
     phone: hotel.phone || '',
@@ -96,7 +97,8 @@ function HotelCard({
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       await updateHotel(hotel.id, {
-        city_country: form.city_country || null,
+        city: form.city || null,
+        country: form.country || null,
         name: form.name || null,
         address: form.address || null,
         phone: form.phone || null,
@@ -137,9 +139,15 @@ function HotelCard({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div>
-          <label style={labelStyle}>City / Country</label>
-          <input type="text" value={form.city_country} onChange={(e) => set('city_country', e.target.value)} style={inputStyle} placeholder="Dubai | UAE" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={labelStyle}>City</label>
+            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} style={inputStyle} placeholder="Dubai" />
+          </div>
+          <div>
+            <label style={labelStyle}>Country</label>
+            <input type="text" value={form.country} onChange={(e) => set('country', e.target.value)} style={inputStyle} placeholder="UAE" />
+          </div>
         </div>
         <div>
           <label style={labelStyle}>Hotel name</label>
