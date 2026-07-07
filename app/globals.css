@@ -34,17 +34,17 @@
   --admin-dark-panel: #2C2C2A;
   --admin-text-on-dark: #E5E2DA;
 
-  /* ===== VOUCHER (клиентский документ-ваучер, кремовая палитра) ===== */
-  --voucher-page-bg: #EFE9DF;      /* фон всей страницы — кремовый */
-  --voucher-paper: #FEFCF8;        /* «бумага» документа — почти белый тёплый */
-  --voucher-card-bg: #FBF6EE;      /* фон карточки отеля — светло-кремовый */
-  --voucher-card-border: #EBE3D6;  /* рамка карточки отеля */
-  --voucher-text: #3A3A38;         /* основной текст — тёмный графит */
-  --voucher-text-soft: #6B6862;    /* вторичный текст (адрес, описания) */
-  --voucher-text-muted: #9A968C;   /* метки (DATES, ROOM TYPE), приглушённые */
-  --voucher-note-bg: #F6EDE1;      /* фон плашки «Early check-in» */
-  --voucher-note-icon: #C88A5E;    /* иконка-кружок в плашке (терракота) */
-  --voucher-divider: #E0D8CA;      /* тонкие разделители внутри */
+/* ===== VOUCHER (клиентский документ-ваучер, кремовая палитра Анастасии) ===== */
+  --voucher-page-bg: #EFE9DF;      /* фон всей страницы вокруг документа — кремовый */
+  --voucher-paper: #FBF7F0;        /* «бумага» документа — тёплый почти-белый */
+  --voucher-card-bg: #F6F0E6;      /* фон карточки отеля — светло-кремовый */
+  --voucher-card-border: #E7DECF;  /* рамка карточки отеля */
+  --voucher-text: #2C2C2A;         /* основной текст — тёмный графит */
+  --voucher-text-soft: #5F5E5A;    /* вторичный текст (адрес, значения) */
+  --voucher-text-muted: #9A968C;   /* метки DATES/ROOM TYPE — приглушённые */
+  --voucher-note-bg: #F3E9DA;      /* фон плашки Early check-in */
+  --voucher-note-icon: #C88A5E;    /* иконка-кружок в плашке — терракота */
+  --voucher-divider: #E0D8CA;      /* тонкие внутренние разделители */
 
   /* ===== BRAND (акцент бренда, по умолчанию; на клиентской переопределяется из БД) ===== */
   --brand-accent: #C9A227;
