@@ -37,7 +37,8 @@ export type VoucherHotel = {
   id: string
   voucher_id: string
   sort_order: number
-  city_country: string | null
+  city: string | null
+  country: string | null
   name: string | null
   address: string | null
   phone: string | null
@@ -50,7 +51,8 @@ export type VoucherHotel = {
 }
 
 export type HotelUpdate = {
-  city_country?: string | null
+  city?: string | null
+  country?: string | null
   name?: string | null
   address?: string | null
   phone?: string | null
