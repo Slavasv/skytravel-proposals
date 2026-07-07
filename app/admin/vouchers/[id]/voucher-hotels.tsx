@@ -55,6 +55,7 @@ function HotelCard({
   const [form, setForm] = useState({
     city: hotel.city || '',
     country: hotel.country || '',
+    booking_ref: hotel.booking_ref || '',
     name: hotel.name || '',
     address: hotel.address || '',
     phone: hotel.phone || '',
@@ -99,6 +100,7 @@ function HotelCard({
       await updateHotel(hotel.id, {
         city: form.city || null,
         country: form.country || null,
+        booking_ref: form.booking_ref || null,
         name: form.name || null,
         address: form.address || null,
         phone: form.phone || null,
@@ -157,9 +159,15 @@ function HotelCard({
           <label style={labelStyle}>Address</label>
           <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} style={inputStyle} placeholder="Viale C. Gennari 2, 25019 Sirmione (BS), Italy" />
         </div>
-        <div>
-          <label style={labelStyle}>Phone</label>
-          <input type="text" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inputStyle} placeholder="+39 030 990 5890" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={labelStyle}>Phone</label>
+            <input type="text" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inputStyle} placeholder="+39 030 990 5890" />
+          </div>
+          <div>
+            <label style={labelStyle}>Booking Ref.</label>
+            <input type="text" value={form.booking_ref} onChange={(e) => set('booking_ref', e.target.value)} style={inputStyle} placeholder="3245678" />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>

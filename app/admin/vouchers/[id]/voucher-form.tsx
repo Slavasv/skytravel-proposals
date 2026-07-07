@@ -10,9 +10,7 @@ type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 type Voucher = {
   id: string
-  voucher_no: string | null
   issue_date: string | null
-  booking_ref: string | null
   guests: unknown
   show_transfer: boolean | null
   transfers: unknown
@@ -59,9 +57,23 @@ function normalizeGuests(data: unknown): Guest[] {
     }))
 }
 
-function normalizeTransfers(data: unknown): string[] {
+export type Transfer = { date: string; from: string; to: string }
+
+function normalizeTransfers(data: unknown): Transfer[] {
   if (!Array.isArray(data)) return []
-  return data.filter((x): x is string => typeof x === 'string')
+  return data
+    .map((x) => {
+      if (typeof x === 'string') return { date: '', from: x, to: '' } // миграция старых строк
+      if (x && typeof x === 'object') {
+        const o = x as Record<string, unknown>
+        return {
+          date: typeof o.date === 'string' ? o.date : '',
+          from: typeof o.from === 'string' ? o.from : '',
+          to: typeof o.to === 'string' ? o.to : '',
+        }
+      }
+      return { date: '', from: '', to: '' }
+    })
 }
 
 const labelStyle: React.CSSProperties = {
@@ -86,9 +98,7 @@ export default function VoucherForm({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const [form, setForm] = useState({
-    voucher_no: voucher.voucher_no || '',
     issue_date: voucher.issue_date || '',
-    booking_ref: voucher.booking_ref || '',
     guests: normalizeGuests(voucher.guests),
     show_transfer: voucher.show_transfer ?? false,
     transfers: normalizeTransfers(voucher.transfers),
@@ -116,9 +126,7 @@ export default function VoucherForm({
     const promise = (async () => {
       try {
         await updateVoucher(voucher.id, {
-          voucher_no: current.voucher_no || null,
           issue_date: current.issue_date || null,
-          booking_ref: current.booking_ref || null,
           guests: current.guests,
           show_transfer: current.show_transfer,
           transfers: current.transfers,
@@ -189,9 +197,9 @@ export default function VoucherForm({
   }
 
   // ---- Transfers ----
-  function addTransfer() { set('transfers', [...form.transfers, '']) }
-  function changeTransfer(i: number, value: string) {
-    set('transfers', form.transfers.map((t, idx) => (idx === i ? value : t)))
+  function addTransfer() { set('transfers', [...form.transfers, { date: '', from: '', to: '' }]) }
+  function changeTransfer(i: number, patch: Partial<Transfer>) {
+    set('transfers', form.transfers.map((t, idx) => (idx === i ? { ...t, ...patch } : t)))
   }
   function removeTransfer(i: number) {
     set('transfers', form.transfers.filter((_, idx) => idx !== i))
@@ -214,19 +222,9 @@ export default function VoucherForm({
       {/* HEADER */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Voucher details</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Voucher No.</label>
-            <input type="text" value={form.voucher_no} onChange={(e) => set('voucher_no', e.target.value)} style={inputStyle} placeholder="3245678" />
-          </div>
-          <div>
-            <label style={labelStyle}>Issue date</label>
-            <DateInput value={form.issue_date} onChange={(v) => set('issue_date', v)} />
-          </div>
-          <div>
-            <label style={labelStyle}>Booking Ref.</label>
-            <input type="text" value={form.booking_ref} onChange={(e) => set('booking_ref', e.target.value)} style={inputStyle} placeholder="3245678" />
-          </div>
+        <div style={{ maxWidth: '220px' }}>
+          <label style={labelStyle}>Issue date</label>
+          <DateInput value={form.issue_date} onChange={(v) => set('issue_date', v)} />
         </div>
       </section>
 
@@ -297,13 +295,23 @@ export default function VoucherForm({
         </label>
         {form.show_transfer && (
           <div>
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>One transfer per line, e.g. «Milan → Dubai».</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>Date, from and to. E.g. 12/07/2026, Milan → Dubai.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {form.transfers.map((t, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', width: '70px', flexShrink: 0 }}>Transfer {i + 1}</span>
-                  <input type="text" value={t} onChange={(e) => changeTransfer(i, e.target.value)} style={inputStyle} placeholder="12/07/2026 | Verona Airport (VRN) | Private car, Verona → Sirmione" />
-                  <button type="button" onClick={() => removeTransfer(i)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '10px', background: 'var(--admin-input)' }}>
+                  <div style={{ width: '130px', flexShrink: 0 }}>
+                    <label style={{ ...labelStyle, marginBottom: '4px' }}>Date</label>
+                    <DateInput value={t.date} onChange={(v) => changeTransfer(i, { date: v })} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ ...labelStyle, marginBottom: '4px' }}>From</label>
+                    <input type="text" value={t.from} onChange={(e) => changeTransfer(i, { from: e.target.value })} style={inputStyle} placeholder="Milan" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ ...labelStyle, marginBottom: '4px' }}>To</label>
+                    <input type="text" value={t.to} onChange={(e) => changeTransfer(i, { to: e.target.value })} style={inputStyle} placeholder="Dubai" />
+                  </div>
+                  <button type="button" onClick={() => removeTransfer(i)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '9px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
                 </div>
               ))}
             </div>

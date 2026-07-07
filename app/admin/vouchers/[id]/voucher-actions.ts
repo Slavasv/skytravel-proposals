@@ -12,9 +12,7 @@ export type Guest = {
 }
 
 export type VoucherUpdate = {
-  voucher_no?: string | null
   issue_date?: string | null
-  booking_ref?: string | null
   guests?: unknown
   show_transfer?: boolean
   transfers?: unknown
@@ -39,6 +37,7 @@ export type VoucherHotel = {
   sort_order: number
   city: string | null
   country: string | null
+  booking_ref: string | null
   name: string | null
   address: string | null
   phone: string | null
@@ -53,6 +52,7 @@ export type VoucherHotel = {
 export type HotelUpdate = {
   city?: string | null
   country?: string | null
+  booking_ref?: string | null
   name?: string | null
   address?: string | null
   phone?: string | null
