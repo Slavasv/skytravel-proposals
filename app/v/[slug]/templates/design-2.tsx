@@ -2,12 +2,13 @@ import SavePdfButton from '../save-pdf-button'
 import {
   type Guest, type Hotel,
   TITLE_BEFORE,
-  parseDMY, prettyIssue, renderMarkdown,
+  parseDMY, renderMarkdown,
 } from './shared'
 
 // ДИЗАЙН 2 — «Hotel Voucher» (макет Sky Travel).
 // Тёмная шапка/футер/метки — акцентный цвет бренда (accent_color).
-// Шрифты: Montserrat (текст) + Pinyon Script (акцентный курсив — временно вместо Monotype Corsiva).
+// Хедер повторяется вверху каждой страницы (thead), футер внизу (tfoot).
+// Шрифты: Montserrat (текст) + Pinyon Script (курсив — временно вместо Monotype Corsiva).
 
 type VoucherRow = {
   slug: string; issue_date: string | null; greeting_for: string | null
@@ -31,25 +32,51 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
   const accent = company?.accent_color || '#2E2A4A'
   const brandName = company?.name || 'Sky Travel'
 
-  // имена туристов одной строкой (с титулом для Mr/Mrs/Miss/Mstr)
+  // имена туристов — массив строк (в столбик), с титулом для Mr/Mrs/Miss/Mstr
   const touristNames = guests.map((g) => {
     const t = g.title || ''
     return TITLE_BEFORE.has(t) ? `${t} ${g.name || ''}`.trim() : (g.name || '')
-  }).filter(Boolean).join(', ')
+  }).filter(Boolean)
 
-  // строка данных: метка слева (акцент), значение справа, пунктир снизу
-  function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  // строка данных: метка слева (акцент, жирная), значение справа, пунктир снизу
+  function Row({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
     return (
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '20px',
         padding: '12px 0',
         borderBottom: last ? 'none' : '1px dashed ' + accent,
       }}>
-        <span style={{ fontSize: '17px', fontWeight: 700, color: accent, whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ fontSize: '16px', color: '#4A4A48', textAlign: 'right' }}>{value || '—'}</span>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: accent, whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: '15px', color: '#4A4A48', textAlign: 'right' }}>{value || '—'}</span>
       </div>
     )
   }
+
+  // тёмная шапка (повторяется на каждой странице)
+  const Header = (
+    <div style={{ background: accent, padding: '26px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+      {company?.logo_url ? (
+        <img src={company.logo_url} alt={brandName} style={{ maxHeight: '48px', maxWidth: '190px', objectFit: 'contain' }} />
+      ) : (
+        <span style={{ fontFamily: script, fontSize: '32px', color: '#FFFFFF' }}>{brandName}</span>
+      )}
+      <span style={{ fontFamily: script, fontSize: '36px', color: '#FFFFFF' }}>Hotel Voucher</span>
+    </div>
+  )
+
+  // тёмный футер (повторяется на каждой странице)
+  const Footer = (
+    <div style={{ background: accent, padding: '20px 40px', textAlign: 'center', color: '#FFFFFF' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '28px', fontSize: '14px' }}>
+        {company?.contact_phone && <span>{company.contact_phone}</span>}
+        {company?.contact_email && <span>{company.contact_email}</span>}
+        {company?.website_url && <span>{company.website_url.replace(/^https?:\/\//, '')}</span>}
+      </div>
+      {company?.office_address && (
+        <div style={{ marginTop: '10px', fontSize: '13px', opacity: 0.85 }}>{company.office_address}</div>
+      )}
+    </div>
+  )
 
   return (
     <div style={{
@@ -67,75 +94,63 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
           html, body { margin: 0; padding: 0; background: #FBF7F0; }
           @page { margin: 0; }
           .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
-          .print-table { width: 100%; border-collapse: collapse; }
-          .print-spacer { height: 0; }
+          .d2-table { width: 100%; border-collapse: collapse; }
         `}</style>
 
-        <table className="print-table">
-          {isPrint && <thead><tr><td><div className="print-spacer" /></td></tr></thead>}
+        {/* Хедер в thead — повторяется вверху каждой страницы; футер в tfoot — внизу каждой */}
+        <table className="d2-table">
+          <thead><tr><td>{Header}</td></tr></thead>
+          <tfoot><tr><td>{Footer}</td></tr></tfoot>
           <tbody><tr><td>
 
-        {/* ШАПКА — тёмная (акцент бренда) */}
-        <div style={{ background: accent, padding: '28px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-          {company?.logo_url ? (
-            <img src={company.logo_url} alt={brandName} style={{ maxHeight: '52px', maxWidth: '200px', objectFit: 'contain' }} />
-          ) : (
-            <span style={{ fontFamily: script, fontSize: '34px', color: '#FFFFFF' }}>{brandName}</span>
-          )}
-          <span style={{ fontFamily: script, fontSize: '38px', color: '#FFFFFF' }}>Hotel Voucher</span>
-        </div>
+            <div style={{ padding: '36px 50px 30px' }}>
 
-        {/* ТЕЛО */}
-        <div style={{ padding: '40px 50px 30px' }}>
+              {/* Блок на каждый отель */}
+              {hotels.map((h, i) => {
+                const cityCountry = [h.city, h.country].filter(Boolean).join(' / ')
+                const inRaw = h.check_in || (parseDMY(h.check_in) ? '' : '')
+                const outRaw = h.check_out || (parseDMY(h.check_out) ? '' : '')
+                return (
+                  <div key={h.id} className="pdf-keep" style={{ marginBottom: i < hotels.length - 1 ? '36px' : '10px' }}>
+                    <Row label="City/Country:" value={cityCountry} />
+                    <Row label="Hotel:" value={h.name || ''} />
+                    <Row label="Address:" value={h.address || ''} />
+                    <Row label="Phone:" value={h.phone || ''} />
+                    <Row label="Check-in:" value={inRaw} />
+                    <Row label="Check-out:" value={outRaw} />
+                    <Row label="Total nights:" value={h.nights || ''} />
+                    <Row label="Booking No.:" value={h.booking_ref || ''} />
+                    <Row label="Room type:" value={h.room_type || ''} />
+                    <Row label="Meal type:" value={h.meal_plan || ''} />
+                    <Row
+                      label="Tourist Name(s):"
+                      last
+                      value={
+                        touristNames.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                            {touristNames.map((n, idx) => <span key={idx}>{n}</span>)}
+                          </div>
+                        ) : '—'
+                      }
+                    />
+                  </div>
+                )
+              })}
 
-          {/* Блок на каждый отель */}
-          {hotels.map((h, i) => {
-            const cityCountry = [h.city, h.country].filter(Boolean).join(' / ')
-            const inD = parseDMY(h.check_in), outD = parseDMY(h.check_out)
-            const fmtD = (d: Date | null, raw: string | null) => raw || (d ? '' : '')
-            return (
-              <div key={h.id} className="pdf-keep" style={{ marginBottom: i < hotels.length - 1 ? '40px' : '20px' }}>
-                <Row label="City/Country:" value={cityCountry} />
-                <Row label="Hotel:" value={h.name || ''} />
-                <Row label="Address:" value={h.address || ''} />
-                <Row label="Phone:" value={h.phone || ''} />
-                <Row label="Check-in:" value={fmtD(inD, h.check_in)} />
-                <Row label="Check-out:" value={fmtD(outD, h.check_out)} />
-                <Row label="Total nights:" value={h.nights || ''} last />
-
-                <div style={{ height: '24px' }} />
-
-                <Row label="Booking No.:" value={h.booking_ref || ''} />
-                <Row label="Room type:" value={h.room_type || ''} />
-                <Row label="Meal type:" value={h.meal_plan || ''} />
-                <Row label="Tourist Name(s):" value={touristNames} last />
+              {/* Booking confirmed and paid + приветствие — только один раз, в конце, по центру */}
+              <div className="pdf-keep" style={{ textAlign: 'center', marginTop: '50px', marginBottom: '20px' }}>
+                <div style={{ fontFamily: script, fontSize: '44px', color: accent, lineHeight: 1.1, marginBottom: '18px' }}>
+                  Booking confirmed and paid
+                </div>
+                {company?.greeting_message && (
+                  <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#4A4A48', maxWidth: '560px', margin: '0 auto', textAlign: 'center' }}
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
+                )}
               </div>
-            )
-          })}
 
-          {/* Booking confirmed and paid + приветствие */}
-          <div className="pdf-keep" style={{ textAlign: 'center', marginTop: '50px', marginBottom: '30px' }}>
-            <div style={{ fontFamily: script, fontSize: '46px', color: accent, lineHeight: 1.1, marginBottom: '20px' }}>
-              Booking confirmed and paid
             </div>
-            {company?.greeting_message && (
-              <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#4A4A48', maxWidth: '560px', margin: '0 auto' }}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
-            )}
-          </div>
-
-        </div>
-
-        {/* ФУТЕР — тёмный (акцент бренда) */}
-        <div style={{ background: accent, padding: '22px 40px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '30px', fontSize: '15px', color: '#FFFFFF' }}>
-          {company?.contact_phone && <span>{company.contact_phone}</span>}
-          {company?.contact_email && <span>{company.contact_email}</span>}
-          {company?.website_url && <span>{company.website_url.replace(/^https?:\/\//, '')}</span>}
-          {company?.office_address && <span>{company.office_address}</span>}
-        </div>
 
           </td></tr></tbody>
-          {isPrint && <tfoot><tr><td><div className="print-spacer" /></td></tr></tfoot>}
         </table>
 
       </div>
