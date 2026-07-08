@@ -95,13 +95,14 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
           @page { margin: 0; }
           .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
           .d2-table { width: 100%; border-collapse: collapse; }
+          @media print { html, body, #voucher-doc { height: 100%; } .d2-table { height: 100%; } .d2-body-cell { vertical-align: top; } }
         `}</style>
 
         {/* Хедер в thead — повторяется вверху каждой страницы; футер в tfoot — внизу каждой */}
         <table className="d2-table">
           <thead><tr><td>{Header}</td></tr></thead>
           <tfoot><tr><td>{Footer}</td></tr></tfoot>
-          <tbody><tr><td>
+          <tbody><tr><td className="d2-body-cell">
 
             <div style={{ padding: '36px 50px 30px' }}>
 
