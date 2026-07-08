@@ -5,6 +5,7 @@ import { useTransition } from 'react'
 import { updateCompany } from './actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import GreetingField from './greeting-field'
+import VoucherTemplateField from './voucher-template-field'
 
 type Company = {
   logo_url: string | null
@@ -15,6 +16,7 @@ type Company = {
   office_address: string | null
   tagline: string | null
   greeting_message: string | null
+  voucher_template: number | null
   footer_note: string | null
   socials: Record<string, string> | null
 }
@@ -134,6 +136,8 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         </div>
 
         <GreetingField defaultValue={company.greeting_message || ''} />
+
+        <VoucherTemplateField defaultValue={company.voucher_template ?? 1} />
 
         <div style={{ height: '1px', background: 'var(--admin-border-card)' }} />
         <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
