@@ -47,6 +47,7 @@ export async function updateCompany(formData: FormData) {
       greeting_message: (formData.get('greeting_message') as string)?.trim() || null,
       footer_note: (formData.get('footer_note') as string)?.trim() || null,
       voucher_template: Number(formData.get('voucher_template')) || 1,
+      voucher_bg_url: (formData.get('voucher_bg_url') as string)?.trim() || null,
       socials,
     })
     .eq('id', me.company_id)

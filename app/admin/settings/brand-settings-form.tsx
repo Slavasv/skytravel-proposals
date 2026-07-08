@@ -17,6 +17,7 @@ type Company = {
   tagline: string | null
   greeting_message: string | null
   voucher_template: number | null
+  voucher_bg_url: string | null
   footer_note: string | null
   socials: Record<string, string> | null
 }
@@ -27,6 +28,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
   const [error, setError] = useState('')
   const [color, setColor] = useState(company.accent_color || 'var(--admin-accent)')
   const [logo, setLogo] = useState(company.logo_url || '')
+  const [voucherBg, setVoucherBg] = useState(company.voucher_bg_url || '')
 
   const socials = company.socials || {}
 
@@ -138,6 +140,16 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
         <GreetingField defaultValue={company.greeting_message || ''} />
 
         <VoucherTemplateField defaultValue={company.voucher_template ?? 1} />
+
+        <div>
+          <ImageUploader
+            value={voucherBg}
+            onChange={setVoucherBg}
+            label="Voucher background (карта/узор для дизайна ваучера)"
+            height={140}
+          />
+          <input type="hidden" name="voucher_bg_url" value={voucherBg} />
+        </div>
 
         <div style={{ height: '1px', background: 'var(--admin-border-card)' }} />
         <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>

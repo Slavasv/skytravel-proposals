@@ -16,7 +16,7 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
 
   const { data: company } = await supabase
     .from('companies')
-    .select('name, logo_url, accent_color, tagline, greeting_message, contact_email, contact_phone, website_url, office_address, footer_note, voucher_template')
+    .select('name, logo_url, accent_color, tagline, greeting_message, contact_email, contact_phone, website_url, office_address, footer_note, voucher_template, voucher_bg_url')
     .eq('id', voucher.company_id).single()
 
   const { data: hotelsRaw } = await supabase
