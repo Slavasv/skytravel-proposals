@@ -9,7 +9,7 @@ export default function SavePdfButton({ slug }: { slug: string }) {
     if (busy) return
     setBusy(true)
     try {
-      const res = await fetch(`/v/${slug}/pdf`)
+const res = await fetch(`/api/pdf?slug=${encodeURIComponent(slug)}`)
       if (!res.ok) throw new Error('PDF request failed')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
