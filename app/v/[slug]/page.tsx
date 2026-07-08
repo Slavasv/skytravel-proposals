@@ -121,10 +121,16 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
       <div id="voucher-doc" style={{ maxWidth: isPrint ? '100%' : '780px', margin: '0 auto', background: 'var(--voucher-paper)', padding: isPrint ? '0 54px' : '56px 60px 44px', boxShadow: isPrint ? 'none' : '0 1px 40px rgba(0,0,0,0.07)' }}>
         <style>{`
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { margin: 0; background: #FBF7F0; }
-          @page { margin: 16mm 0; }
+          html, body { margin: 0; padding: 0; background: #FBF7F0; }
+          @page { margin: 0; }
           .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
+          .print-table { width: 100%; border-collapse: collapse; }
+          .print-spacer { height: 16mm; }
         `}</style>
+
+        <table className="print-table">
+          {isPrint && <thead><tr><td><div className="print-spacer" /></td></tr></thead>}
+          <tbody><tr><td>
 
         {/* HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '30px', paddingTop: isPrint ? '40px' : '0' }}>
@@ -292,6 +298,10 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
             <div style={{ marginTop: '5px', textTransform: 'none', letterSpacing: '0.02em' }}>{company.office_address}</div>
           )}
         </div>
+
+          </td></tr></tbody>
+          {isPrint && <tfoot><tr><td><div className="print-spacer" /></td></tr></tfoot>}
+        </table>
 
       </div>
     </div>
