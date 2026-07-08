@@ -26,7 +26,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
           }
         : {
             // на Vercel — chromium из @sparticuz/chromium
-            args: chromium.args,
+            args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+            defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
             headless: true,
           }
