@@ -44,6 +44,7 @@ export async function updateCompany(formData: FormData) {
       website_url: (formData.get('website_url') as string)?.trim() || null,
       office_address: (formData.get('office_address') as string)?.trim() || null,
       footer_note: (formData.get('footer_note') as string)?.trim() || null,
+      voucher_template: Number(formData.get('voucher_template')) || 1,
       socials,
     })
     .eq('id', me.company_id)
