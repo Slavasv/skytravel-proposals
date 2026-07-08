@@ -124,6 +124,7 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
           html, body { margin: 0; padding: 0; background: #FBF7F0; }
           @page { margin: 0; }
           .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
+          .section-head { break-after: avoid; page-break-after: avoid; }
           .print-table { width: 100%; border-collapse: collapse; }
           .print-spacer { height: 16mm; }
         `}</style>
@@ -166,7 +167,7 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
         {/* ACCOMMODATION */}
         {hotels.length > 0 && (
           <div style={{ marginBottom: '42px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
+            <div className="section-head" style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
               <span style={sectionLabel}>Accommodation</span>
               <hr style={accentLine} />
             </div>
@@ -235,7 +236,7 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
         {/* TRANSFERS */}
         {showTransfer && (
           <div style={{ marginBottom: '42px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
+            <div className="section-head" style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
               <span style={sectionLabel}>Transfers</span>
               <hr style={accentLine} />
             </div>
@@ -259,7 +260,7 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
         {/* GUESTS */}
         {guests.length > 0 && (
           <div style={{ marginBottom: '42px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
+            <div className="section-head" style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px' }}>
               <span style={sectionLabel}>Guests</span>
               <hr style={accentLine} />
             </div>
