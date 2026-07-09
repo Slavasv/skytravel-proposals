@@ -83,14 +83,22 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
 
       <div id="voucher-doc" style={{
         maxWidth: isPrint ? '100%' : '780px', margin: '0 auto',
-        boxShadow: isPrint ? 'none' : '0 1px 40px rgba(0,0,0,0.07)', position: 'relative',
+        position: 'relative',
         backgroundColor: '#FBF7F0',
-        // КАРТА (фон документа) — виден на экране (превью) и на первой странице PDF
-        backgroundImage: bgUrl ? `url("${bgUrl}")` : 'none',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center 130px',
-        backgroundSize: '65% auto',
       }}>
+        {bgUrl && (
+          <img
+            src={bgUrl}
+            alt=""
+            className="d2-watermark"
+            style={{
+              position: 'absolute',
+              top: '100px', left: '50%', transform: 'translateX(-50%)',
+              width: '98%', height: 'auto',
+              zIndex: 0, pointerEvents: 'none',
+            }}
+          />
+        )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Pinyon+Script&display=swap" rel="stylesheet" />
@@ -101,24 +109,14 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
           .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
           .d2-table { width: 100%; border-collapse: collapse; }
           .d2-foot-real { position: absolute; bottom: 0; left: 0; right: 0; }
-          /* КАРТА в thead — повторяется на каждой странице PDF (водяной знак под контентом) */
-          .d2-watermark { position: relative; height: 0; overflow: visible; }
-          .d2-watermark img { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 65%; opacity: 0.12; pointer-events: none; }
-          /* на экране карту-водяной-знак прячем (там уже фон документа), в печати показываем */
-          .d2-watermark { display: none; }
           @media print {
             .d2-foot-real { position: fixed; bottom: 0; left: 0; right: 0; z-index: 5; }
-            .d2-watermark { display: block; }
+            .d2-watermark { position: fixed !important; top: 100px !important; }
           }
         `}</style>
 
         <table className="d2-table" style={{ position: 'relative', zIndex: 1 }}>
-          <thead><tr><td>
-            {Header}
-            {bgUrl && (
-              <div className="d2-watermark"><img src={bgUrl} alt="" /></div>
-            )}
-          </td></tr></thead>
+          <thead><tr><td style={{ padding: 0 }}>{Header}</td></tr></thead>
           <tfoot><tr><td><div style={{ height: FOOTER_H + 'px' }} /></td></tr></tfoot>
           <tbody><tr><td>
             <div style={{ padding: '0 50px 20px' }}>
