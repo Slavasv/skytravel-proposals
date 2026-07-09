@@ -22,7 +22,7 @@ type CompanyRow = {
 }
 
 const sans = "'Montserrat', system-ui, sans-serif"
-const script = "'Pinyon Script', 'Monotype Corsiva', cursive"
+const script = "'Monotype Corsiva', cursive"
 const FOOTER_H = 78
 
 export default function Design2({ voucher, company, hotelsData, isPrint }: {
@@ -101,7 +101,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
         )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Pinyon+Script&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           html, body { margin: 0; padding: 0; background: #FBF7F0; }
