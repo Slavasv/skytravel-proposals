@@ -245,3 +245,96 @@ export async function deleteVoucher(id: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/admin/vouchers')
 }
+
+// генерит уникальный slug на базе исходного: base-copy, base-copy-2, base-copy-3...
+async function uniqueVoucherSlug(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  baseSlug: string
+): Promise<string> {
+  const root = `${baseSlug}-copy`
+  let candidate = root
+  let n = 1
+  // ищем свободный вариант
+  // (в норме 1-2 итерации; ограничим на всякий случай)
+  while (n < 100) {
+    const { data } = await supabase
+      .from('vouchers')
+      .select('id')
+      .eq('slug', candidate)
+      .maybeSingle()
+    if (!data) return candidate
+    n += 1
+    candidate = `${root}-${n}`
+  }
+  // крайний случай — добавим таймстамп
+  return `${root}-${Date.now().toString(36)}`
+}
+
+export async function duplicateVoucher(id: string) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // 1. Исходный ваучер
+  const { data: original, error: fetchError } = await supabase
+    .from('vouchers')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !original) throw new Error('Original voucher not found')
+
+  // 2. Новый уникальный slug
+  const newSlug = await uniqueVoucherSlug(supabase, original.slug || 'voucher')
+
+  // 3. Копия ваучера (копируем ВСЁ: гостей, трансферы, настройки)
+  const { data: newVoucher, error: createError } = await supabase
+    .from('vouchers')
+    .insert({
+      slug: newSlug,
+      company_id: original.company_id,
+      owner_id: user?.id ?? original.owner_id ?? null,
+      voucher_no: original.voucher_no,
+      issue_date: original.issue_date,
+      booking_ref: original.booking_ref,
+      greeting_for: original.greeting_for,
+      guests: original.guests,
+      show_transfer: original.show_transfer,
+      show_greeting: original.show_greeting,
+      transfers: original.transfers,
+      notes: original.notes,
+    })
+    .select()
+    .single()
+
+  if (createError || !newVoucher) throw new Error(createError?.message || 'Failed to duplicate voucher')
+
+  // 4. Копируем связанные отели (voucher_hotels)
+  const { data: originalHotels } = await supabase
+    .from('voucher_hotels')
+    .select('*')
+    .eq('voucher_id', id)
+    .order('sort_order', { ascending: true })
+
+  if (originalHotels && originalHotels.length > 0) {
+    await supabase.from('voucher_hotels').insert(
+      originalHotels.map((h) => ({
+        voucher_id: newVoucher.id,
+        sort_order: h.sort_order,
+        city: h.city,
+        country: h.country,
+        booking_ref: h.booking_ref,
+        name: h.name,
+        address: h.address,
+        phone: h.phone,
+        check_in: h.check_in,
+        check_out: h.check_out,
+        nights: h.nights,
+        room_type: h.room_type,
+        meal_plan: h.meal_plan,
+        extras: h.extras,
+      }))
+    )
+  }
+
+  revalidatePath('/admin/vouchers')
+}

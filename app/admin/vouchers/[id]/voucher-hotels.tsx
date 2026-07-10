@@ -195,7 +195,7 @@ function HotelCard({
             <input type="text" list="meal-plan-options" value={form.meal_plan} onChange={(e) => set('meal_plan', e.target.value)} style={inputStyle} placeholder="Select or type..." />
             <datalist id="meal-plan-options">
               <option value="Room Only" />
-              <option value="Bed & Breakfast" />
+              <option value="Breakfast" />
               <option value="Half Board" />
               <option value="Full Board" />
             </datalist>
