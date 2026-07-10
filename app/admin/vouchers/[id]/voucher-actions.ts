@@ -16,6 +16,7 @@ export type VoucherUpdate = {
   greeting_for?: string | null
   guests?: unknown
   show_transfer?: boolean
+  show_greeting?: boolean
   transfers?: unknown
   notes?: string | null
 }

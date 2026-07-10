@@ -11,7 +11,8 @@ import {
 
 type VoucherRow = {
   slug: string; issue_date: string | null; greeting_for: string | null
-  guests: unknown; transfers: unknown; show_transfer: boolean | null; notes: string | null
+  guests: unknown; transfers: unknown; show_transfer: boolean | null
+  show_greeting: boolean | null; notes: string | null
 }
 type CompanyRow = {
   name: string | null; logo_url: string | null; accent_color: string | null
@@ -24,6 +25,8 @@ type CompanyRow = {
 const sans = "'Montserrat', system-ui, sans-serif"
 const script = "'Monotype Corsiva', cursive"
 const FOOTER_H = 78
+// Резерв под нижний fixed-стек (фраза "Booking confirmed" + опц. приветствие + футер).
+// С приветствием стек выше — берём с запасом, чтобы контент не налезал.
 
 export default function Design2({ voucher, company, hotelsData, isPrint }: {
   voucher: VoucherRow; company: CompanyRow | null; hotelsData: Hotel[]; isPrint: boolean
@@ -117,7 +120,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
 
         <table className="d2-table" style={{ position: 'relative', zIndex: 1 }}>
           <thead><tr><td style={{ padding: 0 }}>{Header}</td></tr></thead>
-          <tfoot><tr><td><div style={{ height: FOOTER_H + 'px' }} /></td></tr></tfoot>
+          <tfoot><tr><td><div style={{ height: (FOOTER_H + (voucher.show_greeting && company?.greeting_message ? 200 : 90)) + 'px' }} /></td></tr></tfoot>
           <tbody><tr><td>
             <div style={{ padding: '0 50px 20px' }}>
               {hotels.map((h, i) => {
@@ -145,20 +148,22 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
                 )
               })}
 
-              <div className="pdf-keep" style={{ textAlign: 'center', marginTop: '46px', marginBottom: '10px' }}>
-                <div style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_CONFIRM + 'px', color: accent, lineHeight: 1.1, marginBottom: '16px' }}>
-                  Booking confirmed and paid
-                </div>
-                {company?.greeting_message && (
-                  <div style={{ fontSize: FS_GREET + 'px', fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '560px', margin: '0 auto', textAlign: 'center' }}
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
-                )}
               </div>
-            </div>
           </td></tr></tbody>
         </table>
 
-        <div className="d2-foot-real">{FooterInner}</div>
+        <div className="d2-foot-real">
+          <div className="pdf-keep" style={{ textAlign: 'center', padding: '0 40px 18px' }}>
+            <div style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_CONFIRM + 'px', color: accent, lineHeight: 1.1 }}>
+              Booking confirmed and paid
+            </div>
+            {voucher.show_greeting && company?.greeting_message && (
+              <div style={{ fontSize: FS_GREET + 'px', fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '560px', margin: '10px auto 0', textAlign: 'center' }}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
+            )}
+          </div>
+          {FooterInner}
+        </div>
 
       </div>
     </div>

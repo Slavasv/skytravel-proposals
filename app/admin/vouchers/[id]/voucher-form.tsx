@@ -16,6 +16,7 @@ type Voucher = {
   issue_date: string | null
   guests: unknown
   show_transfer: boolean | null
+  show_greeting: boolean | null
   transfers: unknown
   notes: string | null
 }
@@ -106,6 +107,7 @@ export default function VoucherForm({
     greeting_for: voucher.greeting_for || '',
     guests: normalizeGuests(voucher.guests),
     show_transfer: voucher.show_transfer ?? false,
+    show_greeting: voucher.show_greeting ?? false,
     transfers: normalizeTransfers(voucher.transfers),
     notes: voucher.notes || '',
   })
@@ -135,6 +137,7 @@ export default function VoucherForm({
           greeting_for: current.greeting_for || null,
           guests: current.guests,
           show_transfer: current.show_transfer,
+          show_greeting: current.show_greeting,
           transfers: current.transfers,
           notes: current.notes || null,
         })
@@ -336,6 +339,17 @@ export default function VoucherForm({
             </button>
           </div>
         )}
+      </section>
+
+      {/* GREETING TOGGLE */}
+      <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
+          <input type="checkbox" checked={form.show_greeting} onChange={(e) => set('show_greeting', e.target.checked)} />
+          Add welcome text
+        </label>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '8px 0 0' }}>
+          Shows the brand&apos;s welcome message on the voucher. Turn off for business trips.
+        </p>
       </section>
 
       {/* NOTES */}
