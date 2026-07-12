@@ -302,6 +302,7 @@ export async function duplicateVoucher(id: string) {
       show_greeting: original.show_greeting,
       transfers: original.transfers,
       notes: original.notes,
+      client_id: original.client_id,
     })
     .select()
     .single()

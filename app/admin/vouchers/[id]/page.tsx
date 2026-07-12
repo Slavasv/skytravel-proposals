@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import VoucherForm from './voucher-form'
-import { getHotels } from './voucher-actions'
+import { getHotels, getClientOptions } from './voucher-actions'
 
 // парсинг ДД/ММ/ГГГГ (или ДД.ММ.ГГГГ) → Date | null
 function parseDMY(s: string | null | undefined): Date | null {
@@ -30,6 +30,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
   }
 
   const hotels = await getHotels(voucher.id)
+  const clients = await getClientOptions()
 
   // последний check-out (для расчёта возраста детей)
   let lastCheckout: string | null = null
@@ -59,7 +60,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
         </p>
       </div>
 
-      <VoucherForm voucher={voucher} hotels={hotels} lastCheckout={lastCheckout} />
+      <VoucherForm voucher={voucher} hotels={hotels} lastCheckout={lastCheckout} clients={clients} />
     </div>
   )
 }

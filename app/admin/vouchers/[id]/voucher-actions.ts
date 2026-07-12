@@ -19,6 +19,104 @@ export type VoucherUpdate = {
   show_greeting?: boolean
   transfers?: unknown
   notes?: string | null
+  client_id?: string | null
+}
+
+// ============ CRM: клиенты и их travellers ============
+
+export type ClientOption = {
+  id: string
+  name: string
+  client_code: string | null
+}
+
+export type TravellerOption = {
+  id: string
+  name: string | null
+  title: string | null
+  date_of_birth: string | null
+}
+
+// Список клиентов компании (для дропдауна в ваучере)
+export async function getClientOptions(): Promise<ClientOption[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, client_code')
+    .order('name', { ascending: true })
+  if (error || !data) return []
+  return data as ClientOption[]
+}
+
+// Travellers конкретного клиента
+export async function getClientTravellers(clientId: string): Promise<TravellerOption[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('travellers')
+    .select('id, name, title, date_of_birth')
+    .eq('client_id', clientId)
+    .order('sort_order', { ascending: true })
+  if (error || !data) return []
+  return data as TravellerOption[]
+}
+
+// Сохранить гостя из ваучера в travellers клиента.
+// Возвращает { ok, duplicate } — duplicate=true, если такой уже есть.
+export async function saveGuestToClient(
+  clientId: string,
+  guest: { title: string; name: string; birth_date: string }
+): Promise<{ ok: boolean; duplicate: boolean; error?: string }> {
+  const supabase = await createSupabaseServer()
+
+  const cleanName = guest.name.trim()
+  if (!cleanName) return { ok: false, duplicate: false, error: 'Name is empty' }
+
+  // проверка дубля (по имени, без учёта регистра)
+  const { data: existing } = await supabase
+    .from('travellers')
+    .select('id')
+    .eq('client_id', clientId)
+    .ilike('name', cleanName)
+    .maybeSingle()
+
+  if (existing) return { ok: false, duplicate: true }
+
+  // company_id и порядок — от клиента
+  const { data: client } = await supabase
+    .from('clients')
+    .select('company_id')
+    .eq('id', clientId)
+    .single()
+
+  if (!client) return { ok: false, duplicate: false, error: 'Client not found' }
+
+  const { data: last } = await supabase
+    .from('travellers')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+
+  const nextOrder = last && last.length > 0 ? last[0].sort_order + 1 : 0
+
+  const { data: code } = await supabase.rpc('next_traveller_code', {
+    p_company_id: client.company_id,
+  })
+
+  const { error } = await supabase.from('travellers').insert({
+    client_id: clientId,
+    company_id: client.company_id,
+    name: cleanName,
+    title: guest.title || null,
+    date_of_birth: guest.birth_date || null,
+    traveller_code: code ?? null,
+    sort_order: nextOrder,
+  })
+
+  if (error) return { ok: false, duplicate: false, error: error.message }
+
+  revalidatePath(`/admin/clients/${clientId}`)
+  return { ok: true, duplicate: false }
 }
 
 export async function updateVoucher(id: string, updates: VoucherUpdate) {

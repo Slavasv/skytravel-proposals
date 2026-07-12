@@ -1,11 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { updateVoucher, type Guest } from './voucher-actions'
+import {
+  updateVoucher, getClientTravellers, saveGuestToClient,
+  type Guest, type ClientOption, type TravellerOption,
+} from './voucher-actions'
 import VoucherHotels from './voucher-hotels'
 import type { VoucherHotel } from './voucher-actions'
 import DateInput from '@/app/admin/_components/date-input'
 import VoucherActions from './voucher-actions-ui'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, useSortable, arrayMove, verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -19,6 +29,7 @@ type Voucher = {
   show_greeting: boolean | null
   transfers: unknown
   notes: string | null
+  client_id: string | null
 }
 
 // Обращения: взрослые и детские
@@ -91,16 +102,106 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
+// Карточка гостя с drag-ручкой
+function GuestCard({
+  guest, childAge, showSaveToCrm, savingGuestId,
+  onChangeTitle, onChangeGuest, onRemove, onSaveToCrm,
+}: {
+  guest: Guest
+  childAge: (birth: string) => string
+  showSaveToCrm: boolean
+  savingGuestId: string | null
+  onChangeTitle: (id: string, title: string) => void
+  onChangeGuest: (id: string, patch: Partial<Guest>) => void
+  onRemove: (id: string) => void
+  onSaveToCrm: (g: Guest) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: guest.id })
+
+  const child = isChildTitle(guest.title)
+  const age = child ? childAge(guest.birth_date) : ''
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    border: '1px solid var(--admin-border-card)',
+    borderRadius: '8px',
+    padding: '10px',
+    background: 'var(--admin-input)',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag"
+          style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit', flexShrink: 0 }}
+        >
+          ⋮⋮
+        </button>
+
+        <select value={guest.title} onChange={(e) => onChangeTitle(guest.id, e.target.value)} style={{ ...inputStyle, width: '110px', flexShrink: 0 }}>
+          <optgroup label="Adult">
+            {ADULT_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </optgroup>
+          <optgroup label="Child">
+            {CHILD_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </optgroup>
+        </select>
+
+        <input type="text" value={guest.name} onChange={(e) => onChangeGuest(guest.id, { name: e.target.value })} style={inputStyle} placeholder="Pertsev Yurii" />
+
+        {showSaveToCrm && (
+          <button
+            type="button"
+            onClick={() => onSaveToCrm(guest)}
+            disabled={savingGuestId === guest.id}
+            title="Save this guest as a traveller of the selected client"
+            style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: savingGuestId === guest.id ? 'wait' : 'pointer', fontSize: '11px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            {savingGuestId === guest.id ? '…' : '↑ Save to client'}
+          </button>
+        )}
+
+        <button type="button" onClick={() => onRemove(guest.id)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+      </div>
+
+      {child && (
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <DateInput value={guest.birth_date} onChange={(v) => onChangeGuest(guest.id, { birth_date: v })} placeholder="Date of birth dd/mm/yyyy" />
+          </div>
+          {age && (
+            <span style={{ fontSize: '13px', color: 'var(--admin-accent)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>at last check-out</span>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function VoucherForm({
-  voucher, hotels, lastCheckout,
+  voucher, hotels, lastCheckout, clients,
 }: {
   voucher: Voucher
   hotels: VoucherHotel[]
   lastCheckout: string | null
+  clients: ClientOption[]
 }) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // CRM: travellers выбранного клиента
+  const [travellers, setTravellers] = useState<TravellerOption[]>([])
+  const [travPickerOpen, setTravPickerOpen] = useState(false)
+  const [savingGuestId, setSavingGuestId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     issue_date: voucher.issue_date || '',
@@ -110,6 +211,7 @@ export default function VoucherForm({
     show_greeting: voucher.show_greeting ?? false,
     transfers: normalizeTransfers(voucher.transfers),
     notes: voucher.notes || '',
+    client_id: voucher.client_id || '',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -140,6 +242,7 @@ export default function VoucherForm({
           show_greeting: current.show_greeting,
           transfers: current.transfers,
           notes: current.notes || null,
+          client_id: current.client_id || null,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -160,6 +263,74 @@ export default function VoucherForm({
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form])
+
+  // подгружаем travellers выбранного клиента
+  useEffect(() => {
+    if (!form.client_id) { setTravellers([]); return }
+    let cancelled = false
+    getClientTravellers(form.client_id).then((list) => {
+      if (!cancelled) setTravellers(list)
+    })
+    return () => { cancelled = true }
+  }, [form.client_id])
+
+  // ---- CRM: добавить гостя из travellers клиента ----
+  function addFromTraveller(t: TravellerOption) {
+    const title = t.title || 'Mr'
+    set('guests', [...form.guests, {
+      id: Math.random().toString(36).slice(2),
+      title,
+      name: t.name || '',
+      is_child: isChildTitle(title),
+      birth_date: t.date_of_birth || '',
+    }])
+    setTravPickerOpen(false)
+  }
+
+  // ---- CRM: сохранить гостя в travellers клиента ----
+  async function handleSaveGuestToClient(g: Guest) {
+    if (!form.client_id) return
+    if (!g.name.trim()) { alert('Enter the name first.'); return }
+
+    setSavingGuestId(g.id)
+    try {
+      const res = await saveGuestToClient(form.client_id, {
+        title: g.title,
+        name: g.name,
+        birth_date: g.birth_date,
+      })
+      if (res.duplicate) {
+        alert(`"${g.name}" is already saved as a traveller for this client.`)
+      } else if (!res.ok) {
+        alert(res.error || 'Could not save traveller.')
+      } else {
+        // обновим список travellers, чтобы кнопка исчезла
+        const list = await getClientTravellers(form.client_id)
+        setTravellers(list)
+      }
+    } finally {
+      setSavingGuestId(null)
+    }
+  }
+
+  // есть ли уже такой traveller у клиента (по имени)
+  function isInCrm(name: string): boolean {
+    const n = name.trim().toLowerCase()
+    if (!n) return false
+    return travellers.some((t) => (t.name || '').trim().toLowerCase() === n)
+  }
+
+  // ---- Guests: drag & drop ----
+  const guestSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  function onGuestDragEnd(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIndex = form.guests.findIndex((g) => g.id === active.id)
+    const newIndex = form.guests.findIndex((g) => g.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    set('guests', arrayMove(form.guests, oldIndex, newIndex))
+  }
 
   // ---- Guests ----
   function addGuest() {
@@ -231,6 +402,26 @@ export default function VoucherForm({
       {/* HEADER */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Voucher details</h2>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Client</label>
+          <select
+            value={form.client_id}
+            onChange={(e) => set('client_id', e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">— No client —</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name || 'Untitled'}{c.client_code ? ` · ${c.client_code}` : ''}
+              </option>
+            ))}
+          </select>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+            Link this voucher to a CRM client to pull travellers into the guest list.
+          </p>
+        </div>
+
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: '200px' }}>
             <label style={labelStyle}>For (greeting names)</label>
@@ -263,43 +454,82 @@ export default function VoucherForm({
           {!refDate && <span> Add hotel check-out dates to calculate child ages.</span>}
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {form.guests.map((g) => {
-            const child = isChildTitle(g.title)
-            const age = child ? childAge(g.birth_date) : ''
-            return (
-              <div key={g.id} style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '10px', background: 'var(--admin-input)' }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <select value={g.title} onChange={(e) => changeTitle(g.id, e.target.value)} style={{ ...inputStyle, width: '110px', flexShrink: 0 }}>
-                    <optgroup label="Adult">
-                      {ADULT_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </optgroup>
-                    <optgroup label="Child">
-                      {CHILD_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </optgroup>
-                  </select>
-                  <input type="text" value={g.name} onChange={(e) => changeGuest(g.id, { name: e.target.value })} style={inputStyle} placeholder="Pertsev Yurii" />
-                  <button type="button" onClick={() => removeGuest(g.id)} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
-                </div>
-                {child && (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px' }}>
-                    <div style={{ flex: 1 }}>
-                      <DateInput value={g.birth_date} onChange={(v) => changeGuest(g.id, { birth_date: v })} placeholder="Date of birth dd/mm/yyyy" />
+        <DndContext sensors={guestSensors} collisionDetection={closestCenter} onDragEnd={onGuestDragEnd}>
+          <SortableContext items={form.guests.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {form.guests.map((g) => (
+                <GuestCard
+                  key={g.id}
+                  guest={g}
+                  childAge={childAge}
+                  showSaveToCrm={!!form.client_id && !!g.name.trim() && !isInCrm(g.name)}
+                  savingGuestId={savingGuestId}
+                  onChangeTitle={changeTitle}
+                  onChangeGuest={changeGuest}
+                  onRemove={removeGuest}
+                  onSaveToCrm={handleSaveGuestToClient}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', position: 'relative' }}>
+          <button type="button" onClick={addGuest} style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            + Add guest
+          </button>
+
+          {form.client_id && travellers.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setTravPickerOpen((v) => !v)}
+                style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-text)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                ⤓ Add from client ({travellers.length})
+              </button>
+
+              {travPickerOpen && (
+                <>
+                  <div onClick={() => setTravPickerOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, marginTop: '6px',
+                    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                    borderRadius: '8px', padding: '6px', minWidth: '280px', maxHeight: '320px',
+                    overflowY: 'auto', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+                  }}>
+                    <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', padding: '6px 10px 8px' }}>
+                      Client travellers
                     </div>
-                    {age && (
-                      <span style={{ fontSize: '13px', color: 'var(--admin-accent)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>at last check-out</span>
-                      </span>
-                    )}
+                    {travellers.map((t) => {
+                      const already = form.guests.some(
+                        (g) => g.name.trim().toLowerCase() === (t.name || '').trim().toLowerCase()
+                      )
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => addFromTraveller(t)}
+                          disabled={already}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px',
+                            background: 'transparent', border: 'none', fontSize: '13px', borderRadius: '4px',
+                            cursor: already ? 'default' : 'pointer', fontFamily: 'inherit',
+                            color: already ? 'var(--admin-text-faint)' : 'var(--admin-text)',
+                          }}
+                          onMouseEnter={(e) => { if (!already) e.currentTarget.style.background = 'var(--admin-card)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                        >
+                          {t.title ? `${t.title} ` : ''}{t.name || 'Unnamed'}
+                          {already && <span style={{ fontSize: '11px', marginLeft: '6px' }}>· added</span>}
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
-            )
-          })}
+                </>
+              )}
+            </>
+          )}
         </div>
-        <button type="button" onClick={addGuest} style={{ marginTop: '10px', padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-          + Add guest
-        </button>
       </section>
 
       {/* TRANSFER */}
