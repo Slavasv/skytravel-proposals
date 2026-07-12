@@ -51,6 +51,7 @@ function firstHotelLine(hotels: Hotel[] | null | undefined): string {
 function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
   const mainName = firstGuestName(v.guests)
@@ -63,12 +64,41 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
     setMenuOpen(!menuOpen)
   }
 
-  function handlePdf(e: React.MouseEvent) {
+  async function handlePdf(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
     if (!v.slug) { alert('This voucher has no link yet.'); return }
-    window.open(`/api/pdf?slug=${encodeURIComponent(v.slug)}`, '_blank', 'noopener,noreferrer')
+    if (pdfBusy) return
+
+    setPdfBusy(true)
+    try {
+      const res = await fetch(`/api/pdf?slug=${encodeURIComponent(v.slug)}`)
+      if (!res.ok) throw new Error('PDF request failed')
+
+      // имя файла берём из заголовка ответа (сервер собрал красивое имя)
+      let fileName = `${v.slug}.pdf`
+      const cd = res.headers.get('Content-Disposition') || ''
+      const star = cd.match(/filename\*=UTF-8''([^;]+)/i)
+      const plain = cd.match(/filename="([^"]+)"/i)
+      if (star?.[1]) fileName = decodeURIComponent(star[1])
+      else if (plain?.[1]) fileName = decodeURIComponent(plain[1])
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('PDF download failed:', err)
+      alert('Could not generate PDF. Please try again.')
+    } finally {
+      setPdfBusy(false)
+    }
   }
 
   function handleDuplicate(e: React.MouseEvent) {
@@ -133,11 +163,12 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
           }}>
             <button
               onClick={handlePdf}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
+              disabled={pdfBusy}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: pdfBusy ? 'wait' : 'pointer', borderRadius: '4px', fontFamily: 'inherit', opacity: pdfBusy ? 0.6 : 1 }}
+              onMouseEnter={(e) => { if (!pdfBusy) e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Download PDF
+              {pdfBusy ? 'Generating…' : 'Download PDF'}
             </button>
             <button
               onClick={handleDuplicate}

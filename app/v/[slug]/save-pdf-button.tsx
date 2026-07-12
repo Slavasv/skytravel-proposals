@@ -2,20 +2,30 @@
 
 import { useState } from 'react'
 
-export default function SavePdfButton({ slug }: { slug: string }) {
+export default function SavePdfButton({ slug, bgUrl }: { slug: string; bgUrl?: string }) {
   const [busy, setBusy] = useState(false)
 
   async function handleSave() {
     if (busy) return
     setBusy(true)
     try {
-const res = await fetch(`/api/pdf?slug=${encodeURIComponent(slug)}`)
+      const bgParam = bgUrl ? `&bg=${encodeURIComponent(bgUrl)}` : ''
+      const res = await fetch(`/api/pdf?slug=${encodeURIComponent(slug)}`)
       if (!res.ok) throw new Error('PDF request failed')
+
+      // Имя файла берём из заголовка ответа (сервер собрал красивое имя)
+      let fileName = `${slug || 'voucher'}.pdf`
+      const cd = res.headers.get('Content-Disposition') || ''
+      const star = cd.match(/filename\*=UTF-8''([^;]+)/i)
+      const plain = cd.match(/filename="([^"]+)"/i)
+      if (star?.[1]) fileName = decodeURIComponent(star[1])
+      else if (plain?.[1]) fileName = decodeURIComponent(plain[1])
+
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${slug || 'voucher'}.pdf`
+      a.download = fileName
       document.body.appendChild(a)
       a.click()
       a.remove()

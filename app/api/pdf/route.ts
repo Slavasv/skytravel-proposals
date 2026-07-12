@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   if (!slug) return new Response('Missing slug', { status: 400 })
 
+  // Красивое имя файла: "Pertsev Yurii _ 27 - 30 June _ Paris, France.pdf"
+  const fileName = await buildFileName(slug)
+
   // водяной знак (карта) — передаётся кнопкой в query, БЕЗ обращения к БД из роута
   const watermarkUrl = req.nextUrl.searchParams.get('bg') || ''
 
@@ -35,7 +38,8 @@ export async function GET(req: NextRequest) {
     await page.goto(pageUrl, { waitUntil: 'networkidle0', timeout: 45000 })
     await page.evaluateHandle('document.fonts.ready')
     const pdfBytes = await page.pdf({
-      format: 'A4', printBackground: true,
+      format: 'A4',
+      printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' },
     })
     await browser.close()
@@ -52,16 +56,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const encoded = encodeURIComponent(fileName)
+
     return new Response(finalBytes as BufferSource, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${slug}.pdf"`,
+        'Content-Disposition': `attachment; filename="${encoded}.pdf"; filename*=UTF-8''${encoded}.pdf`,
       },
     })
   } catch (e) {
     if (browser) await browser.close()
     console.error('PDF generation failed:', e)
-    return new Response('PDF generation failed: ' + (e instanceof Error ? e.message : String(e)), { status: 500 })
+    return new Response(
+      'PDF generation failed: ' + (e instanceof Error ? e.message : String(e)),
+      { status: 500 }
+    )
   }
 }
 
@@ -93,4 +102,113 @@ async function addWatermark(pdfBytes: Uint8Array, imgSrc: string): Promise<Uint8
   }
 
   return await pdfDoc.save()
+}
+
+// ============ Имя PDF-файла ============
+
+type GuestLite = { title?: string; name?: string }
+type HotelLite = {
+  city?: string | null
+  country?: string | null
+  check_in?: string | null
+  check_out?: string | null
+  sort_order?: number
+}
+
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+// парсит ДД/ММ/ГГГГ
+function parseDMY(s?: string | null): Date | null {
+  if (!s) return null
+  const m = s.trim().match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)
+  if (!m) return null
+  const d = parseInt(m[1], 10)
+  const mo = parseInt(m[2], 10)
+  const y = parseInt(m[3], 10)
+  const date = new Date(y, mo - 1, d)
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null
+  return date
+}
+
+// "27 - 30 June" или "28 June - 3 July" (если месяцы разные)
+function prettyDates(from: Date | null, to: Date | null): string {
+  if (!from || !to) return ''
+  const sameMonth = from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
+  if (sameMonth) {
+    return `${from.getDate()} - ${to.getDate()} ${MONTHS_EN[to.getMonth()]}`
+  }
+  return `${from.getDate()} ${MONTHS_EN[from.getMonth()]} - ${to.getDate()} ${MONTHS_EN[to.getMonth()]}`
+}
+
+// убирает символы, недопустимые в имени файла
+function safeFileName(s: string): string {
+  return s.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+async function buildFileName(slug: string): Promise<string> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data: voucher } = await supabase
+      .from('vouchers')
+      .select('id, guests')
+      .eq('slug', slug)
+      .single()
+
+    if (!voucher) return slug
+
+    const { data: hotels } = await supabase
+      .from('voucher_hotels')
+      .select('city, country, check_in, check_out, sort_order')
+      .eq('voucher_id', voucher.id)
+      .order('sort_order', { ascending: true })
+
+    const parts: string[] = []
+
+    // 1. Имя первого гостя (БЕЗ обращения)
+    const guests: GuestLite[] = Array.isArray(voucher.guests) ? voucher.guests : []
+    const firstName = guests.find((g) => g && g.name)?.name?.trim()
+    if (firstName) parts.push(firstName)
+
+    const hs: HotelLite[] = hotels ?? []
+
+    // 2. Даты: первый check-in → последний check-out
+    let from: Date | null = null
+    let to: Date | null = null
+    for (const h of hs) {
+      const ci = parseDMY(h.check_in)
+      const co = parseDMY(h.check_out)
+      if (ci && (!from || ci < from)) from = ci
+      if (co && (!to || co > to)) to = co
+    }
+    const dates = prettyDates(from, to)
+    if (dates) parts.push(dates)
+
+    // 3. Города (уникальные, по порядку) + страны
+    const cities: string[] = []
+    const countries: string[] = []
+    for (const h of hs) {
+      const c = (h.city || '').trim()
+      const co = (h.country || '').trim()
+      if (c && !cities.includes(c)) cities.push(c)
+      if (co && !countries.includes(co)) countries.push(co)
+    }
+    const place = [cities.join(' & '), countries.join(' & ')]
+      .filter(Boolean)
+      .join(', ')
+    if (place) parts.push(place)
+
+    const name = parts.join(' _ ')
+    return name ? safeFileName(name) : slug
+  } catch {
+    // любая ошибка — откатываемся на слаг
+    return slug
+  }
 }
