@@ -5,6 +5,7 @@ import ProposalForm from './proposal-form'
 import ProposalActions from './proposal-actions'
 import DaysSection from './days-section'
 import type { CostLine } from './cost-lines'
+import type { ProposalClientOption } from '../../actions'
 
 type Proposal = {
   id: string
@@ -34,6 +35,7 @@ type Proposal = {
   cost_notes_ru: string | null
   cost_notes_en: string | null
   cost_lines: CostLine[] | null
+  client_id: string | null
 }
 
 export type ContentBlock = {
@@ -76,7 +78,13 @@ export type Day = {
 
 export type Lang = 'ru' | 'en'
 
-export default function EditPageClient({ proposal, days }: { proposal: Proposal; days: Day[] }) {
+export default function EditPageClient({
+  proposal, days, clients = [],
+}: {
+  proposal: Proposal
+  days: Day[]
+  clients?: ProposalClientOption[]
+}) {
   const [lang, setLang] = useState<Lang>('ru')
 
   return (
@@ -85,6 +93,7 @@ export default function EditPageClient({ proposal, days }: { proposal: Proposal;
       lang={lang}
       onLangChange={setLang}
       days={days}
+      clients={clients}
       actions={<ProposalActions slug={proposal.slug} />}
       itinerary={<DaysSection proposalId={proposal.id} days={days} lang={lang} />}
     />
