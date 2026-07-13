@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { updateProposal, type ProposalClientOption } from '../../actions'
+import ClientPicker from '@/app/admin/_components/client-picker'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
@@ -84,6 +85,8 @@ type Props = {
 
 export default function ProposalForm({ proposal, lang, onLangChange, days = [], actions, itinerary, clients = [] }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pickedClient = searchParams.get('pickedClient')
   const isMobile = useIsMobile()
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -179,6 +182,14 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       inFlight.current = null
     }
   }
+
+  // вернулись из создания клиента → подставляем его
+  useEffect(() => {
+    if (pickedClient && pickedClient !== form.client_id) {
+      set('client_id', pickedClient)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedClient])
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -333,41 +344,35 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
           Client & dates <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
-        {clients.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <label style={labelStyle}>CRM Client</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>CRM Client</label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <ClientPicker
+                clients={clients}
                 value={form.client_id}
-                onChange={(e) => set('client_id', e.target.value)}
-                style={{ ...inputStyle, flex: 1 }}
-              >
-                <option value="">— No client —</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || 'Untitled'}{c.client_code ? ` · ${c.client_code}` : ''}
-                  </option>
-                ))}
-              </select>
-              {form.client_id && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const c = clients.find((x) => x.id === form.client_id)
-                    if (c?.name) set(clientKey, c.name)
-                  }}
-                  title="Fill the client name field from the CRM client"
-                  style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
-                >
-                  ↓ Use name
-                </button>
-              )}
+                onChange={(id) => set('client_id', id)}
+                returnTo={`/admin/proposals/${proposal.id}`}
+              />
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              Link this proposal to a CRM client to see it in their history.
-            </p>
+            {form.client_id && (
+              <button
+                type="button"
+                onClick={() => {
+                  const c = clients.find((x) => x.id === form.client_id)
+                  if (c?.name) set(clientKey, c.name)
+                }}
+                title="Fill the client name field from the CRM client"
+                style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                ↓ Use name
+              </button>
+            )}
           </div>
-        )}
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+            Link this proposal to a CRM client to see it in their history.
+          </p>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>

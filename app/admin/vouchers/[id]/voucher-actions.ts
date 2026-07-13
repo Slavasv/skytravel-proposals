@@ -254,6 +254,64 @@ export async function deleteHotel(hotelId: string) {
   if (error) throw new Error(error.message)
 }
 
+// Дублирует блок отеля (для "+ Add room" — тот же отель, другая комната).
+// Копируем всё как есть; менеджер сам поменяет что нужно.
+export async function duplicateHotel(hotelId: string) {
+  const supabase = await createSupabaseServer()
+
+  const { data: original, error: fetchError } = await supabase
+    .from('voucher_hotels')
+    .select('*')
+    .eq('id', hotelId)
+    .single()
+
+  if (fetchError || !original) throw new Error('Hotel not found')
+
+  // Вставляем сразу после оригинала: сдвигаем всех, кто ниже
+  const { data: below } = await supabase
+    .from('voucher_hotels')
+    .select('id, sort_order')
+    .eq('voucher_id', original.voucher_id)
+    .gt('sort_order', original.sort_order)
+
+  if (below && below.length > 0) {
+    await Promise.all(
+      below.map((h) =>
+        supabase
+          .from('voucher_hotels')
+          .update({ sort_order: h.sort_order + 1 })
+          .eq('id', h.id)
+      )
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('voucher_hotels')
+    .insert({
+      voucher_id: original.voucher_id,
+      sort_order: original.sort_order + 1,
+      city: original.city,
+      country: original.country,
+      booking_ref: original.booking_ref,
+      name: original.name,
+      address: original.address,
+      phone: original.phone,
+      check_in: original.check_in,
+      check_out: original.check_out,
+      nights: original.nights,
+      room_type: original.room_type,
+      meal_plan: original.meal_plan,
+      extras: original.extras,
+    })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/admin/vouchers/${original.voucher_id}`)
+  return data as VoucherHotel
+}
+
 export async function reorderHotels(orderedIds: string[]) {
   const supabase = await createSupabaseServer()
   await Promise.all(

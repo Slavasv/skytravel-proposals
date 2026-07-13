@@ -9,7 +9,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  addHotel, updateHotel, deleteHotel, reorderHotels, type VoucherHotel,
+  addHotel, updateHotel, deleteHotel, duplicateHotel, reorderHotels, type VoucherHotel,
 } from './voucher-actions'
 import DateInput from '@/app/admin/_components/date-input'
 
@@ -44,11 +44,12 @@ const inputStyle: React.CSSProperties = {
 type Field = keyof Omit<VoucherHotel, 'id' | 'voucher_id' | 'sort_order'>
 
 function HotelCard({
-  hotel, index, onRemove, onCheckoutChange,
+  hotel, index, onRemove, onAddRoom, onCheckoutChange,
 }: {
   hotel: VoucherHotel
   index: number
   onRemove: (id: string) => void
+  onAddRoom: (id: string) => void
   onCheckoutChange: (id: string, checkOut: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: hotel.id })
@@ -136,6 +137,9 @@ function HotelCard({
         <span style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
           {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
         </span>
+        <button type="button" onClick={() => onAddRoom(hotel.id)}
+          title="Duplicate this hotel block as another room"
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add room</button>
         <button type="button" onClick={() => onRemove(hotel.id)}
           style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ Remove</button>
       </div>
@@ -238,6 +242,19 @@ export default function VoucherHotels({
     setHotels((prev) => prev.filter((h) => h.id !== id))
     await deleteHotel(id)
   }
+
+  // "+ Add room" — дублирует блок отеля, новая карточка встаёт сразу под ним
+  async function handleAddRoom(id: string) {
+    const created = await duplicateHotel(id)
+    if (!created) return
+    setHotels((prev) => {
+      const idx = prev.findIndex((h) => h.id === id)
+      if (idx === -1) return [...prev, created]
+      const next = [...prev]
+      next.splice(idx + 1, 0, created)
+      return next
+    })
+  }
   async function onDragEnd(e: DragEndEvent) {
     const { active, over } = e
     if (!over || active.id === over.id) return
@@ -256,7 +273,7 @@ export default function VoucherHotels({
           <SortableContext items={hotels.map((h) => h.id)} strategy={verticalListSortingStrategy}>
             <div>
               {hotels.map((h, i) => (
-                <HotelCard key={h.id} hotel={h} index={i} onRemove={handleRemove} onCheckoutChange={handleCheckoutChange} />
+                <HotelCard key={h.id} hotel={h} index={i} onRemove={handleRemove} onAddRoom={handleAddRoom} onCheckoutChange={handleCheckoutChange} />
               ))}
             </div>
           </SortableContext>
