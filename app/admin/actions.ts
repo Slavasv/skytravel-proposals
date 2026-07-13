@@ -36,6 +36,7 @@ type ProposalUpdate = {
   tagline_ru?: string | null
   tagline_en?: string | null
   price_from?: boolean
+  client_id?: string | null
 }
 
 async function createProposalOfKind(kind: 'individual' | 'destination') {
@@ -135,6 +136,7 @@ export async function duplicateProposal(id: string) {
       cost_notes_ru: original.cost_notes_ru,
       cost_notes_en: original.cost_notes_en,
       cost_lines: original.cost_lines,
+      client_id: original.client_id,
       owner_id: user?.id ?? null,
     })
     .select()
@@ -197,6 +199,24 @@ export async function updateProposal(id: string, updates: ProposalUpdate) {
 
   revalidatePath('/admin')
   revalidatePath(`/admin/proposals/${id}`)
+}
+
+// ============ CRM: клиенты для дропдауна в предложении ============
+
+export type ProposalClientOption = {
+  id: string
+  name: string
+  client_code: string | null
+}
+
+export async function getClientsForProposal(): Promise<ProposalClientOption[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, client_code')
+    .order('name', { ascending: true })
+  if (error || !data) return []
+  return data as ProposalClientOption[]
 }
 export async function createVoucher() {
   const slug = `voucher-${Date.now().toString(36)}`

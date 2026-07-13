@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { getTravellers } from '../actions'
+import { getTravellers, getClientProposals, getClientVouchers } from '../actions'
 import ClientForm from './client-form'
 
 type Params = { id: string }
@@ -19,6 +19,8 @@ export default async function ClientPage({ params }: { params: Promise<Params> }
   if (error || !client) notFound()
 
   const travellers = await getTravellers(id)
+  const proposals = await getClientProposals(id)
+  const vouchers = await getClientVouchers(id)
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -36,7 +38,7 @@ export default async function ClientPage({ params }: { params: Promise<Params> }
         )}
       </div>
 
-      <ClientForm client={client} travellers={travellers} />
+      <ClientForm client={client} travellers={travellers} proposals={proposals} vouchers={vouchers} />
     </div>
   )
 }

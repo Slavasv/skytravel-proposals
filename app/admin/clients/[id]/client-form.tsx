@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateClient, ensurePrimaryTraveller, type Traveller } from '../actions'
+import {
+  updateClient, ensurePrimaryTraveller,
+  type Traveller, type ClientProposal, type ClientVoucher,
+} from '../actions'
 import ClientTravellers from './client-travellers'
+import ClientHistory from './client-history'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -52,7 +56,14 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
-export default function ClientForm({ client, travellers }: { client: Client; travellers: Traveller[] }) {
+export default function ClientForm({
+  client, travellers, proposals = [], vouchers = [],
+}: {
+  client: Client
+  travellers: Traveller[]
+  proposals?: ClientProposal[]
+  vouchers?: ClientVoucher[]
+}) {
   const router = useRouter()
   const [travellerList, setTravellerList] = useState<Traveller[]>(travellers)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -234,6 +245,15 @@ export default function ClientForm({ client, travellers }: { client: Client; tra
           People who actually travel. Drag to reorder. These will be pulled into vouchers automatically.
         </p>
         <ClientTravellers clientId={client.id} initialTravellers={travellerList} key={travellerList.length} />
+      </section>
+
+      {/* HISTORY */}
+      <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>History</h2>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+          Everything linked to this client.
+        </p>
+        <ClientHistory proposals={proposals} vouchers={vouchers} />
       </section>
 
       {/* ЗАМЕТКИ */}

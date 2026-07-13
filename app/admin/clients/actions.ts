@@ -294,3 +294,50 @@ export async function reorderTravellers(orderedIds: string[]) {
     )
   )
 }
+
+// ============ История клиента ============
+
+export type ClientProposal = {
+  id: string
+  slug: string
+  trip_title_ru: string | null
+  trip_title_en: string | null
+  start_date: string | null
+  end_date: string | null
+  status: string | null
+  total_price: number | null
+  cost_currency: string | null
+  updated_at: string
+  last_viewed_at: string | null
+}
+
+export type ClientVoucher = {
+  id: string
+  slug: string | null
+  issue_date: string | null
+  updated_at: string
+  guests: unknown
+  voucher_hotels?: { name: string | null; city: string | null; check_in: string | null; sort_order: number }[] | null
+}
+
+export async function getClientProposals(clientId: string): Promise<ClientProposal[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('id, slug, trip_title_ru, trip_title_en, start_date, end_date, status, total_price, cost_currency, updated_at, last_viewed_at')
+    .eq('client_id', clientId)
+    .order('updated_at', { ascending: false })
+  if (error || !data) return []
+  return data as ClientProposal[]
+}
+
+export async function getClientVouchers(clientId: string): Promise<ClientVoucher[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('vouchers')
+    .select('id, slug, issue_date, updated_at, guests, voucher_hotels(name, city, check_in, sort_order)')
+    .eq('client_id', clientId)
+    .order('updated_at', { ascending: false })
+  if (error || !data) return []
+  return data as ClientVoucher[]
+}

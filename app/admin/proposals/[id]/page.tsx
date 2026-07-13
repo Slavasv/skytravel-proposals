@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { getClientsForProposal } from '../../actions'
 import EditPageClient from './edit-page-client'
 
 export default async function EditProposalPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,8 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
     .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
 
+  const clients = await getClientsForProposal()
+
   const sortedDays = (days ?? []).map((day) => ({
     ...day,
     day_blocks: (day.day_blocks ?? []).sort(
@@ -74,7 +77,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <EditPageClient proposal={proposal} days={sortedDays} />
+      <EditPageClient proposal={proposal} days={sortedDays} clients={clients} />
     </div>
   )
 }
