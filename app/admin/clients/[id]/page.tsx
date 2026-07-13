@@ -6,8 +6,14 @@ import ClientForm from './client-form'
 
 type Params = { id: string }
 
-export default async function ClientPage({ params }: { params: Promise<Params> }) {
+export default async function ClientPage({
+  params, searchParams,
+}: {
+  params: Promise<Params>
+  searchParams: Promise<{ returnTo?: string }>
+}) {
   const { id } = await params
+  const { returnTo } = await searchParams
   const supabase = await createSupabaseServer()
 
   const { data: client, error } = await supabase
@@ -38,7 +44,7 @@ export default async function ClientPage({ params }: { params: Promise<Params> }
         )}
       </div>
 
-      <ClientForm client={client} travellers={travellers} proposals={proposals} vouchers={vouchers} />
+      <ClientForm client={client} travellers={travellers} proposals={proposals} vouchers={vouchers} returnTo={returnTo} />
     </div>
   )
 }

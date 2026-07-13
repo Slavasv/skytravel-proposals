@@ -57,12 +57,13 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function ClientForm({
-  client, travellers, proposals = [], vouchers = [],
+  client, travellers, proposals = [], vouchers = [], returnTo,
 }: {
   client: Client
   travellers: Traveller[]
   proposals?: ClientProposal[]
   vouchers?: ClientVoucher[]
+  returnTo?: string
 }) {
   const router = useRouter()
   const [travellerList, setTravellerList] = useState<Traveller[]>(travellers)
@@ -137,13 +138,19 @@ export default function ClientForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form])
 
-  // Сохраняем немедленно (не ждём автосейв) и возвращаемся в список
+  // Сохраняем немедленно (не ждём автосейв) и возвращаемся.
+  // Если пришли из ваучера/предложения (returnTo) — вернёмся туда с выбранным клиентом.
   async function handleDone() {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     if (saveState === 'editing' || saveState === 'error') {
       await saveNow(form)
     }
-    router.push('/admin/clients')
+    if (returnTo) {
+      const sep = returnTo.includes('?') ? '&' : '?'
+      router.push(`${returnTo}${sep}pickedClient=${client.id}`)
+    } else {
+      router.push('/admin/clients')
+    }
   }
 
   function renderSaveIndicator() {
@@ -276,7 +283,7 @@ export default function ClientForm({
             opacity: saveState === 'saving' ? 0.6 : 1,
           }}
         >
-          {saveState === 'saving' ? 'Saving…' : 'Done'}
+          {saveState === 'saving' ? 'Saving…' : (returnTo ? 'Done & back' : 'Done')}
         </button>
       </section>
     </div>

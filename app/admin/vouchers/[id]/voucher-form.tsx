@@ -9,6 +9,8 @@ import VoucherHotels from './voucher-hotels'
 import type { VoucherHotel } from './voucher-actions'
 import DateInput from '@/app/admin/_components/date-input'
 import VoucherActions from './voucher-actions-ui'
+import ClientPicker from '@/app/admin/_components/client-picker'
+import { useSearchParams } from 'next/navigation'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core'
@@ -198,6 +200,10 @@ export default function VoucherForm({
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  // CRM: если вернулись из создания клиента — подставим его
+  const searchParams = useSearchParams()
+  const pickedClient = searchParams.get('pickedClient')
+
   // CRM: travellers выбранного клиента
   const [travellers, setTravellers] = useState<TravellerOption[]>([])
   const [travPickerOpen, setTravPickerOpen] = useState(false)
@@ -263,6 +269,14 @@ export default function VoucherForm({
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form])
+
+  // вернулись из создания клиента → подставляем его
+  useEffect(() => {
+    if (pickedClient && pickedClient !== form.client_id) {
+      set('client_id', pickedClient)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedClient])
 
   // подгружаем travellers выбранного клиента
   useEffect(() => {
@@ -405,18 +419,12 @@ export default function VoucherForm({
 
         <div style={{ marginBottom: '16px' }}>
           <label style={labelStyle}>Client</label>
-          <select
+          <ClientPicker
+            clients={clients}
             value={form.client_id}
-            onChange={(e) => set('client_id', e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">— No client —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name || 'Untitled'}{c.client_code ? ` · ${c.client_code}` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(id) => set('client_id', id)}
+            returnTo={`/admin/vouchers/${voucher.id}`}
+          />
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
             Link this voucher to a CRM client to pull travellers into the guest list.
           </p>
