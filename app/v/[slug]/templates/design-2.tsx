@@ -1,8 +1,8 @@
 import SavePdfButton from '../save-pdf-button'
 import {
   type Guest, type Hotel,
-  TITLE_BEFORE,
-  renderMarkdown,
+  TITLE_BEFORE, CHILD_TITLES,
+  renderMarkdown, parseDMY, fullYears,
 } from './shared'
 
 // ДИЗАЙН 2 — «Hotel Voucher» (макет Sky Travel).
@@ -37,9 +37,29 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
   const brandName = company?.name || 'Sky Travel'
   const bgUrl = company?.voucher_bg_url || ''
 
+ // Последний check-out — на эту дату считаем возраст детей
+  let lastCheckoutDate: Date | null = null
+  for (const h of hotels) {
+    const co = parseDMY(h.check_out)
+    if (co && (!lastCheckoutDate || co > lastCheckoutDate)) lastCheckoutDate = co
+  }
+
   const touristNames = guests.map((g) => {
     const t = g.title || ''
-    return TITLE_BEFORE.has(t) ? `${t} ${g.name || ''}`.trim() : (g.name || '')
+    // обращение выводим для всех, у кого оно есть (взрослые И дети)
+    const base = t ? `${t} ${g.name || ''}`.trim() : (g.name || '')
+    if (!base) return ''
+
+    // возраст — только для детей и только если есть дата рождения и дата выезда
+    const isChild = CHILD_TITLES.has(t)
+    if (isChild && g.birth_date && lastCheckoutDate) {
+      const birth = parseDMY(g.birth_date)
+      if (birth) {
+        const age = fullYears(birth, lastCheckoutDate)
+        if (age >= 0) return `${base} (${age} y. o.)`
+      }
+    }
+    return base
   }).filter(Boolean)
 
   const FS_TITLE = 40, FS_LABEL = 22, FS_CONFIRM = 48, FS_GREET = 15, FS_FOOTER = 20
