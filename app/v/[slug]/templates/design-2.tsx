@@ -95,7 +95,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
         {company?.website_url && <span>{company.website_url.replace(/^https?:\/\//, '')}</span>}
       </div>
       {company?.office_address && (
-        <div style={{ marginTop: '5px', fontSize: (FS_FOOTER - 4) + 'px', opacity: 0.85 }}>{company.office_address}</div>
+        <div style={{ marginTop: '5px', fontSize: (FS_FOOTER - 6) + 'px', opacity: 0.85 }}>{company.office_address}</div>
       )}
     </div>
   )
