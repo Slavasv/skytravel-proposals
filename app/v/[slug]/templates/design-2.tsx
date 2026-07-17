@@ -183,7 +183,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
               Booking confirmed and paid
             </div>
             {voucher.show_greeting && company?.greeting_message && (
-              <div style={{ fontSize: FS_GREET + 'px', fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '560px', margin: '10px auto 0', textAlign: 'center' }}
+              <div style={{ fontSize: FS_GREET + 'px', fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '620px', margin: '10px auto 0', textAlign: 'center' }}
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
             )}
           </div>
