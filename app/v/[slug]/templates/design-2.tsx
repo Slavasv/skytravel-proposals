@@ -88,14 +88,14 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
   )
 
   const FooterInner = (
-    <div style={{ background: accent, padding: '14px 40px', textAlign: 'center', color: '#FFFFFF', minHeight: FOOTER_H + 'px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '28px', fontSize: FS_FOOTER + 'px', fontWeight: 500 }}>
+    <div style={{ background: accent, padding: '14px 50px', textAlign: 'center', color: '#FFFFFF', minHeight: FOOTER_H + 'px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', fontSize: FS_FOOTER + 'px', fontWeight: 500 }}>
         {company?.contact_phone && <span>{company.contact_phone}</span>}
         {company?.contact_email && <span>{company.contact_email}</span>}
         {company?.website_url && <span>{company.website_url.replace(/^https?:\/\//, '')}</span>}
       </div>
       {company?.office_address && (
-        <div style={{ marginTop: '5px', fontSize: (FS_FOOTER - 6) + 'px', opacity: 0.85 }}>{company.office_address}</div>
+        <div style={{ marginTop: '5px', fontSize: (FS_FOOTER - 4) + 'px', opacity: 0.85 }}>{company.office_address}</div>
       )}
     </div>
   )
