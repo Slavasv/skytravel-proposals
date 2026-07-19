@@ -159,7 +159,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
                     <Row label="Meal type:" value={h.meal_plan || ''} />
                     <Row label="Tourist Name(s):" last={!h.extras} value={
                       touristNames.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                        <div className="pdf-keep" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                           {touristNames.map((n, idx) => <span key={idx}>{n}</span>)}
                         </div>
                       ) : '—'
