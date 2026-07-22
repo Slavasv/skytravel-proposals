@@ -91,3 +91,27 @@ export async function createCity(
   if (error) throw new Error(error.message)
   return data
 }
+
+// Получить города по списку id (для отображения выбранных тегов)
+export async function getCitiesByIds(ids: string[]): Promise<CityRow[]> {
+  if (!ids || ids.length === 0) return []
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('cities')
+    .select('id, name_ru, name_en, country_id')
+    .in('id', ids)
+  if (error || !data) return []
+  return data as CityRow[]
+}
+
+// Определить страну города (для автоподтягивания страны при выборе города)
+export async function getCityCountry(cityId: string): Promise<string | null> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('cities')
+    .select('country_id')
+    .eq('id', cityId)
+    .single()
+  if (error || !data) return null
+  return data.country_id
+}
