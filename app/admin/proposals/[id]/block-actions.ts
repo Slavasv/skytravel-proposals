@@ -12,6 +12,9 @@ export type DayBlockUpdate = {
   from_en?: string | null
   to_ru?: string | null
   to_en?: string | null
+  room_ids?: string[] | null
+  activities_ru?: string | null
+  activities_en?: string | null
 }
 
 type CityJoin = { country_id: string; name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }

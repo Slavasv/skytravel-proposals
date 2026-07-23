@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { getClientsForRequest } from '../actions'
+import { getClientsForRequest, getLinkedProposals, getAvailableDestinations } from '../actions'
 import { getRequestDestinations } from '../destinations-actions'
 import RequestForm from './request-form'
 
@@ -19,6 +19,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const clients = await getClientsForRequest()
   const destinations = await getRequestDestinations(id)
+  const linked = await getLinkedProposals(id)
+  const availableDestinations = await getAvailableDestinations()
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -31,7 +33,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </h1>
       </div>
 
-      <RequestForm request={request} clients={clients} destinations={destinations} />
+      <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} />
     </div>
   )
 }

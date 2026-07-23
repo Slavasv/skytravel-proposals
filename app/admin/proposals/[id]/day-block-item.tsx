@@ -45,6 +45,9 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     from_en: dayBlock.from_en || '',
     to_ru: dayBlock.to_ru || '',
     to_en: dayBlock.to_en || '',
+    room_ids: (dayBlock.room_ids ?? []) as string[],
+    activities_ru: dayBlock.activities_ru || '',
+    activities_en: dayBlock.activities_en || '',
   })
 
   const hasExistingNote = (lang === 'ru' ? noteForm.custom_note_ru : noteForm.custom_note_en).length > 0
@@ -88,6 +91,9 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           custom_note_en: currentForm.custom_note_en || null,
           room_type_ru: currentForm.room_type_ru || null,
           room_type_en: currentForm.room_type_en || null,
+          room_ids: currentForm.room_ids,
+          activities_ru: currentForm.activities_ru || null,
+          activities_en: currentForm.activities_en || null,
           from_ru: currentForm.from_ru || null,
           from_en: currentForm.from_en || null,
           to_ru: currentForm.to_ru || null,
@@ -269,62 +275,64 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
             color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
             borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
           }
-          const currentValue = noteForm[roomTypeKey]
-          const norm = (s: string) => s.trim().toLowerCase()
-          // ищем номер, чьё название совпадает с сохранённым значением (без чувствительности к пробелам/регистру)
-          const matchedRoom = hotelRooms.find((r) => {
-            const rt = lang === 'ru' ? r.title_ru : r.title_en
-            return rt && norm(rt) === norm(currentValue)
-          })
-          const selectValue = currentValue.trim() === ''
-            ? ''
-            : (matchedRoom ? (lang === 'ru' ? matchedRoom.title_ru : matchedRoom.title_en) : '__custom__')
+          const labelSt: React.CSSProperties = {
+            fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
+          }
+          const selected = noteForm.room_ids
+          const isChecked = (id: string) => selected.length === 0 || selected.includes(id)
 
-          
+          function toggleRoom(id: string) {
+            setNoteForm((prev) => {
+              const cur = prev.room_ids
+              const next = cur.length === 0
+                ? hotelRooms.filter((r) => r.id !== id).map((r) => r.id)
+                : cur.includes(id)
+                  ? cur.filter((x) => x !== id)
+                  : [...cur, id]
+              return { ...prev, room_ids: next }
+            })
+            setSaveState('editing')
+          }
+
+          const actKey = lang === 'ru' ? 'activities_ru' : 'activities_en'
+
           return (
-            <div style={{ marginBottom: '10px' }}>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                Room type · {lang.toUpperCase()}
-              </label>
-              {hotelRooms.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <select
-                    value={selectValue}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (v === '__custom__') setField(roomTypeKey, ' ')
-                      else setField(roomTypeKey, v)
-                    }}
-                    style={inputStyle}
-                  >
-                    <option value="">— not specified —</option>
+            <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {hotelRooms.length > 0 && (
+                <div>
+                  <label style={labelSt}>Rooms to show</label>
+                  <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
+                    All shown by default. Uncheck to hide a room type.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {hotelRooms.map((r) => {
                       const rt = lang === 'ru' ? r.title_ru : r.title_en
                       const rs = lang === 'ru' ? r.subtitle_ru : r.subtitle_en
-                      return <option key={r.id} value={rt}>{rt}{rs ? ` · ${rs}` : ''}</option>
+                      return (
+                        <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', color: 'var(--admin-text)' }}>
+                          <input type="checkbox" checked={isChecked(r.id)} onChange={() => toggleRoom(r.id)} style={{ cursor: 'pointer' }} />
+                          <span>{rt}{rs ? <span style={{ color: 'var(--admin-text-muted)' }}> · {rs}</span> : null}</span>
+                        </label>
+                      )
                     })}
-                    <option value="__custom__">Custom…</option>
-                  </select>
-                  {selectValue === '__custom__' && (
-                    <input
-                      type="text"
-                      value={currentValue}
-                      onChange={(e) => setField(roomTypeKey, e.target.value)}
-                      placeholder="e.g.: Deluxe City View, All Inclusive"
-                      style={inputStyle}
-                      autoFocus
-                    />
-                  )}
+                  </div>
                 </div>
-              ) : (
-                <input
-                  type="text"
-                  value={currentValue}
-                  onChange={(e) => setField(roomTypeKey, e.target.value)}
-                  placeholder="e.g.: Deluxe City View, All Inclusive"
-                  style={inputStyle}
-                />
               )}
+
+              <div>
+                <label style={labelSt}>Hotel activities (optional) · {lang.toUpperCase()}</label>
+                <textarea
+                  value={noteForm[actKey]}
+                  onChange={(e) => setField(actKey, e.target.value)}
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  placeholder={lang === 'ru' ? 'Утренние выезды на сафари\nПешее сафари' : 'Morning game drives\nWalking safari'}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '4px 0 0' }}>
+                  One activity per line.
+                </p>
+              </div>
             </div>
           )
         })()}

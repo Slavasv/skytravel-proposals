@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { updateRequest, type RequestClientOption } from '../actions'
+import {
+  updateRequest, createProposalFromRequest, detachProposalFromRequest,
+  type RequestClientOption, type LinkedProposal, type DestinationOption,
+} from '../actions'
+import { createBookingFromRequest } from '@/app/admin/bookings/actions'
+import AttachDestination from './attach-destination'
 import ClientPicker from '@/app/admin/_components/client-picker'
 import RequestDestinations from './request-destinations'
 import type { RequestDestination } from '../destinations-actions'
@@ -19,6 +24,12 @@ type RequestRow = {
   priority: string | null
   closed_at: string | null
   created_at: string
+  cancel_reason: string | null
+  cancel_note: string | null
+  client_notes: string | null
+  agent_notes: string | null
+  trip_rating: number | null
+  trip_feedback: string | null
 }
 
 const STATUSES: { value: string; label: string }[] = [
@@ -34,6 +45,15 @@ const STATUSES: { value: string; label: string }[] = [
 
 const PRIORITIES = ['Low', 'Medium', 'High']
 const CLOSING = ['confirmed', 'cancelled']
+
+const CANCEL_REASONS = [
+  'Too expensive',
+  'Chose another agency',
+  'Changed travel plans',
+  'Dates / hotel did not fit',
+  'No response from client',
+  'Other',
+]
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -55,11 +75,13 @@ function daysBetween(from: string, to: string): string {
 }
 
 export default function RequestForm({
-  request, clients, destinations,
+  request, clients, destinations, linked = [], availableDestinations = [],
 }: {
   request: RequestRow
   clients: RequestClientOption[]
   destinations: RequestDestination[]
+  linked?: LinkedProposal[]
+  availableDestinations?: DestinationOption[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -76,6 +98,12 @@ export default function RequestForm({
     details: request.details || '',
     status: request.status || 'new',
     priority: request.priority || '',
+    cancel_reason: request.cancel_reason || '',
+    cancel_note: request.cancel_note || '',
+    client_notes: request.client_notes || '',
+    agent_notes: request.agent_notes || '',
+    trip_rating: request.trip_rating ?? 0,
+    trip_feedback: request.trip_feedback || '',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -96,6 +124,12 @@ export default function RequestForm({
         details: current.details || null,
         status: current.status,
         priority: current.priority || null,
+        cancel_reason: current.status === 'cancelled' ? (current.cancel_reason || null) : null,
+        cancel_note: current.status === 'cancelled' ? (current.cancel_note || null) : null,
+        client_notes: current.client_notes || null,
+        agent_notes: current.agent_notes || null,
+        trip_rating: current.trip_rating > 0 ? current.trip_rating : null,
+        trip_feedback: current.trip_feedback || null,
       })
       if (CLOSING.includes(current.status)) {
         setClosedAt((prev) => prev || new Date().toISOString())
@@ -190,16 +224,117 @@ export default function RequestForm({
         <textarea value={form.details} onChange={(e) => set('details', e.target.value)} rows={8} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="Dates, hotels, transfers, special requirements, budget..." />
       </section>
 
+      {/* ПРИЧИНА ОТМЕНЫ — только для cancelled */}
+      {form.status === 'cancelled' && (
+        <section style={{ padding: '16px', border: '1px solid var(--admin-danger)', borderRadius: '10px' }}>
+          <label style={labelStyle}>Why was it cancelled?</label>
+          <select value={form.cancel_reason} onChange={(e) => set('cancel_reason', e.target.value)} style={{ ...inputStyle, marginBottom: '10px' }}>
+            <option value="">— Select a reason —</option>
+            {CANCEL_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <textarea value={form.cancel_note} onChange={(e) => set('cancel_note', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Details (optional)" />
+        </section>
+      )}
+
+      {/* NEXT STEP — дестинейшены и предложения */}
+      <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <label style={labelStyle}>Next step</label>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: linked.length > 0 ? '14px' : '0' }}>
+          <AttachDestination
+            requestId={request.id}
+            options={availableDestinations}
+            attachedIds={linked.filter((p) => p.kind === 'destination').map((p) => p.id)}
+          />
+          <form action={createProposalFromRequest.bind(null, request.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              + Create proposal
+            </button>
+          </form>
+        </div>
+
+        {linked.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {linked.map((p) => {
+              const isDest = p.kind === 'destination'
+              const title = p.trip_title_ru || p.trip_title_en || (isDest ? 'Untitled destination' : 'Untitled proposal')
+              const href = isDest ? `/admin/destinations/${p.id}` : `/admin/proposals/${p.id}`
+              return (
+                <a key={p.id} href={href}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit' }}>
+                  <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>
+                    {isDest ? 'Destination' : 'Proposal'}
+                  </span>
+                  <span style={{ fontSize: '14px', color: 'var(--admin-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {title}
+                  </span>
+                  {p.last_viewed_at && (
+                    <span style={{ fontSize: '11px', color: 'var(--admin-success)', flexShrink: 0 }}>● opened</span>
+                  )}
+                  {p.status && (
+                    <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', flexShrink: 0 }}>{p.status}</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault(); e.stopPropagation()
+                      if (!confirm('Unlink from this request?')) return
+                      detachProposalFromRequest(request.id, p.id)
+                    }}
+                    title="Unlink"
+                    style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '15px', lineHeight: 1, padding: '0 2px', flexShrink: 0, fontFamily: 'inherit' }}>
+                    ×
+                  </button>
+                </a>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ЗАМЕТКИ */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <label style={labelStyle}>Client notes & revisions</label>
+          <textarea value={form.client_notes} onChange={(e) => set('client_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="What the client asked to change, their reactions, preferences..." />
+        </div>
+        <div>
+          <label style={labelStyle}>Agent notes (internal)</label>
+          <textarea value={form.agent_notes} onChange={(e) => set('agent_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="Your own notes — not shown to the client" />
+        </div>
+      </section>
+
+      {/* ФИДБЕК ПОСЛЕ ПОЕЗДКИ — для подтверждённых */}
+      {form.status === 'confirmed' && (
+        <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <label style={labelStyle}>After the trip</label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>Rating:</span>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" onClick={() => set('trip_rating', form.trip_rating === n ? 0 : n)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '2px', color: n <= form.trip_rating ? 'var(--admin-accent)' : 'var(--admin-text-faint)' }}>
+                ★
+              </button>
+            ))}
+            {form.trip_rating > 0 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{form.trip_rating}/5</span>}
+          </div>
+          <textarea value={form.trip_feedback} onChange={(e) => set('trip_feedback', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="How did the trip go? What did the client say?" />
+        </section>
+      )}
+
       {isConfirmed && (
         <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <div style={{ padding: '20px', textAlign: 'center', border: '1px dashed var(--admin-border-card)', borderRadius: '10px', background: 'var(--admin-card)' }}>
-            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--admin-text)', marginBottom: '4px' }}>
-              Booking — coming soon
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-              Once this request is confirmed, you&apos;ll create a booking here with services, partners and pricing.
-            </div>
-          </div>
+          <label style={labelStyle}>Booking</label>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
+            Record what you actually booked — hotels, transfers, partners and pricing.
+          </p>
+          <form action={createBookingFromRequest.bind(null, request.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              + Create booking
+            </button>
+          </form>
         </section>
       )}
 

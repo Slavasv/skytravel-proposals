@@ -8,6 +8,7 @@ import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
 import CostLines, { type CostLine, type CostSuggestion } from './cost-lines'
+import HotelsSection from './hotels-section'
 import type { Day } from './edit-page-client'
 
 type Proposal = {
@@ -39,6 +40,7 @@ type Proposal = {
   cost_notes_en: string | null
   cost_lines: CostLine[] | null
   client_id: string | null
+  layout: string | null
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -120,6 +122,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
     cost_notes_en: proposal.cost_notes_en || '',
     cost_lines: (proposal.cost_lines ?? []) as CostLine[],
     client_id: proposal.client_id || '',
+    layout: proposal.layout || 'full',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -167,6 +170,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
           cost_notes_en: currentForm.cost_notes_en || null,
           cost_lines: currentForm.cost_lines,
           client_id: currentForm.client_id || null,
+          layout: currentForm.layout,
         })
         setSavedAt(new Date())
         setSaveState('saved')
@@ -335,8 +339,25 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             </button>
           </div>
         </div>
-        <div style={{ fontSize: '12px' }}>
-          {renderSaveIndicator()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+              Layout
+            </span>
+            <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
+              <button type="button" onClick={() => set('layout', 'full')}
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout !== 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout !== 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Full
+              </button>
+              <button type="button" onClick={() => set('layout', 'hotel')}
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout === 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout === 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Hotel
+              </button>
+            </div>
+          </div>
+          <div style={{ fontSize: '12px' }}>
+            {renderSaveIndicator()}
+          </div>
         </div>
       </div>
 
@@ -474,7 +495,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
         )
       })()}
 
-      {itinerary}
+      {form.layout === 'hotel' ? (
+        <HotelsSection proposalId={proposal.id} days={days} lang={lang} />
+      ) : (
+        itinerary
+      )}
 
       
 
