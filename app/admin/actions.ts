@@ -37,6 +37,7 @@ type ProposalUpdate = {
   tagline_en?: string | null
   price_from?: boolean
   client_id?: string | null
+  layout?: string | null
 }
 
 async function createProposalOfKind(kind: 'individual' | 'destination') {
