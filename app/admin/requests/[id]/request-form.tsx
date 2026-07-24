@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   updateRequest, createProposalFromRequest, detachProposalFromRequest,
-  selectDestination, unselectDestination,
+  selectDestination, unselectDestination, approveProposal, unapproveProposal,
   type RequestClientOption, type LinkedProposal, type DestinationOption,
 } from '../actions'
 import { createBookingFromRequest, type RequestBooking } from '@/app/admin/bookings/actions'
@@ -179,7 +179,8 @@ export default function RequestForm({
 
   const isConfirmed = form.status === 'confirmed'
   // бронь заводим уже на этапе бронирования, не дожидаясь Confirmed
-  const canBook = form.status === 'booking' || form.status === 'confirmed'
+  const hasApprovedProposal = linked.some((p) => p.kind !== 'destination' && p.status === 'confirmed')
+  const canBook = form.status === 'booking' || form.status === 'confirmed' || hasApprovedProposal
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -305,8 +306,12 @@ export default function RequestForm({
                       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectDestination(request.id, p.id) }} title="Client picked this destination" style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>Client picked</button>
                     )
                   ) : null}
-                  {p.status && !isDest && (
-                    <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', flexShrink: 0 }}>{p.status}</span>
+                  {!isDest && (
+                    p.status === 'confirmed' ? (
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unapproveProposal(request.id, p.id) }} title="Undo approval" style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ Approved</button>
+                    ) : (
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); approveProposal(request.id, p.id) }} title="Client approved — data can go to a booking" style={{ background: 'transparent', border: '1px solid var(--admin-accent)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>Approve</button>
+                    )
                   )}
                   <button
                     type="button"

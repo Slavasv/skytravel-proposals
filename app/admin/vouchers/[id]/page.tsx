@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import VoucherForm from './voucher-form'
 import { getHotels, getClientOptions } from './voucher-actions'
+import { syncVoucherFromBooking } from '@/app/admin/bookings/actions'
 
 // парсинг ДД/ММ/ГГГГ (или ДД.ММ.ГГГГ) → Date | null
 function parseDMY(s: string | null | undefined): Date | null {
@@ -27,6 +28,11 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
 
   if (error || !voucher) {
     notFound()
+  }
+
+  // подтягиваем актуальное из брони: название отеля, conf#, даты, ночи, гости
+  if (voucher.booking_id) {
+    await syncVoucherFromBooking(voucher.id)
   }
 
   const hotels = await getHotels(voucher.id)

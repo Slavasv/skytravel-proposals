@@ -65,13 +65,17 @@ export default function RequestTravellers({
   }, [clientId])
 
   function toggle(id: string) {
-    const next = selectedRef.current.includes(id)
-      ? selectedRef.current.filter((x) => x !== id)
-      : [...selectedRef.current, id]
-    selectedRef.current = next
-    setSelected(next)
-    setRequestTravellers(requestId, next).catch(() => {})
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
   }
+
+  // сохраняем состав при любом изменении — всегда актуальное значение
+  const firstRun = useRef(true)
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return }
+    setRequestTravellers(requestId, selected).catch(() => {})
+  }, [selected, requestId])
 
   async function handleCreate() {
     if (!newName.trim() || !clientId) return

@@ -270,3 +270,291 @@ export async function getBookingsForRequest(requestId: string): Promise<RequestB
   if (error || !data) return []
   return data as RequestBooking[]
 }
+
+// ============ Travellers брони ============
+// Состав живёт в запросе — один на всю сделку.
+// Правки в брони меняют запрос и наоборот.
+
+export type BookingTraveller = {
+  id: string
+  name: string | null
+  title: string | null
+  relation: string | null
+  date_of_birth: string | null
+}
+
+// Все travellers клиента + кто отмечен в запросе
+export async function getBookingTravellers(bookingId: string): Promise<{
+  all: BookingTraveller[]
+  selected: string[]
+  requestId: string | null
+}> {
+  const supabase = await createSupabaseServer()
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('client_id, request_id')
+    .eq('id', bookingId)
+    .single()
+
+  if (!booking?.client_id) return { all: [], selected: [], requestId: null }
+
+  const { data: all } = await supabase
+    .from('travellers')
+    .select('id, name, title, relation, date_of_birth')
+    .eq('client_id', booking.client_id)
+    .order('sort_order', { ascending: true })
+
+  let selected: string[] = []
+  if (booking.request_id) {
+    const { data: req } = await supabase
+      .from('requests')
+      .select('traveller_ids')
+      .eq('id', booking.request_id)
+      .single()
+    selected = Array.isArray(req?.traveller_ids) ? req.traveller_ids : []
+  }
+
+  return {
+    all: (all ?? []) as BookingTraveller[],
+    selected,
+    requestId: booking.request_id ?? null,
+  }
+}
+
+// Сохраняем состав в запрос — он общий для сделки
+export async function setBookingTravellers(
+  bookingId: string,
+  requestId: string,
+  travellerIds: string[],
+) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('requests')
+    .update({ traveller_ids: travellerIds, updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/bookings/${bookingId}`)
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// ============ Ваучер из брони ============
+
+export type BookingVoucher = {
+  id: string
+  slug: string
+  voucher_type: string | null
+  issue_date: string | null
+  updated_at: string
+}
+
+export async function getVouchersForBooking(bookingId: string): Promise<BookingVoucher[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('vouchers')
+    .select('id, slug, voucher_type, issue_date, updated_at')
+    .eq('booking_id', bookingId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as BookingVoucher[]
+}
+
+// Ваучер на проживание: гости из travellers, отели из услуг Accomodation
+export async function createAccommodationVoucher(bookingId: string) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('client_id, request_id, company_id')
+    .eq('id', bookingId)
+    .single()
+
+  if (!booking) throw new Error('Booking not found')
+
+  // состав поездки — из запроса
+  let travellerIds: string[] = []
+  if (booking.request_id) {
+    const { data: req } = await supabase
+      .from('requests').select('traveller_ids').eq('id', booking.request_id).single()
+    travellerIds = Array.isArray(req?.traveller_ids) ? req.traveller_ids : []
+  }
+
+  let guests: { title: string; name: string; birth_date: string }[] = []
+  if (travellerIds.length > 0) {
+    const { data: trav } = await supabase
+      .from('travellers')
+      .select('id, name, title, date_of_birth, sort_order')
+      .in('id', travellerIds)
+      .order('sort_order', { ascending: true })
+    guests = (trav ?? []).map((t) => ({
+      title: t.title || 'Mr',
+      name: t.name || '',
+      birth_date: t.date_of_birth || '',
+    }))
+  }
+
+  const slug = `voucher-${Math.random().toString(36).slice(2, 10)}`
+  const today = new Date()
+  const issueDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
+
+  const { data: voucher, error } = await supabase
+    .from('vouchers')
+    .insert({
+      slug,
+      booking_id: bookingId,
+      client_id: booking.client_id,
+      voucher_type: 'accommodation',
+      issue_date: issueDate,
+      guests,
+      show_transfer: false,
+      show_greeting: true,
+      company_id: booking.company_id,
+      owner_id: user?.id ?? null,
+    })
+    .select()
+    .single()
+
+  if (error || !voucher) throw new Error(error?.message || 'Failed to create voucher')
+
+  // отели — из услуг типа Accomodation
+  const { data: services } = await supabase
+    .from('booking_services')
+    .select('description, confirmation_no, check_in, check_out, sort_order')
+    .eq('booking_id', bookingId)
+    .eq('service_type', 'Accomodation')
+    .order('sort_order', { ascending: true })
+
+  if (services && services.length > 0) {
+    const toDMY = (d: string | null) => {
+      if (!d) return null
+      const parts = d.split('-')
+      if (parts.length !== 3) return d
+      return `${parts[2]}.${parts[1]}.${parts[0]}`
+    }
+    const nights = (a: string | null, b: string | null) => {
+      if (!a || !b) return null
+      const d1 = new Date(a), d2 = new Date(b)
+      if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
+      const n = Math.round((d2.getTime() - d1.getTime()) / 86400000)
+      return n > 0 ? String(n) : null
+    }
+
+    await supabase.from('voucher_hotels').insert(
+      services.map((s, i) => ({
+        voucher_id: voucher.id,
+        sort_order: i,
+        name: s.description || null,
+        booking_ref: s.confirmation_no || null,
+        check_in: toDMY(s.check_in),
+        check_out: toDMY(s.check_out),
+        nights: nights(s.check_in, s.check_out),
+      }))
+    )
+  }
+
+  revalidatePath(`/admin/bookings/${bookingId}`)
+  redirect(`/admin/vouchers/${voucher.id}`)
+}
+
+// Подтянуть в ваучер актуальные данные брони.
+// Обновляем только то, чей источник правды — бронь:
+// название отеля, confirmation number, даты, ночи.
+// Адрес, телефон, тип номера, питание, заметки агент правит в ваучере — не трогаем.
+export async function syncVoucherFromBooking(voucherId: string) {
+  const supabase = await createSupabaseServer()
+
+  const { data: voucher } = await supabase
+    .from('vouchers')
+    .select('id, booking_id, voucher_type')
+    .eq('id', voucherId)
+    .single()
+
+  if (!voucher?.booking_id || voucher.voucher_type !== 'accommodation') return
+
+  // гости — из состава запроса
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('request_id')
+    .eq('id', voucher.booking_id)
+    .single()
+
+  if (booking?.request_id) {
+    const { data: req } = await supabase
+      .from('requests').select('traveller_ids').eq('id', booking.request_id).single()
+    const ids = Array.isArray(req?.traveller_ids) ? req.traveller_ids : []
+    if (ids.length > 0) {
+      const { data: trav } = await supabase
+        .from('travellers')
+        .select('name, title, date_of_birth, sort_order')
+        .in('id', ids)
+        .order('sort_order', { ascending: true })
+      const guests = (trav ?? []).map((t) => ({
+        title: t.title || 'Mr',
+        name: t.name || '',
+        birth_date: t.date_of_birth || '',
+      }))
+      await supabase.from('vouchers').update({ guests }).eq('id', voucherId)
+    }
+  }
+
+  // отели — из услуг Accomodation
+  const { data: services } = await supabase
+    .from('booking_services')
+    .select('description, confirmation_no, check_in, check_out, sort_order')
+    .eq('booking_id', voucher.booking_id)
+    .eq('service_type', 'Accomodation')
+    .order('sort_order', { ascending: true })
+
+  const { data: hotels } = await supabase
+    .from('voucher_hotels')
+    .select('id, sort_order')
+    .eq('voucher_id', voucherId)
+    .order('sort_order', { ascending: true })
+
+  const toDMY = (d: string | null) => {
+    if (!d) return null
+    const parts = d.split('-')
+    if (parts.length !== 3) return d
+    return `${parts[2]}.${parts[1]}.${parts[0]}`
+  }
+  const nightsBetween = (a: string | null, b: string | null) => {
+    if (!a || !b) return null
+    const d1 = new Date(a), d2 = new Date(b)
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
+    const n = Math.round((d2.getTime() - d1.getTime()) / 86400000)
+    return n > 0 ? String(n) : null
+  }
+
+  const svc = services ?? []
+  const existing = hotels ?? []
+
+  // обновляем существующие карточки
+  for (let i = 0; i < Math.min(svc.length, existing.length); i++) {
+    await supabase
+      .from('voucher_hotels')
+      .update({
+        name: svc[i].description || null,
+        booking_ref: svc[i].confirmation_no || null,
+        check_in: toDMY(svc[i].check_in),
+        check_out: toDMY(svc[i].check_out),
+        nights: nightsBetween(svc[i].check_in, svc[i].check_out),
+      })
+      .eq('id', existing[i].id)
+  }
+
+  // если в брони услуг больше — добавляем недостающие карточки
+  if (svc.length > existing.length) {
+    await supabase.from('voucher_hotels').insert(
+      svc.slice(existing.length).map((s, idx) => ({
+        voucher_id: voucherId,
+        sort_order: existing.length + idx,
+        name: s.description || null,
+        booking_ref: s.confirmation_no || null,
+        check_in: toDMY(s.check_in),
+        check_out: toDMY(s.check_out),
+        nights: nightsBetween(s.check_in, s.check_out),
+      }))
+    )
+  }
+}

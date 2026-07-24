@@ -9,6 +9,7 @@ import PartnerPicker from '@/app/admin/_components/partner-picker'
 
 const SERVICE_TYPES = [
   'Accomodation',
+  'Flight',
   'Transfer',
   'Visa',
   'CIP',

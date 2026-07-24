@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateBooking, type BookingService, type PartnerOption, type BookingClientOption } from '../actions'
+import { updateBooking, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
+import BookingTravellers from './booking-travellers'
 import ClientPicker from '@/app/admin/_components/client-picker'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -38,12 +39,14 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function BookingForm({
-  booking, services, partners, clients,
+  booking, services, partners, clients, travellers, vouchers = [],
 }: {
   booking: Booking
   services: BookingService[]
   partners: PartnerOption[]
   clients: BookingClientOption[]
+  travellers: { all: BookingTraveller[]; selected: string[]; requestId: string | null }
+  vouchers?: BookingVoucher[]
 }) {
   const router = useRouter()
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -157,6 +160,20 @@ export default function BookingForm({
         </div>
       </section>
 
+      {/* КТО ЕДЕТ */}
+      <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Travellers</h2>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+          Who&apos;s actually going. Someone can drop out or join at the last minute.
+        </p>
+        <BookingTravellers
+          bookingId={booking.id}
+          requestId={travellers.requestId}
+          all={travellers.all}
+          initialSelected={travellers.selected}
+        />
+      </section>
+
       {/* УСЛУГИ */}
       <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Services</h2>
@@ -164,6 +181,38 @@ export default function BookingForm({
           Everything booked for this trip. Commission is calculated as Gross − Net.
         </p>
         <BookingServices bookingId={booking.id} initial={services} partners={partners} />
+      </section>
+
+      {/* ВАУЧЕРЫ */}
+      <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Vouchers</h2>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 14px' }}>
+          Guests and hotels are pulled from this booking, including confirmation numbers.
+        </p>
+
+        {vouchers.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+            {vouchers.map((v) => (
+              <a key={v.id} href={`/admin/vouchers/${v.id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>
+                  {v.voucher_type === 'flight' ? 'Flight' : 'Accommodation'}
+                </span>
+                <span style={{ fontSize: '13px', color: 'var(--admin-text)', flex: 1 }}>
+                  {v.issue_date || 'No date'}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>open →</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        <form action={createAccommodationVoucher.bind(null, booking.id)}>
+          <button type="submit"
+            style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            + Accommodation voucher
+          </button>
+        </form>
       </section>
 
       {/* ЗАМЕТКИ */}

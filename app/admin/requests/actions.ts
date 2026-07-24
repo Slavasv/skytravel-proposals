@@ -387,3 +387,43 @@ export async function unselectDestination(requestId: string, proposalId: string)
   if (error) throw new Error(error.message)
   revalidatePath(`/admin/requests/${requestId}`)
 }
+
+// Утвердить предложение из карточки запроса.
+// Источник правды — статус самого предложения; запрос двигается следом.
+export async function approveProposal(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  const { error } = await supabase
+    .from('proposals')
+    .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+    .eq('id', proposalId)
+
+  if (error) throw new Error(error.message)
+
+  const { data: req } = await supabase
+    .from('requests')
+    .select('status')
+    .eq('id', requestId)
+    .single()
+
+  const earlyStages = ['new', 'clients_review', 'preparing', 'proposal_sent', 'revising']
+  if (req && earlyStages.includes(req.status || '')) {
+    await supabase
+      .from('requests')
+      .update({ status: 'booking', updated_at: new Date().toISOString() })
+      .eq('id', requestId)
+  }
+
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Снять утверждение
+export async function unapproveProposal(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('proposals')
+    .update({ status: 'sent', updated_at: new Date().toISOString() })
+    .eq('id', proposalId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/requests/${requestId}`)
+}

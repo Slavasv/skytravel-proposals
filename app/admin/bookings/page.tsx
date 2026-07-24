@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { createBooking } from './actions'
 import BookingsList, { type BookingRow } from './bookings-list'
 
 export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
@@ -44,11 +43,9 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
               <a href="/admin/bookings?view=all" style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, borderRadius: '6px', textDecoration: 'none', background: showAll ? 'var(--admin-text-on-dark)' : 'transparent', color: showAll ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)' }}>All</a>
             </div>
           )}
-          <form action={createBooking}>
-            <button type="submit" style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              + New booking
-            </button>
-          </form>
+          <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+            Bookings are created from requests
+          </span>
         </div>
       </div>
 
