@@ -16,11 +16,12 @@ type Props = {
   dayBlock: DayBlock
   lang: Lang
   isDayPending: boolean
+  proposalId?: string
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
-export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
+export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId }: Props) {
   const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -66,7 +67,6 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   const description = lang === 'ru' ? block.description_ru : block.description_en
 
   const noteKey = lang === 'ru' ? 'custom_note_ru' : 'custom_note_en'
-  const roomTypeKey = lang === 'ru' ? 'room_type_ru' : 'room_type_en'
   const fromKey = lang === 'ru' ? 'from_ru' : 'from_en'
   const toKey = lang === 'ru' ? 'to_ru' : 'to_en'
 
@@ -296,6 +296,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           }
 
           const actKey = lang === 'ru' ? 'activities_ru' : 'activities_en'
+          const libHref = `/admin/library/${block.id}?returnTo=${encodeURIComponent('/admin/proposals/' + (proposalId || ''))}`
 
           return (
             <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -333,6 +334,8 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                   One activity per line.
                 </p>
               </div>
+
+              {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>Edit hotel →</button> : null}
             </div>
           )
         })()}

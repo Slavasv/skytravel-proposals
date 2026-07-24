@@ -19,6 +19,23 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
     notFound()
   }
 
+  // Число гостей живёт в запросе: агент меняет состав — предложение подхватывает.
+  if (proposal.request_id) {
+    const { data: req } = await supabase
+      .from('requests')
+      .select('traveller_ids')
+      .eq('id', proposal.request_id)
+      .single()
+    const count = Array.isArray(req?.traveller_ids) ? req.traveller_ids.length : 0
+    if (count > 0 && count !== proposal.guest_count) {
+      proposal.guest_count = count
+      await supabase
+        .from('proposals')
+        .update({ guest_count: count })
+        .eq('id', proposal.id)
+    }
+  }
+
   const { data: days } = await supabase
     .from('days')
     .select(`

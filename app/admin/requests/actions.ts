@@ -162,6 +162,7 @@ export type LinkedProposal = {
   status: string | null
   updated_at: string
   last_viewed_at: string | null
+  is_selected?: boolean
 }
 
 // Что уже создано из этого запроса
@@ -184,11 +185,16 @@ async function createFromRequest(requestId: string, kind: 'individual' | 'destin
 
   const { data: request } = await supabase
     .from('requests')
-    .select('client_id, company_id')
+    .select('client_id, company_id, traveller_ids')
     .eq('id', requestId)
     .single()
 
   if (!request) throw new Error('Request not found')
+
+  // число гостей — из отмеченных travellers запроса
+  const guestCount = Array.isArray(request.traveller_ids) && request.traveller_ids.length > 0
+    ? request.traveller_ids.length
+    : 1
 
   // имя клиента подставляем ТОЛЬКО в предложение.
   // Дестинейшн переиспользуемый — он не привязан к конкретному клиенту.
@@ -215,7 +221,7 @@ async function createFromRequest(requestId: string, kind: 'individual' | 'destin
       client_name_en: clientName || null,
       trip_title_ru: null,
       trip_title_en: null,
-      guest_count: 1,
+      guest_count: guestCount,
       status: 'draft',
       currency: 'USD',
       owner_id: user?.id ?? null,
@@ -224,6 +230,22 @@ async function createFromRequest(requestId: string, kind: 'individual' | 'destin
     .single()
 
   if (error || !data) throw new Error(error?.message || 'Failed to create')
+
+  // создали предложение — двигаем запрос в "Preparing proposal",
+  // если он ещё в начале воронки (агент может поменять вручную)
+  if (kind === 'individual') {
+    const { data: req } = await supabase
+      .from('requests')
+      .select('status')
+      .eq('id', requestId)
+      .single()
+    if (req && ['new', 'clients_review'].includes(req.status || '')) {
+      await supabase
+        .from('requests')
+        .update({ status: 'preparing', updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+    }
+  }
 
   revalidatePath(`/admin/requests/${requestId}`)
   redirect(kind === 'destination' ? `/admin/destinations/${data.id}` : `/admin/proposals/${data.id}`)
@@ -252,11 +274,12 @@ export async function getLinkedProposals(requestId: string): Promise<LinkedPropo
   // прикреплённые через таблицу связей
   const { data: links } = await supabase
     .from('request_proposal_links')
-    .select('proposal_id, sort_order')
+    .select('proposal_id, sort_order, is_selected')
     .eq('request_id', requestId)
     .order('sort_order', { ascending: true })
 
   const linkedIds = (links ?? []).map((l) => l.proposal_id)
+  const selectedMap = new Map((links ?? []).map((l) => [l.proposal_id, l.is_selected]))
   let attached: LinkedProposal[] = []
   if (linkedIds.length > 0) {
     const { data } = await supabase
@@ -266,10 +289,10 @@ export async function getLinkedProposals(requestId: string): Promise<LinkedPropo
     attached = (data ?? []) as LinkedProposal[]
   }
 
-  // объединяем без дублей
+  // объединяем без дублей, проставляем флаг выбора
   const map = new Map<string, LinkedProposal>()
-  ;(created ?? []).forEach((p) => map.set(p.id, p as LinkedProposal))
-  attached.forEach((p) => map.set(p.id, p))
+  ;(created ?? []).forEach((p) => map.set(p.id, { ...(p as LinkedProposal), is_selected: selectedMap.get(p.id) ?? false }))
+  attached.forEach((p) => map.set(p.id, { ...p, is_selected: selectedMap.get(p.id) ?? false }))
   return Array.from(map.values())
 }
 
@@ -330,5 +353,37 @@ export async function detachProposalFromRequest(requestId: string, proposalId: s
     .eq('id', proposalId)
     .eq('request_id', requestId)
 
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Отметить дестинейшн как выбранный клиентом.
+// Выбранный может быть только один — с остальных отметка снимается.
+export async function selectDestination(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: false })
+    .eq('request_id', requestId)
+
+  const { error } = await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: true })
+    .eq('request_id', requestId)
+    .eq('proposal_id', proposalId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Снять отметку (клиент передумал)
+export async function unselectDestination(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: false })
+    .eq('request_id', requestId)
+    .eq('proposal_id', proposalId)
+  if (error) throw new Error(error.message)
   revalidatePath(`/admin/requests/${requestId}`)
 }

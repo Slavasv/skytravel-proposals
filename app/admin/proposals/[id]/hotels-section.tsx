@@ -62,7 +62,7 @@ export default function HotelsSection({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
           {blocks.map((db) => (
-            <DayBlockItem key={db.id} dayBlock={db} lang={lang} isDayPending={isPending} />
+            <DayBlockItem key={db.id} dayBlock={db} lang={lang} isDayPending={isPending} proposalId={proposalId} />
           ))}
         </div>
       )}

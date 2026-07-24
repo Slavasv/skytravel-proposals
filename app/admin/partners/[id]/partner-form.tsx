@@ -36,7 +36,7 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
-export default function PartnerForm({ partner }: { partner: Partner }) {
+export default function PartnerForm({ partner, returnTo }: { partner: Partner; returnTo?: string }) {
   const router = useRouter()
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -105,7 +105,12 @@ export default function PartnerForm({ partner }: { partner: Partner }) {
     if (saveState === 'editing' || saveState === 'error') {
       await saveNow(form)
     }
-    router.push('/admin/partners')
+    if (returnTo) {
+      const sep = returnTo.includes('?') ? '&' : '?'
+      router.push(`${returnTo}${sep}pickedPartner=${partner.id}`)
+    } else {
+      router.push('/admin/partners')
+    }
   }
 
   return (
@@ -191,7 +196,7 @@ export default function PartnerForm({ partner }: { partner: Partner }) {
             opacity: saveState === 'saving' ? 0.6 : 1,
           }}
         >
-          {saveState === 'saving' ? 'Saving…' : 'Done'}
+          {saveState === 'saving' ? 'Saving…' : (returnTo ? 'Done & back' : 'Done')}
         </button>
       </section>
     </div>

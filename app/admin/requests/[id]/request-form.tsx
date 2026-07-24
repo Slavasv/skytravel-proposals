@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   updateRequest, createProposalFromRequest, detachProposalFromRequest,
+  selectDestination, unselectDestination,
   type RequestClientOption, type LinkedProposal, type DestinationOption,
 } from '../actions'
-import { createBookingFromRequest } from '@/app/admin/bookings/actions'
+import { createBookingFromRequest, type RequestBooking } from '@/app/admin/bookings/actions'
+import RequestTravellers from './request-travellers'
 import AttachDestination from './attach-destination'
 import ClientPicker from '@/app/admin/_components/client-picker'
 import RequestDestinations from './request-destinations'
@@ -30,6 +32,7 @@ type RequestRow = {
   agent_notes: string | null
   trip_rating: number | null
   trip_feedback: string | null
+  traveller_ids: string[] | null
 }
 
 const STATUSES: { value: string; label: string }[] = [
@@ -75,13 +78,14 @@ function daysBetween(from: string, to: string): string {
 }
 
 export default function RequestForm({
-  request, clients, destinations, linked = [], availableDestinations = [],
+  request, clients, destinations, linked = [], availableDestinations = [], bookings = [],
 }: {
   request: RequestRow
   clients: RequestClientOption[]
   destinations: RequestDestination[]
   linked?: LinkedProposal[]
   availableDestinations?: DestinationOption[]
+  bookings?: RequestBooking[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -174,6 +178,8 @@ export default function RequestForm({
   }
 
   const isConfirmed = form.status === 'confirmed'
+  // бронь заводим уже на этапе бронирования, не дожидаясь Confirmed
+  const canBook = form.status === 'booking' || form.status === 'confirmed'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -211,6 +217,20 @@ export default function RequestForm({
             {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
+      </section>
+
+      
+    {/* КТО ЕДЕТ */}
+      <section>
+        <label style={labelStyle}>Travellers</label>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
+          Who&apos;s going on this trip. You can change this later at any stage.
+        </p>
+        <RequestTravellers
+          requestId={request.id}
+          clientId={form.client_id}
+          initialIds={request.traveller_ids ?? []}
+        />
       </section>
 
       {/* НАПРАВЛЕНИЯ */}
@@ -256,13 +276,19 @@ export default function RequestForm({
 
         {linked.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {linked.map((p) => {
+            {[...linked].sort((a, b) => {
+              const aDest = a.kind === 'destination' ? 0 : 1
+              const bDest = b.kind === 'destination' ? 0 : 1
+              return aDest - bDest
+            }).map((p, idx, arr) => {
+              const prevWasDest = idx > 0 && arr[idx - 1].kind === 'destination'
+              const isFirstProposal = p.kind !== 'destination' && prevWasDest
               const isDest = p.kind === 'destination'
               const title = p.trip_title_ru || p.trip_title_en || (isDest ? 'Untitled destination' : 'Untitled proposal')
               const href = isDest ? `/admin/destinations/${p.id}` : `/admin/proposals/${p.id}`
               return (
                 <a key={p.id} href={href}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: p.is_selected ? '1px solid var(--admin-success)' : '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit', marginTop: isFirstProposal ? '16px' : '0', borderTop: isFirstProposal ? '1px solid var(--admin-border-card)' : undefined, paddingTop: isFirstProposal ? '20px' : '12px' }}>
                   <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>
                     {isDest ? 'Destination' : 'Proposal'}
                   </span>
@@ -272,7 +298,14 @@ export default function RequestForm({
                   {p.last_viewed_at && (
                     <span style={{ fontSize: '11px', color: 'var(--admin-success)', flexShrink: 0 }}>● opened</span>
                   )}
-                  {p.status && (
+                  {isDest ? (
+                    p.is_selected ? (
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unselectDestination(request.id, p.id) }} title="Client changed their mind" style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ Chosen</button>
+                    ) : (
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectDestination(request.id, p.id) }} title="Client picked this destination" style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>Client picked</button>
+                    )
+                  ) : null}
+                  {p.status && !isDest && (
                     <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', flexShrink: 0 }}>{p.status}</span>
                   )}
                   <button
@@ -323,12 +356,50 @@ export default function RequestForm({
         </section>
       )}
 
-      {isConfirmed && (
+      {canBook && (
         <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
           <label style={labelStyle}>Booking</label>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
             Record what you actually booked — hotels, transfers, partners and pricing.
           </p>
+          {bookings.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+              {bookings.map((b) => {
+                const totals = (b.booking_services ?? []).reduce((acc, s) => {
+                  const cur = s.currency || 'EUR'
+                  acc[cur] = (acc[cur] ?? 0) + ((s.gross ?? 0) - (s.net ?? 0))
+                  return acc
+                }, {} as Record<string, number>)
+                const commission = Object.entries(totals)
+                  .filter(([, v]) => v !== 0)
+                  .map(([cur, v]) => `${v.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${cur}`)
+                  .join(' · ')
+                const dates = [b.start_date, b.end_date].filter(Boolean).join(' → ')
+                const statusColor = b.status === 'confirmed' ? 'var(--admin-success)'
+                  : b.status === 'cancelled' ? 'var(--admin-danger)' : 'var(--admin-text-muted)'
+                return (
+                  <a key={b.id} href={`/admin/bookings/${b.id}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--admin-text)' }}>
+                      {b.booking_code || 'Booking'}
+                    </span>
+                    <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: statusColor, border: `1px solid ${statusColor}`, borderRadius: '4px', padding: '1px 6px' }}>
+                      {b.status || 'draft'}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {[b.destination, dates].filter(Boolean).join(' · ')}
+                    </span>
+                    {commission && (
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-success)', flexShrink: 0 }}>
+                        {commission}
+                      </span>
+                    )}
+                  </a>
+                )
+              })}
+            </div>
+          )}
+
           <form action={createBookingFromRequest.bind(null, request.id)}>
             <button type="submit"
               style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>

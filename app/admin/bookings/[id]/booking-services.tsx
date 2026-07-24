@@ -5,6 +5,7 @@ import {
   addService, updateService, deleteService, duplicateService,
   type BookingService, type PartnerOption,
 } from '../actions'
+import PartnerPicker from '@/app/admin/_components/partner-picker'
 
 const SERVICE_TYPES = [
   'Accomodation',
@@ -94,13 +95,6 @@ function ServiceCard({
   const commission = gross - net
   const isHotel = form.service_type === 'Accomodation'
 
-  // партнёры, подходящие под тип услуги (но показываем всех — вдруг нестандартно)
-  const sortedPartners = [...partners].sort((a, b) => {
-    const aMatch = a.service_type === form.service_type ? 0 : 1
-    const bMatch = b.service_type === form.service_type ? 0 : 1
-    if (aMatch !== bMatch) return aMatch - bMatch
-    return a.name.localeCompare(b.name)
-  })
 
   return (
     <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '14px', background: 'var(--admin-card)' }}>
@@ -114,12 +108,13 @@ function ServiceCard({
         </div>
         <div style={{ width: '200px' }}>
           <label style={labelSt}>Partner</label>
-          <select value={form.partner_id} onChange={(e) => set('partner_id', e.target.value)} style={inputSt}>
-            <option value="">— none —</option>
-            {sortedPartners.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}{p.service_type ? ` · ${p.service_type}` : ''}</option>
-            ))}
-          </select>
+          <PartnerPicker
+            partners={partners}
+            value={form.partner_id}
+            onChange={(id) => set('partner_id', id)}
+            preferType={form.service_type}
+            returnTo={`/admin/bookings/${service.booking_id}`}
+          />
         </div>
         <div style={{ flex: 1, minWidth: '180px' }}>
           <label style={labelSt}>Description</label>

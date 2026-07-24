@@ -465,7 +465,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 <SortableContext items={day.day_blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {day.day_blocks.map((db) => (
-                      <DayBlockItem key={db.id} dayBlock={db} lang={lang} isDayPending={isBlocksPending} />
+                      <DayBlockItem key={db.id} dayBlock={db} lang={lang} isDayPending={isBlocksPending} proposalId={proposalId} />
                     ))}
                   </div>
                 </SortableContext>

@@ -248,3 +248,25 @@ export async function getClientsForBooking(): Promise<BookingClientOption[]> {
   if (error || !data) return []
   return data as BookingClientOption[]
 }
+
+// Брони, созданные из запроса (для блока Booking в карточке запроса)
+export type RequestBooking = {
+  id: string
+  booking_code: string | null
+  status: string | null
+  start_date: string | null
+  end_date: string | null
+  destination: string | null
+  booking_services: { gross: number | null; net: number | null; currency: string | null }[] | null
+}
+
+export async function getBookingsForRequest(requestId: string): Promise<RequestBooking[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id, booking_code, status, start_date, end_date, destination, booking_services(gross, net, currency)')
+    .eq('request_id', requestId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as RequestBooking[]
+}

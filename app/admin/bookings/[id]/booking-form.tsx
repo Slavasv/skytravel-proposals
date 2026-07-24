@@ -104,7 +104,8 @@ export default function BookingForm({
   async function handleDone() {
     if (timer.current) clearTimeout(timer.current)
     if (saveState === 'editing' || saveState === 'error') await saveNow(form)
-    router.push('/admin/bookings')
+    // пришли из запроса — возвращаемся туда
+    router.push(booking.request_id ? `/admin/requests/${booking.request_id}` : '/admin/bookings')
   }
 
   return (
@@ -175,7 +176,7 @@ export default function BookingForm({
       <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={handleDone} disabled={saveState === 'saving'}
           style={{ padding: '10px 24px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: saveState === 'saving' ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: saveState === 'saving' ? 0.6 : 1 }}>
-          {saveState === 'saving' ? 'Saving…' : 'Done'}
+          {saveState === 'saving' ? 'Saving…' : (booking.request_id ? 'Done & back to request' : 'Done')}
         </button>
       </section>
     </div>
