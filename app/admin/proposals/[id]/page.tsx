@@ -51,6 +51,11 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         from_en,
         to_ru,
         to_en,
+        room_ids,
+        activities_ru,
+        activities_en,
+        selected_rooms,
+        price,
         content_blocks (
           id,
           type,
