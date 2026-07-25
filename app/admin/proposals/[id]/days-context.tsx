@@ -9,6 +9,8 @@ export type SelectedRoom = { uid: string; room_id: string; guests: number; price
 type DaysContextValue = {
   days: Day[]
   variantId: string | null
+  tripStart: string | null
+  tripEnd: string | null
   // изменить номера блока-отеля (тип/гости/добавление/удаление) — БЕЗ цен
   updateBlockRooms: (blockId: string, rooms: SelectedRoom[]) => void
   // вписать цену конкретного номера (из Costs)
@@ -158,7 +160,7 @@ export function DaysProvider({
   }, [days, tripStart, tripEnd])
 
   return (
-<DaysContext.Provider value={{ days, variantId, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>      {children}
+<DaysContext.Provider value={{ days, variantId, tripStart, tripEnd, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>      {children}
     </DaysContext.Provider>
   )
 }

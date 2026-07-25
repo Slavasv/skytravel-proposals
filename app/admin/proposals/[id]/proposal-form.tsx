@@ -452,28 +452,6 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         </div>
       </section>
 
-      {(() => {
-        const s = form.start_date, e = form.end_date
-        if (!s || !e || days.length === 0) return null
-        const d1 = new Date(s), d2 = new Date(e)
-        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
-        const expected = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
-        if (expected <= 0 || expected === days.length) return null
-        return (
-          <div style={{
-            padding: '12px 16px',
-            background: '#2a2417',
-            border: '1px solid #4a3f1e',
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: 'var(--admin-accent)',
-            lineHeight: 1.5,
-          }}>
-            {`${days.length} of ${expected} days filled in.`}
-          </div>
-        )
-      })()}
-
       {variantSwitcher && (
         <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Route variants</h2>

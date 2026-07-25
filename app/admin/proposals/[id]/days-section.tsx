@@ -25,7 +25,7 @@ type Props = {
 }
 
 export default function DaysSection({ proposalId, lang }: Props) {
-  const { days, refresh, variantId } = useDays()
+  const { days, refresh, variantId, tripStart, tripEnd } = useDays()
   const [isPending, startTransition] = useTransition()
 
   const sensors = useSensors(
@@ -107,6 +107,19 @@ export default function DaysSection({ proposalId, lang }: Props) {
           + Add day
         </button>
       </div>
+
+      {(() => {
+        if (!tripStart || !tripEnd || days.length === 0) return null
+        const d1 = new Date(tripStart), d2 = new Date(tripEnd)
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
+        const expected = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
+        if (expected <= 0 || expected === days.length) return null
+        return (
+          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#2a2417', border: '1px solid #4a3f1e', borderRadius: '8px', fontSize: '13px', color: 'var(--admin-accent)', lineHeight: 1.5 }}>
+            {`${days.length} of ${expected} days filled in.`}
+          </div>
+        )
+      })()}
 
       {days.length === 0 ? (
         <div style={{
