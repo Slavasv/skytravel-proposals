@@ -33,6 +33,8 @@ type RequestRow = {
   trip_rating: number | null
   trip_feedback: string | null
   traveller_ids: string[] | null
+  trip_start: string | null
+  trip_end: string | null
 }
 
 const STATUSES: { value: string; label: string }[] = [
@@ -108,6 +110,8 @@ export default function RequestForm({
     agent_notes: request.agent_notes || '',
     trip_rating: request.trip_rating ?? 0,
     trip_feedback: request.trip_feedback || '',
+    trip_start: request.trip_start || '',
+    trip_end: request.trip_end || '',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,6 +138,8 @@ export default function RequestForm({
         agent_notes: current.agent_notes || null,
         trip_rating: current.trip_rating > 0 ? current.trip_rating : null,
         trip_feedback: current.trip_feedback || null,
+        trip_start: current.trip_start || null,
+        trip_end: current.trip_end || null,
       })
       if (CLOSING.includes(current.status)) {
         setClosedAt((prev) => prev || new Date().toISOString())
@@ -232,6 +238,45 @@ export default function RequestForm({
           clientId={form.client_id}
           initialIds={request.traveller_ids ?? []}
         />
+      </section>
+
+      {/* ДАТЫ ПОЕЗДКИ */}
+      <section>
+        <label style={labelStyle}>Trip dates</label>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
+          When the client wants to travel. Approximate is fine — estimate if they&apos;re not sure.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ width: '170px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>From</span>
+            <input type="date" value={form.trip_start} onChange={(e) => set('trip_start', e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ width: '170px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>To</span>
+            <input type="date" value={form.trip_end} onChange={(e) => set('trip_end', e.target.value)} style={inputStyle} />
+          </div>
+          {(() => {
+            if (!form.trip_start) return null
+            const start = new Date(form.trip_start)
+            if (isNaN(start.getTime())) return null
+            const now = new Date()
+            now.setHours(0, 0, 0, 0)
+            const days = Math.round((start.getTime() - now.getTime()) / 86400000)
+            let label = ''
+            if (days < 0) label = 'in the past'
+            else if (days === 0) label = 'today'
+            else if (days < 31) label = `in ${days} ${days === 1 ? 'day' : 'days'}`
+            else {
+              const months = Math.round(days / 30)
+              label = `in ~${months} ${months === 1 ? 'month' : 'months'}`
+            }
+            return (
+              <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', paddingBottom: '10px' }}>
+                Trip {label}
+              </span>
+            )
+          })()}
+        </div>
       </section>
 
       {/* НАПРАВЛЕНИЯ */}

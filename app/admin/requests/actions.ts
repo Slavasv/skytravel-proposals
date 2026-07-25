@@ -19,6 +19,8 @@ export type RequestUpdate = {
   agent_notes?: string | null
   trip_rating?: number | null
   trip_feedback?: string | null
+  trip_start?: string | null
+  trip_end?: string | null
 }
 
 export async function createRequest() {

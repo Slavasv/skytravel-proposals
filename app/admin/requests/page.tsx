@@ -18,7 +18,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
   let query = supabase
     .from('requests')
-    .select('id, request_code, destination, details, status, priority, created_at, closed_at, owner_id, clients(name, client_code), profiles(email)')
+    .select('id, request_code, destination, details, status, priority, created_at, closed_at, trip_start, trip_end, owner_id, clients(name, client_code), profiles(email)')
     .order('created_at', { ascending: false })
 
   if (isAdmin && !showAll) {
