@@ -7,7 +7,8 @@ import ClientPicker from '@/app/admin/_components/client-picker'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
-import CostLines, { type CostLine, type CostSuggestion } from './cost-lines'
+import CostBreakdown from './cost-breakdown'
+import { useDays } from './days-context'
 import HotelsSection from './hotels-section'
 import type { Day } from './edit-page-client'
 
@@ -38,7 +39,6 @@ type Proposal = {
   cost_excludes_en: string | null
   cost_notes_ru: string | null
   cost_notes_en: string | null
-  cost_lines: CostLine[] | null
   client_id: string | null
   layout: string | null
 }
@@ -79,13 +79,13 @@ type Props = {
   proposal: Proposal
   lang: Lang
   onLangChange: (lang: Lang) => void
-  days?: Day[]
   actions?: React.ReactNode
   itinerary?: React.ReactNode
   clients?: ProposalClientOption[]
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, days = [], actions, itinerary, clients = [] }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, clients = [] }: Props) {
+  const { days } = useDays()
   const router = useRouter()
   const searchParams = useSearchParams()
   const pickedClient = searchParams.get('pickedClient')
@@ -120,7 +120,6 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
     cost_excludes_en: proposal.cost_excludes_en || '',
     cost_notes_ru: proposal.cost_notes_ru || '',
     cost_notes_en: proposal.cost_notes_en || '',
-    cost_lines: (proposal.cost_lines ?? []) as CostLine[],
     client_id: proposal.client_id || '',
     layout: proposal.layout || 'full',
   })
@@ -168,7 +167,6 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
           cost_excludes_en: currentForm.cost_excludes_en || null,
           cost_notes_ru: currentForm.cost_notes_ru || null,
           cost_notes_en: currentForm.cost_notes_en || null,
-          cost_lines: currentForm.cost_lines,
           client_id: currentForm.client_id || null,
           layout: currentForm.layout,
         })
@@ -242,27 +240,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
   // Подсказки для строк тарифов: блоки из маршрута, сгруппированные по категории.
   // Дубли по названию убираем. transfer/activity маппятся 1:1, остальные типы (city и пр.) игнорируем.
-  const costSuggestions: CostSuggestion[] = (() => {
-    const out: CostSuggestion[] = []
-    const seen = new Set<string>()
-    for (const day of days) {
-      for (const db of day.day_blocks ?? []) {
-        const b = db.content_blocks
-        if (!b) continue
-        const cat = b.type === 'hotel' ? 'hotel' : b.type === 'transfer' ? 'transfer' : b.type === 'activity' ? 'activity' : null
-        if (!cat) continue
-        const key = `${cat}|${b.title_ru || ''}|${b.title_en || ''}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        out.push({
-          category: cat,
-          label_ru: b.title_ru || '',
-          label_en: b.title_en || '',
-        })
-      }
-    }
-    return out
-  })()
+  
   const titlePlaceholder = lang === 'ru'
     ? 'Например: Путешествие в Прованс для семьи Алиевых'
     : 'e.g.: A Provence Journey for the Aliyev Family'
@@ -496,7 +474,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       })()}
 
       {form.layout === 'hotel' ? (
-        <HotelsSection proposalId={proposal.id} days={days} lang={lang} />
+        <HotelsSection proposalId={proposal.id} lang={lang} />
       ) : (
         itinerary
       )}
@@ -528,12 +506,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
               Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.
             </p>
-            <CostLines
-              lines={form.cost_lines}
-              lang={lang}
-              suggestions={costSuggestions}
-              onChange={(next) => set('cost_lines', next)}
-            />
+            <CostBreakdown lang={lang} currency={form.cost_currency} onTotalChange={(t) => set('total_price', t)} />
           </div>
           <div>
             <label style={labelStyle}>This cost includes</label>
@@ -620,15 +593,13 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             <label style={labelStyle}>Total price</label>
             <input
               type="number"
-              min={0}
-              step="0.01"
               value={form.total_price}
-              onChange={(e) => set('total_price', e.target.value === '' ? '' : parseFloat(e.target.value))}
-              style={inputStyle}
+              readOnly
+              style={{ ...inputStyle, background: 'var(--admin-card)', color: 'var(--admin-text-muted)', cursor: 'not-allowed' }}
               placeholder="0"
             />
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              {`Currency is taken from the Costs section (${form.cost_currency}).`}
+              {`Calculated from the Costs section above · ${form.cost_currency}.`}
             </p>
           </div>
           <div>

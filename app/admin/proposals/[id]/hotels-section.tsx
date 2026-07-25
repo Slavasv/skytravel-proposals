@@ -5,17 +5,18 @@ import { createDay } from './day-actions'
 import { addBlockToDay } from './block-actions'
 import DayBlockItem from './day-block-item'
 import SectionBlockPicker from '@/app/admin/destinations/[id]/section-block-picker'
-import type { Day, Lang } from './edit-page-client'
+import type { Lang } from './edit-page-client'
+import { useDays } from './days-context'
 
 // Отельное предложение: плоский список отелей.
 // Технически всё лежит в одном служебном "дне" — агент его не видит.
 export default function HotelsSection({
-  proposalId, days, lang,
+  proposalId, lang,
 }: {
   proposalId: string
-  days: Day[]
   lang: Lang
 }) {
+  const { days, refresh } = useDays()
   const [isPending, startTransition] = useTransition()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [creating, setCreating] = useState(false)

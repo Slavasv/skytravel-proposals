@@ -17,6 +17,7 @@ export type DayBlockUpdate = {
   activities_en?: string | null
   selected_rooms?: { uid: string; room_id: string; guests: number; price: number | null }[] | null
   price?: number | null
+  guests?: number | null
 }
 
 type CityJoin = { country_id: string; name_ru: string; name_en: string; countries: { name_ru: string; name_en: string } | { name_ru: string; name_en: string }[] | null }
@@ -222,4 +223,54 @@ async function renumberDayBlocks(dayId: string) {
         .eq('id', blocks[i].id)
     }
   }
+}
+
+// Свежие дни предложения — для обновления провайдера после добавления/удаления блоков и дней.
+// Тот же select, что и на странице.
+export async function getProposalDays(proposalId: string) {
+  const supabase = await createSupabaseServer()
+  const { data: days } = await supabase
+    .from('days')
+    .select(`
+      *,
+      day_blocks (
+        id,
+        sort_order,
+        custom_note_ru,
+        custom_note_en,
+        room_type_ru,
+        room_type_en,
+        from_ru,
+        from_en,
+        to_ru,
+        to_en,
+        room_ids,
+        activities_ru,
+        activities_en,
+        selected_rooms,
+        price,
+        guests,
+        content_blocks (
+          id,
+          type,
+          title_ru,
+          title_en,
+          description_ru,
+          description_en,
+          image_url,
+          location,
+          tags,
+          rooms
+        )
+      )
+    `)
+    .eq('proposal_id', proposalId)
+    .order('day_number', { ascending: true })
+
+  return (days ?? []).map((day) => ({
+    ...day,
+    day_blocks: (day.day_blocks ?? []).sort(
+      (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
+    ),
+  }))
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import ProposalForm from './proposal-form'
 import ProposalActions from './proposal-actions'
 import DaysSection from './days-section'
+import { DaysProvider } from './days-context'
 import type { CostLine } from './cost-lines'
 import type { ProposalClientOption } from '../../actions'
 
@@ -68,6 +69,7 @@ export type DayBlock = {
   activities_en: string | null
   selected_rooms: { uid: string; room_id: string; guests: number; price: number | null }[] | null
   price: number | null
+  guests: number | null
   content_blocks: ContentBlock
 }
 
@@ -94,14 +96,15 @@ export default function EditPageClient({
   const [lang, setLang] = useState<Lang>('ru')
 
   return (
-    <ProposalForm
-      proposal={proposal}
-      lang={lang}
-      onLangChange={setLang}
-      days={days}
-      clients={clients}
-      actions={<ProposalActions slug={proposal.slug} />}
-      itinerary={<DaysSection proposalId={proposal.id} days={days} lang={lang} />}
-    />
+    <DaysProvider proposalId={proposal.id} initialDays={days} tripStart={proposal.start_date ?? null} tripEnd={proposal.end_date ?? null}>
+      <ProposalForm
+        proposal={proposal}
+        lang={lang}
+        onLangChange={setLang}
+        clients={clients}
+        actions={<ProposalActions slug={proposal.slug} />}
+        itinerary={<DaysSection proposalId={proposal.id} lang={lang} />}
+      />
+    </DaysProvider>
   )
 }

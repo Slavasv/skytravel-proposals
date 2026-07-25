@@ -56,6 +56,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         activities_en,
         selected_rooms,
         price,
+        guests,
         content_blocks (
           id,
           type,

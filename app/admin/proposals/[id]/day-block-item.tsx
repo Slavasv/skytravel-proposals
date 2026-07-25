@@ -10,6 +10,7 @@ import {
 } from './block-actions'
 import type { DayBlock, Lang } from './edit-page-client'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
+import { useDays } from './days-context'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Props = {
@@ -22,9 +23,11 @@ type Props = {
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
 export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId }: Props) {
+  const { updateBlockRooms, refresh } = useDays()
   const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const blockedByOuter = isDayPending
 
@@ -49,6 +52,8 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     room_ids: (dayBlock.room_ids ?? []) as string[],
     activities_ru: dayBlock.activities_ru || '',
     activities_en: dayBlock.activities_en || '',
+    selected_rooms: (dayBlock.selected_rooms ?? []) as { uid: string; room_id: string; guests: number; price: number | null }[],
+    guests: dayBlock.guests ?? null,
   })
 
   const hasExistingNote = (lang === 'ru' ? noteForm.custom_note_ru : noteForm.custom_note_en).length > 0
@@ -75,7 +80,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     setSaveState('editing')
   }
 
-  function setField(key: keyof typeof noteForm, value: string) {
+  function setField(key: keyof typeof noteForm, value: string | number | null) {
     setNoteForm((prev) => ({ ...prev, [key]: value }))
     setSaveState('editing')
   }
@@ -94,6 +99,8 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
           room_ids: currentForm.room_ids,
           activities_ru: currentForm.activities_ru || null,
           activities_en: currentForm.activities_en || null,
+          selected_rooms: currentForm.selected_rooms,
+          guests: currentForm.guests,
           from_ru: currentForm.from_ru || null,
           from_en: currentForm.from_en || null,
           to_ru: currentForm.to_ru || null,
@@ -142,6 +149,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     setMenuOpen(false)
     startTransition(async () => {
       await duplicateDayBlock(dayBlock.id)
+      await refresh()
     })
   }
 
@@ -152,6 +160,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     }
     startTransition(async () => {
       await removeBlockFromDay(dayBlock.id)
+      await refresh()
     })
   }
 
@@ -248,20 +257,27 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
       {/* Content */}
       <div style={{ minWidth: 0 }}>
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--admin-text-muted)',
-          marginBottom: '4px',
-          fontWeight: 500,
-        }}>
-          {block.type}
-          {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
-        </div>
-        <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
-          {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
-        </div>
+        <button type="button" onClick={() => setExpanded((v) => !v)}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0 }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '3px', transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ display: 'block', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', marginBottom: '4px', fontWeight: 500 }}>
+              {block.type}
+              {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
+            </span>
+            <span style={{ display: 'block', fontSize: '14px', fontWeight: 500 }}>
+              {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+              {!expanded && block.type === 'hotel' && noteForm.selected_rooms.length > 0 && (
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.selected_rooms.length} {noteForm.selected_rooms.length === 1 ? 'room' : 'rooms'}</span>
+              )}
+              {!expanded && (block.type === 'activity' || block.type === 'transfer') && noteForm.guests && (
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.guests} {noteForm.guests === 1 ? 'guest' : 'guests'}</span>
+              )}
+            </span>
+          </span>
+        </button>
+
+        <div style={{ display: expanded ? 'block' : 'none', marginTop: '10px' }}>
         {description && (
           <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
             {description}
@@ -300,26 +316,58 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
           return (
             <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {hotelRooms.length > 0 && (
-                <div>
-                  <label style={labelSt}>Rooms to show</label>
-                  <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
-                    All shown by default. Uncheck to hide a room type.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {hotelRooms.map((r) => {
-                      const rt = lang === 'ru' ? r.title_ru : r.title_en
-                      const rs = lang === 'ru' ? r.subtitle_ru : r.subtitle_en
-                      return (
-                        <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', color: 'var(--admin-text)' }}>
-                          <input type="checkbox" checked={isChecked(r.id)} onChange={() => toggleRoom(r.id)} style={{ cursor: 'pointer' }} />
-                          <span>{rt}{rs ? <span style={{ color: 'var(--admin-text-muted)' }}> · {rs}</span> : null}</span>
-                        </label>
-                      )
-                    })}
+              {hotelRooms.length > 0 && (() => {
+                const picked = noteForm.selected_rooms
+                function addRoom() {
+                  const uid = Math.random().toString(36).slice(2, 10)
+                  const firstRoom = hotelRooms[0]
+                  const next = [...picked, { uid, room_id: firstRoom.id, guests: 2, price: null }]
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number }>) {
+                  const next = picked.map((r) => r.uid === uid ? { ...r, ...patch } : r)
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                function removeRoom(uid: string) {
+                  const next = picked.filter((r) => r.uid !== uid)
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                return (
+                  <div>
+                    <label style={labelSt}>Rooms</label>
+                    <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
+                      Pick room types and how many guests in each. Prices are set later in Costs.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {picked.map((row) => (
+                        <div key={row.uid} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <select value={row.room_id} onChange={(e) => changeRoom(row.uid, { room_id: e.target.value })}
+                            style={{ ...inputStyle, flex: 1 }}>
+                            {hotelRooms.map((r) => {
+                              const rt = lang === 'ru' ? r.title_ru : r.title_en
+                              return <option key={r.id} value={r.id}>{rt || 'Room'}</option>
+                            })}
+                          </select>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>guests</span>
+                            <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
+                              style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
+                          </div>
+                          <button type="button" onClick={() => removeRoom(row.uid)}
+                            style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={addRoom}
+                      style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      + Add room
+                    </button>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               <div>
                 <label style={labelSt}>Hotel activities (optional) · {lang.toUpperCase()}</label>
@@ -341,39 +389,64 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
         })()}
 
         {block.type === 'transfer' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-            <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                From · {lang.toUpperCase()}
-              </label>
+          <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                  From · {lang.toUpperCase()}
+                </label>
+                <input
+                  type="text"
+                  value={noteForm[fromKey]}
+                  onChange={(e) => setField(fromKey, e.target.value)}
+                  placeholder="Marseille Airport"
+                  style={{
+                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                  To · {lang.toUpperCase()}
+                </label>
+                <input
+                  type="text"
+                  value={noteForm[toKey]}
+                  onChange={(e) => setField(toKey, e.target.value)}
+                  placeholder="Hotel in Gordes"
+                  style={{
+                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Guests</span>
               <input
-                type="text"
-                value={noteForm[fromKey]}
-                onChange={(e) => setField(fromKey, e.target.value)}
-                placeholder="Marseille Airport"
-                style={{
-                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
+                type="number" min={1}
+                value={noteForm.guests ?? ''}
+                onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
+                placeholder="—"
+                style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
               />
             </div>
-            <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                To · {lang.toUpperCase()}
-              </label>
-              <input
-                type="text"
-                value={noteForm[toKey]}
-                onChange={(e) => setField(toKey, e.target.value)}
-                placeholder="Hotel in Gordes"
-                style={{
-                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-            </div>
+          </div>
+        )}
+
+        {block.type === 'activity' && (
+          <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Guests</span>
+            <input
+              type="number" min={1}
+              value={noteForm.guests ?? ''}
+              onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
+              placeholder="—"
+              style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
+            />
           </div>
         )}
 
@@ -447,6 +520,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Actions menu trigger */}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { addBlockToDay, getLibraryBlocks, type LibraryBlock } from './block-actions'
 import { createBlockMinimal } from '@/app/admin/library/actions'
 import type { Lang } from './edit-page-client'
+import { useDays } from './days-context'
 import LocationPicker from '@/app/admin/_components/location-picker'
 
 type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
@@ -50,6 +51,7 @@ const TYPE_FILTERS = [
 
 export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang, proposalId }: Props) {
   const router = useRouter()
+  const { refresh } = useDays()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -153,6 +155,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
   function handleSelect(blockId: string) {
     startTransition(async () => {
       await addBlockToDay(dayId, blockId)
+      await refresh()
       onClose()
     })
   }

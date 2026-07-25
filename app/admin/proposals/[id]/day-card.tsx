@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { useTransition } from 'react'
 import { reorderDayBlocks } from './block-actions'
+import { useDays } from './days-context'
 import { updateDay } from './day-actions'
 import DayBlockItem from './day-block-item'
 import AddBlockModal from './add-block-modal'
@@ -57,6 +58,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function DayCard({ day, isPending, onDeleteRequest, lang, proposalId }: Props) {
+  const { refresh } = useDays()
   const {
     attributes,
     listeners,
@@ -91,6 +93,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
 
     startBlocksTransition(async () => {
       await reorderDayBlocks(day.id, orderedIds)
+      await refresh()
     })
   }
   const [saveState, setSaveState] = useState<SaveState>('idle')

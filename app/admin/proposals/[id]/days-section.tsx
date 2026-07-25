@@ -16,15 +16,16 @@ import {
 } from '@dnd-kit/sortable'
 import { createDay, deleteDay, reorderDays } from './day-actions'
 import DayCard from './day-card'
-import type { Lang, Day } from './edit-page-client'
+import type { Lang } from './edit-page-client'
+import { useDays } from './days-context'
 
 type Props = {
   proposalId: string
-  days: Day[]
   lang: Lang
 }
 
-export default function DaysSection({ proposalId, days, lang }: Props) {
+export default function DaysSection({ proposalId, lang }: Props) {
+  const { days, refresh } = useDays()
   const [isPending, startTransition] = useTransition()
 
   const sensors = useSensors(
@@ -36,6 +37,7 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
   function handleAddDay() {
     startTransition(async () => {
       await createDay(proposalId)
+      await refresh()
     })
   }
 
@@ -45,6 +47,7 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
     }
     startTransition(async () => {
       await deleteDay(dayId)
+      await refresh()
     })
   }
 
@@ -61,6 +64,7 @@ export default function DaysSection({ proposalId, days, lang }: Props) {
 
     startTransition(async () => {
       await reorderDays(proposalId, orderedIds)
+      await refresh()
     })
   }
 
