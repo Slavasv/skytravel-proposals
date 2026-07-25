@@ -85,6 +85,7 @@ function TravellerCard({
     notes: traveller.notes || '',
   })
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [open, setOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInitial = useRef(true)
 
@@ -127,17 +128,22 @@ function TravellerCard({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: open ? '14px' : '0' }}>
         <button type="button" {...attributes} {...listeners} aria-label="Drag"
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>⋮⋮</button>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', flex: 1 }}>
-          {form.name ? `${form.title} ${form.name}` : `Traveller ${index + 1}`}
+        <button type="button" onClick={() => setOpen((v) => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, minWidth: 0 }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
+            {form.name ? `${form.title} ${form.name}` : `Traveller ${index + 1}`}
+          </span>
           {form.traveller_code && (
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400, marginLeft: '8px' }}>
-              {form.traveller_code}
-            </span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400 }}>{form.traveller_code}</span>
           )}
-        </span>
+          {!open && age && (
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400 }}>· {age}</span>
+          )}
+        </button>
         <span style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
           {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
         </span>
@@ -145,7 +151,7 @@ function TravellerCard({
           style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ Remove</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: open ? 'flex' : 'none', flexDirection: 'column', gap: '12px' }}>
         {/* Обращение + имя */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
           <div style={{ width: '110px', flexShrink: 0 }}>

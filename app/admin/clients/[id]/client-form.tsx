@@ -1,10 +1,13 @@
 'use client'
 
+// стрелка ▶ поворачивается вниз, когда details открыт
+const collapseCss = `.cl-collapse[open] .cl-arrow { transform: rotate(90deg); } .cl-collapse summary::-webkit-details-marker { display: none; }`
+
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   updateClient, ensurePrimaryTraveller,
-  type Traveller, type ClientProposal, type ClientVoucher,
+  type Traveller, type ClientRequest,
 } from '../actions'
 import ClientTravellers from './client-travellers'
 import ClientHistory from './client-history'
@@ -57,12 +60,11 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function ClientForm({
-  client, travellers, proposals = [], vouchers = [], returnTo,
+  client, travellers, requests = [], returnTo,
 }: {
   client: Client
   travellers: Traveller[]
-  proposals?: ClientProposal[]
-  vouchers?: ClientVoucher[]
+  requests?: ClientRequest[]
   returnTo?: string
 }) {
   const router = useRouter()
@@ -247,20 +249,33 @@ export default function ClientForm({
 
       {/* TRAVELLERS */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Travellers</h2>
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-          People who actually travel. Drag to reorder. These will be pulled into vouchers automatically.
-        </p>
-        <ClientTravellers clientId={client.id} initialTravellers={travellerList} key={travellerList.length} />
+        <details className="cl-collapse">
+          <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span className="cl-arrow" style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transition: 'transform 0.15s' }}>▶</span>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>Travellers</h2>
+            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>· {travellerList.length}</span>
+          </summary>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '10px 0 16px' }}>
+            People who actually travel. Drag to reorder. These will be pulled into vouchers automatically.
+          </p>
+          <ClientTravellers clientId={client.id} initialTravellers={travellerList} key={travellerList.length} />
+        </details>
       </section>
+
+      <style dangerouslySetInnerHTML={{ __html: collapseCss }} />
 
       {/* HISTORY */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>History</h2>
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-          Everything linked to this client.
-        </p>
-        <ClientHistory proposals={proposals} vouchers={vouchers} />
+        <details open className="cl-collapse">
+          <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span className="cl-arrow" style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transition: 'transform 0.15s' }}>▶</span>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>History</h2>
+          </summary>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '10px 0 16px' }}>
+            Everything linked to this client.
+          </p>
+          <ClientHistory requests={requests} />
+        </details>
       </section>
 
       {/* ЗАМЕТКИ */}

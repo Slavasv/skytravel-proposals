@@ -331,6 +331,42 @@ export async function getClientProposals(clientId: string): Promise<ClientPropos
   return data as ClientProposal[]
 }
 
+export type ClientRequest = {
+  id: string
+  request_code: string | null
+  status: string | null
+  destination: string | null
+  trip_start: string | null
+  trip_end: string | null
+  created_at: string
+  has_booking: boolean
+}
+
+export async function getClientRequests(clientId: string): Promise<ClientRequest[]> {
+  const supabase = await createSupabaseServer()
+
+  const { data: requests } = await supabase
+    .from('requests')
+    .select('id, request_code, status, destination, trip_start, trip_end, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+
+  if (!requests || requests.length === 0) return []
+
+  // какие запросы имеют брони
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select('request_id')
+    .in('request_id', requests.map((r) => r.id))
+
+  const booked = new Set((bookings ?? []).map((b) => b.request_id))
+
+  return requests.map((r) => ({
+    ...r,
+    has_booking: booked.has(r.id),
+  })) as ClientRequest[]
+}
+
 export async function getClientVouchers(clientId: string): Promise<ClientVoucher[]> {
   const supabase = await createSupabaseServer()
   const { data, error } = await supabase
