@@ -227,9 +227,9 @@ async function renumberDayBlocks(dayId: string) {
 
 // Свежие дни предложения — для обновления провайдера после добавления/удаления блоков и дней.
 // Тот же select, что и на странице.
-export async function getProposalDays(proposalId: string) {
+export async function getProposalDays(proposalId: string, variantId?: string | null) {
   const supabase = await createSupabaseServer()
-  const { data: days } = await supabase
+  const daysQuery = supabase
     .from('days')
     .select(`
       *,
@@ -264,8 +264,11 @@ export async function getProposalDays(proposalId: string) {
         )
       )
     `)
-    .eq('proposal_id', proposalId)
     .order('day_number', { ascending: true })
+
+  const { data: days } = variantId
+    ? await daysQuery.eq('variant_id', variantId)
+    : await daysQuery.eq('proposal_id', proposalId)
 
   return (days ?? []).map((day) => ({
     ...day,

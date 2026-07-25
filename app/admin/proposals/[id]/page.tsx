@@ -4,8 +4,14 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getClientsForProposal } from '../../actions'
 import EditPageClient from './edit-page-client'
 
-export default async function EditProposalPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditProposalPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ variant?: string }>
+}) {
   const { id } = await params
+  const { variant: variantParam } = await searchParams
 
   const supabase = await createSupabaseServer()
 
@@ -18,6 +24,19 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
   if (error || !proposal) {
     notFound()
   }
+
+  // варианты предложения
+  const { data: variantsData } = await supabase
+    .from('proposal_variants')
+    .select('id, sort_order, name_ru, name_en, subtitle_ru, subtitle_en, is_selected, total_price')
+    .eq('proposal_id', proposal.id)
+    .order('sort_order', { ascending: true })
+  const variants = variantsData ?? []
+
+  // активный вариант: из URL, иначе первый
+  const activeVariantId = (variantParam && variants.some((v) => v.id === variantParam))
+    ? variantParam
+    : (variants[0]?.id ?? null)
 
   // Число гостей живёт в запросе: агент меняет состав — предложение подхватывает.
   if (proposal.request_id) {
@@ -36,7 +55,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
     }
   }
 
-  const { data: days } = await supabase
+  const daysQuery = supabase
     .from('days')
     .select(`
       *,
@@ -71,8 +90,11 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         )
       )
     `)
-    .eq('proposal_id', proposal.id)
     .order('day_number', { ascending: true })
+
+  const { data: days } = activeVariantId
+    ? await daysQuery.eq('variant_id', activeVariantId)
+    : await daysQuery.eq('proposal_id', proposal.id)
 
   const clients = await getClientsForProposal()
 
@@ -100,7 +122,7 @@ export default async function EditProposalPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <EditPageClient proposal={proposal} days={days ?? []} clients={clients} />
+      <EditPageClient proposal={proposal} days={days ?? []} clients={clients} variants={variants} activeVariantId={activeVariantId} />
     </div>
   )
 }

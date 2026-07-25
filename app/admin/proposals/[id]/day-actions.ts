@@ -19,15 +19,19 @@ function addDays(dateStr: string | null, days: number): string | null {
   return d.toISOString().slice(0, 10)
 }
 
-export async function createDay(proposalId: string) {
+export async function createDay(proposalId: string, variantId?: string | null) {
   const supabase = await createSupabaseServer()
 
-  const { data: existing } = await supabase
+  // нумерация в пределах варианта (если он есть), иначе — предложения
+  const existingQuery = supabase
     .from('days')
     .select('day_number')
-    .eq('proposal_id', proposalId)
     .order('day_number', { ascending: false })
     .limit(1)
+
+  const { data: existing } = variantId
+    ? await existingQuery.eq('variant_id', variantId)
+    : await existingQuery.eq('proposal_id', proposalId)
 
   const { data: proposal } = await supabase
     .from('proposals')
@@ -42,6 +46,7 @@ export async function createDay(proposalId: string) {
     .from('days')
     .insert({
       proposal_id: proposalId,
+      variant_id: variantId ?? null,
       day_number: nextNumber,
       date: nextDate,
       title_ru: '',

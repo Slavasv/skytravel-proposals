@@ -5,8 +5,8 @@ import ProposalForm from './proposal-form'
 import ProposalActions from './proposal-actions'
 import DaysSection from './days-section'
 import { DaysProvider } from './days-context'
-import type { CostLine } from './cost-lines'
 import type { ProposalClientOption } from '../../actions'
+import VariantSwitcher, { type VariantBrief } from './variant-switcher'
 
 type Proposal = {
   id: string
@@ -35,7 +35,6 @@ type Proposal = {
   cost_excludes_en: string | null
   cost_notes_ru: string | null
   cost_notes_en: string | null
-  cost_lines: CostLine[] | null
   client_id: string | null
   layout: string | null
 }
@@ -87,22 +86,38 @@ export type Day = {
 export type Lang = 'ru' | 'en'
 
 export default function EditPageClient({
-  proposal, days, clients = [],
+  proposal, days, clients = [], variants = [], activeVariantId = null,
 }: {
   proposal: Proposal
   days: Day[]
   clients?: ProposalClientOption[]
+  variants?: VariantBrief[]
+  activeVariantId?: string | null
 }) {
   const [lang, setLang] = useState<Lang>('ru')
 
   return (
-    <DaysProvider proposalId={proposal.id} initialDays={days} tripStart={proposal.start_date ?? null} tripEnd={proposal.end_date ?? null}>
+    <DaysProvider
+      proposalId={proposal.id}
+      variantId={activeVariantId}
+      initialDays={days}
+      tripStart={proposal.start_date ?? null}
+      tripEnd={proposal.end_date ?? null}
+    >
       <ProposalForm
         proposal={proposal}
         lang={lang}
         onLangChange={setLang}
         clients={clients}
         actions={<ProposalActions slug={proposal.slug} />}
+        variantSwitcher={
+          <VariantSwitcher
+            proposalId={proposal.id}
+            variants={variants}
+            activeVariantId={activeVariantId}
+            lang={lang}
+          />
+        }
         itinerary={<DaysSection proposalId={proposal.id} lang={lang} />}
       />
     </DaysProvider>

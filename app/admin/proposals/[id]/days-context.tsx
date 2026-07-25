@@ -8,6 +8,7 @@ export type SelectedRoom = { uid: string; room_id: string; guests: number; price
 
 type DaysContextValue = {
   days: Day[]
+  variantId: string | null
   // изменить номера блока-отеля (тип/гости/добавление/удаление) — БЕЗ цен
   updateBlockRooms: (blockId: string, rooms: SelectedRoom[]) => void
   // вписать цену конкретного номера (из Costs)
@@ -30,12 +31,14 @@ export function useDays() {
 
 export function DaysProvider({
   proposalId,
+  variantId = null,
   initialDays,
   tripStart,
   tripEnd,
   children,
 }: {
   proposalId: string
+  variantId?: string | null
   initialDays: Day[]
   tripStart: string | null
   tripEnd: string | null
@@ -44,9 +47,9 @@ export function DaysProvider({
   const [days, setDays] = useState<Day[]>(initialDays)
 
   const refresh = useCallback(async () => {
-    const fresh = await getProposalDays(proposalId)
+    const fresh = await getProposalDays(proposalId, variantId)
     setDays(fresh as Day[])
-  }, [proposalId])
+  }, [proposalId, variantId])
 
   // дебаунс-сохранение по каждому блоку отдельно
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -155,8 +158,7 @@ export function DaysProvider({
   }, [days, tripStart, tripEnd])
 
   return (
-    <DaysContext.Provider value={{ days, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>
-      {children}
+<DaysContext.Provider value={{ days, variantId, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>      {children}
     </DaysContext.Provider>
   )
 }

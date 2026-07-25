@@ -81,10 +81,11 @@ type Props = {
   onLangChange: (lang: Lang) => void
   actions?: React.ReactNode
   itinerary?: React.ReactNode
+  variantSwitcher?: React.ReactNode
   clients?: ProposalClientOption[]
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, clients = [] }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, clients = [] }: Props) {
   const { days } = useDays()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -472,6 +473,16 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
           </div>
         )
       })()}
+
+      {variantSwitcher && (
+        <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Route variants</h2>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+            Offer the client several full scenarios. Each variant has its own days, costs and terms.
+          </p>
+          {variantSwitcher}
+        </section>
+      )}
 
       {form.layout === 'hotel' ? (
         <HotelsSection proposalId={proposal.id} lang={lang} />

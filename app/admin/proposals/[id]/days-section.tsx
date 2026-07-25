@@ -25,7 +25,7 @@ type Props = {
 }
 
 export default function DaysSection({ proposalId, lang }: Props) {
-  const { days, refresh } = useDays()
+  const { days, refresh, variantId } = useDays()
   const [isPending, startTransition] = useTransition()
 
   const sensors = useSensors(
@@ -36,7 +36,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
 
   function handleAddDay() {
     startTransition(async () => {
-      await createDay(proposalId)
+      await createDay(proposalId, variantId)
       await refresh()
     })
   }
