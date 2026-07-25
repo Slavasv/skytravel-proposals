@@ -52,7 +52,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     room_ids: (dayBlock.room_ids ?? []) as string[],
     activities_ru: dayBlock.activities_ru || '',
     activities_en: dayBlock.activities_en || '',
-    selected_rooms: (dayBlock.selected_rooms ?? []) as { uid: string; room_id: string; guests: number; price: number | null }[],
+    selected_rooms: (dayBlock.selected_rooms ?? []) as { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }[],
     guests: dayBlock.guests ?? null,
   })
 
@@ -325,7 +325,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                   setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
                   updateBlockRooms(dayBlock.id, next)
                 }
-                function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number }>) {
+                function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number; meal: string }>) {
                   const next = picked.map((r) => r.uid === uid ? { ...r, ...patch } : r)
                   setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
                   updateBlockRooms(dayBlock.id, next)
@@ -356,6 +356,8 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                             <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
                               style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
                           </div>
+                          <input type="text" list="meal-plans" value={row.meal ?? ''} onChange={(e) => changeRoom(row.uid, { meal: e.target.value })}
+                            placeholder="Meal" style={{ ...inputStyle, width: '130px' }} />
                           <button type="button" onClick={() => removeRoom(row.uid)}
                             style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
                         </div>
@@ -365,6 +367,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                       style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       + Add room
                     </button>
+                    <datalist id="meal-plans">
+                      <option value="Room Only" />
+                      <option value="Breakfast" />
+                      <option value="Half Board" />
+                      <option value="Full Board" />
+                      <option value="All Inclusive" />
+                    </datalist>
                   </div>
                 )
               })()}

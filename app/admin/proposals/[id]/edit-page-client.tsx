@@ -67,7 +67,7 @@ export type DayBlock = {
   room_ids: string[] | null
   activities_ru: string | null
   activities_en: string | null
-  selected_rooms: { uid: string; room_id: string; guests: number; price: number | null }[] | null
+  selected_rooms: { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }[] | null
   price: number | null
   guests: number | null
   content_blocks: ContentBlock

@@ -44,9 +44,11 @@ export default function CostBreakdown({
         const rows: Line[] = (b.selected_rooms ?? []).map((sr) => {
           const def = roomDefs.find((r) => r.id === sr.room_id)
           const roomName = def ? ((lang === 'ru' ? def.title_ru : def.title_en) || def.title_en || def.title_ru || 'Room') : 'Room'
+          const guestsLabel = `${sr.guests} ${sr.guests === 1 ? 'guest' : 'guests'}`
+          const sub = sr.meal ? `${guestsLabel} · ${sr.meal}` : guestsLabel
           return {
             key: `${b.id}:${sr.uid}`, blockId: b.id, uid: sr.uid,
-            label: roomName, sub: `${sr.guests} ${sr.guests === 1 ? 'guest' : 'guests'}`, price: sr.price,
+            label: roomName, sub, price: sr.price,
           }
         })
         if (rows.length > 0) hotels.push({ blockId: b.id, hotelName: title, nights: getNights(b.id), rooms: rows })

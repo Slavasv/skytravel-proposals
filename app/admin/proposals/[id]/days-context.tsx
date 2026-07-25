@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useRef, useCallback } from 'react'
 import type { Day, DayBlock } from './edit-page-client'
 import { updateDayBlock, getProposalDays } from './block-actions'
 
-export type SelectedRoom = { uid: string; room_id: string; guests: number; price: number | null }
+export type SelectedRoom = { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }
 
 type DaysContextValue = {
   days: Day[]
