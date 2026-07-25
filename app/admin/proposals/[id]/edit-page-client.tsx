@@ -98,6 +98,7 @@ export default function EditPageClient({
 
   return (
     <DaysProvider
+      key={activeVariantId ?? 'no-variant'}
       proposalId={proposal.id}
       variantId={activeVariantId}
       initialDays={days}

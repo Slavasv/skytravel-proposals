@@ -28,13 +28,13 @@ export default function VariantSwitcher({
   const [isPending, startTransition] = useTransition()
 
   function switchTo(variantId: string) {
-    router.push(`/admin/proposals/${proposalId}?variant=${variantId}`)
+    router.push(`/admin/proposals/${proposalId}?variant=${variantId}`, { scroll: false })
   }
 
   function handleCreate() {
     startTransition(async () => {
-      const newId = await createVariant(proposalId)
-      if (newId) router.push(`/admin/proposals/${proposalId}?variant=${newId}`)
+     const newId = await createVariant(proposalId)
+      if (newId) router.push(`/admin/proposals/${proposalId}?variant=${newId}`, { scroll: false })
     })
   }
 
