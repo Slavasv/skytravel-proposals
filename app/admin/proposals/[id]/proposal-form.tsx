@@ -9,6 +9,7 @@ import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
 import CostBreakdown from './cost-breakdown'
 import VariantTerms from './variant-terms'
+import VariantImpressions from './variant-impressions'
 import { useDays } from './days-context'
 import type { VariantFull } from './variant-actions'
 import HotelsSection from './hotels-section'
@@ -461,6 +462,16 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             Offer the client several full scenarios. Each variant has its own days, costs and terms.
           </p>
           {variantSwitcher}
+        </section>
+      )}
+
+      {activeVariant && form.layout !== 'hotel' && (
+        <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Impressions</h2>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+            Gallery, text and a divider photo shown before the itinerary.
+          </p>
+          <VariantImpressions key={activeVariant.id} variant={activeVariant} lang={lang} />
         </section>
       )}
 

@@ -27,6 +27,9 @@ export type VariantFull = {
   cost_notes_ru: string | null
   cost_notes_en: string | null
   gallery: unknown
+  impressions_text_ru: string | null
+  impressions_text_en: string | null
+  divider_image: string | null
 }
 
 // Все варианты предложения
@@ -88,6 +91,9 @@ export type VariantUpdate = {
   cost_notes_ru?: string | null
   cost_notes_en?: string | null
   gallery?: unknown
+  impressions_text_ru?: string | null
+  impressions_text_en?: string | null
+  divider_image?: string | null
 }
 
 export async function updateVariant(variantId: string, updates: VariantUpdate) {
