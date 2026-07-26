@@ -38,6 +38,17 @@ export default async function EditProposalPage({
     ? variantParam
     : (variants[0]?.id ?? null)
 
+  // полные данные активного варианта (условия, галерея, название)
+  let activeVariant = null
+  if (activeVariantId) {
+    const { data } = await supabase
+      .from('proposal_variants')
+      .select('*')
+      .eq('id', activeVariantId)
+      .single()
+    activeVariant = data
+  }
+
   // Число гостей живёт в запросе: агент меняет состав — предложение подхватывает.
   if (proposal.request_id) {
     const { data: req } = await supabase
@@ -122,7 +133,7 @@ export default async function EditProposalPage({
         </p>
       </div>
 
-      <EditPageClient proposal={proposal} days={days ?? []} clients={clients} variants={variants} activeVariantId={activeVariantId} />
+      <EditPageClient proposal={proposal} days={days ?? []} clients={clients} variants={variants} activeVariantId={activeVariantId} activeVariant={activeVariant} />
     </div>
   )
 }

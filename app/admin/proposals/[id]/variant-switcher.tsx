@@ -1,8 +1,8 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createVariant, selectVariant, deleteVariant } from './variant-actions'
+import { createVariant, selectVariant, deleteVariant, updateVariant } from './variant-actions'
 import type { Lang } from './edit-page-client'
 
 export type VariantBrief = {
@@ -91,9 +91,14 @@ export default function VariantSwitcher({
         </button>
       </div>
 
+      {/* название и подзаголовок активного варианта */}
+      {!only && active && (
+        <VariantNameFields key={active.id} variant={active} lang={lang} />
+      )}
+
       {/* действия с активным вариантом — только если вариантов больше одного */}
       {!only && active && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
           {active.is_selected ? (
             <span style={{ fontSize: '12px', color: 'var(--admin-success)' }}>✓ Client chose this variant</span>
           ) : (
@@ -108,6 +113,51 @@ export default function VariantSwitcher({
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function VariantNameFields({ variant, lang }: { variant: VariantBrief; lang: Lang }) {
+  const nameKey = lang === 'ru' ? 'name_ru' : 'name_en'
+  const subKey = lang === 'ru' ? 'subtitle_ru' : 'subtitle_en'
+
+  const [name, setName] = useState(variant[nameKey] || '')
+  const [subtitle, setSubtitle] = useState(variant[subKey] || '')
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      updateVariant(variant.id, { [nameKey]: name || null, [subKey]: subtitle || null }).catch(() => {})
+    }, 800)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, subtitle])
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', fontSize: '13px', color: 'var(--admin-text)',
+    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+    borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  }
+  const labelStyle: React.CSSProperties = {
+    fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+    color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginTop: '12px' }}>
+      <div>
+        <label style={labelStyle}>Variant name · {lang.toUpperCase()}</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+          placeholder={lang === 'ru' ? 'Классический' : 'Classic'} style={inputStyle} />
+      </div>
+      <div>
+        <label style={labelStyle}>Subtitle · {lang.toUpperCase()}</label>
+        <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)}
+          placeholder={lang === 'ru' ? 'One&Only · Mont Rochelle · Morukuru' : 'One&Only · Mont Rochelle · Morukuru'} style={inputStyle} />
+      </div>
     </div>
   )
 }

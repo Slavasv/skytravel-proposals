@@ -14,6 +14,21 @@ export type VariantBrief = {
   total_price: number | null
 }
 
+export type VariantFull = {
+  id: string
+  payment_terms_ru: string | null
+  payment_terms_en: string | null
+  cancellation_policy_ru: string | null
+  cancellation_policy_en: string | null
+  cost_includes_ru: string | null
+  cost_includes_en: string | null
+  cost_excludes_ru: string | null
+  cost_excludes_en: string | null
+  cost_notes_ru: string | null
+  cost_notes_en: string | null
+  gallery: unknown
+}
+
 // Все варианты предложения
 export async function getVariants(proposalId: string): Promise<VariantBrief[]> {
   const supabase = await createSupabaseServer()

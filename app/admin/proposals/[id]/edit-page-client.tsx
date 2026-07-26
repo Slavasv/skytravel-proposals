@@ -7,6 +7,7 @@ import DaysSection from './days-section'
 import { DaysProvider } from './days-context'
 import type { ProposalClientOption } from '../../actions'
 import VariantSwitcher, { type VariantBrief } from './variant-switcher'
+import type { VariantFull } from './variant-actions'
 
 type Proposal = {
   id: string
@@ -86,13 +87,14 @@ export type Day = {
 export type Lang = 'ru' | 'en'
 
 export default function EditPageClient({
-  proposal, days, clients = [], variants = [], activeVariantId = null,
+  proposal, days, clients = [], variants = [], activeVariantId = null, activeVariant = null,
 }: {
   proposal: Proposal
   days: Day[]
   clients?: ProposalClientOption[]
   variants?: VariantBrief[]
   activeVariantId?: string | null
+  activeVariant?: VariantFull | null
 }) {
   const [lang, setLang] = useState<Lang>('ru')
 
@@ -110,6 +112,7 @@ export default function EditPageClient({
         lang={lang}
         onLangChange={setLang}
         clients={clients}
+        activeVariant={activeVariant}
         actions={<ProposalActions slug={proposal.slug} />}
         variantSwitcher={
           <VariantSwitcher

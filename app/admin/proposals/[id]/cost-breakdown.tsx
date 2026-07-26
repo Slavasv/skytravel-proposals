@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useDays } from './days-context'
+import { updateVariant } from './variant-actions'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
 import type { Lang } from './edit-page-client'
 
@@ -12,7 +13,7 @@ export default function CostBreakdown({
   currency: string
   onTotalChange?: (total: number) => void
 }) {
-  const { days, updateRoomPrice, updateBlockPrice, getNights } = useDays()
+  const { days, variantId, updateRoomPrice, updateBlockPrice, getNights } = useDays()
 
   const inputStyle: React.CSSProperties = {
     width: '140px', padding: '10px 12px', fontSize: '14px', color: 'var(--admin-text)',
@@ -69,11 +70,25 @@ export default function CostBreakdown({
   const transfersTotal = transfers.reduce((s, t) => s + (t.price || 0), 0)
   const grandTotal = hotelsTotal + activitiesTotal + transfersTotal
 
-  // отдаём итог наверх, чтобы заполнить Total price
+  // отдаём итог наверх для отображения в поле Total price
   useEffect(() => {
     onTotalChange?.(grandTotal)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grandTotal])
+
+  // сохраняем итог в сам вариант (у каждого варианта свой)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firstRun = useRef(true)
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return }
+    if (!variantId) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      updateVariant(variantId, { total_price: grandTotal }).catch(() => {})
+    }, 1000)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grandTotal, variantId])
 
   const nothing = hotels.length === 0 && activities.length === 0 && transfers.length === 0
   if (nothing) {

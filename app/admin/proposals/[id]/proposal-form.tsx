@@ -8,7 +8,9 @@ import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
 import CostBreakdown from './cost-breakdown'
+import VariantTerms from './variant-terms'
 import { useDays } from './days-context'
+import type { VariantFull } from './variant-actions'
 import HotelsSection from './hotels-section'
 import type { Day } from './edit-page-client'
 
@@ -82,10 +84,11 @@ type Props = {
   actions?: React.ReactNode
   itinerary?: React.ReactNode
   variantSwitcher?: React.ReactNode
+  activeVariant?: VariantFull | null
   clients?: ProposalClientOption[]
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, clients = [] }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, activeVariant, clients = [] }: Props) {
   const { days } = useDays()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -152,7 +155,6 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
           start_date: currentForm.start_date || null,
           end_date: currentForm.end_date || null,
           status: currentForm.status,
-          total_price: currentForm.total_price === '' ? null : Number(currentForm.total_price),
           currency: currentForm.currency,
           cover_image_url: currentForm.cover_image_url || null,
           intro_text_ru: currentForm.intro_text_ru || null,
@@ -497,83 +499,15 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             </p>
             <CostBreakdown lang={lang} currency={form.cost_currency} onTotalChange={(t) => set('total_price', t)} />
           </div>
-          <div>
-            <label style={labelStyle}>This cost includes</label>
-            <textarea
-              value={form[includesKey]}
-              onChange={(e) => set(includesKey, e.target.value)}
-              rows={6}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>This cost does not include</label>
-            <textarea
-              value={form[excludesKey]}
-              onChange={(e) => set(excludesKey, e.target.value)}
-              rows={5}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nInternational flights\nVisas\nPersonal insurance'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>Notes</label>
-            <textarea
-              value={form[costNotesKey]}
-              onChange={(e) => set(costNotesKey, e.target.value)}
-              rows={4}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-
-          
+          {activeVariant && (
+            <div style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+              <VariantTerms key={activeVariant.id} variant={activeVariant} lang={lang} />
+            </div>
+          )}
         </div>
       </section>
 
-      <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Terms & Conditions <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Payment terms</label>
-            <textarea
-              value={form[paymentKey]}
-              onChange={(e) => set(paymentKey, e.target.value)}
-              rows={4}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>Cancellation policy</label>
-            <textarea
-              value={form[cancellationKey]}
-              onChange={(e) => set(cancellationKey, e.target.value)}
-              rows={6}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-        </div>
-      </section>
+      
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Total & status</h2>
