@@ -31,6 +31,8 @@ type Proposal = {
   cover_image_url: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  country_ru?: string | null
+  country_en?: string | null
   payment_terms_ru: string | null
   payment_terms_en: string | null
   cancellation_policy_ru: string | null
@@ -114,6 +116,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
     cover_image_url: proposal.cover_image_url || '',
     intro_text_ru: proposal.intro_text_ru || '',
     intro_text_en: proposal.intro_text_en || '',
+    country_ru: proposal.country_ru || '',
+    country_en: proposal.country_en || '',
     payment_terms_ru: proposal.payment_terms_ru || '',
     payment_terms_en: proposal.payment_terms_en || '',
     cancellation_policy_ru: proposal.cancellation_policy_ru || '',
@@ -160,6 +164,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
           cover_image_url: currentForm.cover_image_url || null,
           intro_text_ru: currentForm.intro_text_ru || null,
           intro_text_en: currentForm.intro_text_en || null,
+          country_ru: currentForm.country_ru || null,
+          country_en: currentForm.country_en || null,
           payment_terms_ru: currentForm.payment_terms_ru || null,
           payment_terms_en: currentForm.payment_terms_en || null,
           cancellation_policy_ru: currentForm.cancellation_policy_ru || null,
@@ -236,6 +242,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
   const clientKey = lang === 'ru' ? 'client_name_ru' : 'client_name_en'
   const titleKey = lang === 'ru' ? 'trip_title_ru' : 'trip_title_en'
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
+  const countryKey = lang === 'ru' ? 'country_ru' : 'country_en'
   const paymentKey = lang === 'ru' ? 'payment_terms_ru' : 'payment_terms_en'
   const cancellationKey = lang === 'ru' ? 'cancellation_policy_ru' : 'cancellation_policy_en'
   const includesKey = lang === 'ru' ? 'cost_includes_ru' : 'cost_includes_en'
@@ -450,6 +457,16 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
               rows={5}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={introPlaceholder}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Country</label>
+            <input
+              type="text"
+              value={form[countryKey]}
+              onChange={(e) => set(countryKey, e.target.value)}
+              style={inputStyle}
+              placeholder={lang === 'ru' ? 'Например: ЮАР · или: Танзания · Кения' : 'e.g.: South Africa · or: Tanzania · Kenya'}
             />
           </div>
         </div>

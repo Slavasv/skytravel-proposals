@@ -22,6 +22,7 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
   const [gallery, setGallery] = useState<GalleryItem[]>(normalizeGallery(variant.gallery))
   const [text, setText] = useState(lang === 'ru' ? (variant.impressions_text_ru || '') : (variant.impressions_text_en || ''))
   const [divider, setDivider] = useState(variant.divider_image || '')
+  const [overview, setOverview] = useState(lang === 'ru' ? (variant.overview_ru || '') : (variant.overview_en || ''))
   const [uploading, setUploading] = useState(false)
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -29,6 +30,7 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
   const fileInput = useRef<HTMLInputElement | null>(null)
 
   const textKey = lang === 'ru' ? 'impressions_text_ru' : 'impressions_text_en'
+  const overviewKey = lang === 'ru' ? 'overview_ru' : 'overview_en'
   const capKey = lang === 'ru' ? 'caption_ru' : 'caption_en'
 
   useEffect(() => {
@@ -38,12 +40,13 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
       updateVariant(variant.id, {
         gallery,
         [textKey]: text || null,
+        [overviewKey]: overview || null,
         divider_image: divider || null,
       }).catch(() => {})
     }, 1000)
     return () => { if (timer.current) clearTimeout(timer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gallery, text, divider])
+  }, [gallery, text, divider, overview])
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
@@ -80,6 +83,17 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Овервью варианта — абзац-буквица ПЕРЕД блоком «Впечатления» */}
+      <div>
+        <label style={labelStyle}>Variant overview · {lang.toUpperCase()}</label>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 8px' }}>
+          Intro paragraph for this variant, shown before the impressions gallery (with a big drop-cap on the client page).
+        </p>
+        <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={4}
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
+          placeholder={lang === 'ru' ? 'Десять дней между океаном и саванной…' : 'Ten days between ocean and savannah…'} />
+      </div>
+
       {/* Галерея — компактная сетка */}
       <div>
         <label style={labelStyle}>Gallery photos</label>
@@ -114,7 +128,7 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
         <label style={labelStyle}>Impressions text · {lang.toUpperCase()}</label>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
-          placeholder={lang === 'ru' ? 'Десять дней между океаном и саванной…' : 'Ten days between ocean and savannah…'} />
+          placeholder={lang === 'ru' ? 'Текст под галереей впечатлений — атмосфера, детали, эмоции…' : 'Text under the impressions gallery — atmosphere, details, emotions…'} />
       </div>
 
       {/* Фото-дивайдер */}

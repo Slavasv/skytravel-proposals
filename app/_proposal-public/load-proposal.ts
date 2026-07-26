@@ -4,12 +4,63 @@
 // у каждого — его дни с блоками, номерами и ценами.
 
 import { supabase } from '@/lib/supabase'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import type {
   LoadedProposal,
   PublicVariant,
   PublicDay,
   GalleryItem,
+  TravellersSummary,
 } from './types'
+
+const CHILD_TITLES = new Set(['Miss', 'Mstr', 'Chd', 'Inf'])
+
+// возраст из date_of_birth (ДД/ММ/ГГГГ текстом, как везде в проекте)
+function ageFromDob(dob: string | null): number | null {
+  if (!dob) return null
+  const m = dob.trim().match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)
+  let birth: Date | null = null
+  if (m) birth = new Date(+m[3], +m[2] - 1, +m[1])
+  else {
+    const d = new Date(dob)
+    if (!isNaN(d.getTime())) birth = d
+  }
+  if (!birth) return null
+  const now = new Date()
+  let age = now.getFullYear() - birth.getFullYear()
+  const md = now.getMonth() - birth.getMonth()
+  if (md < 0 || (md === 0 && now.getDate() < birth.getDate())) age--
+  if (age < 0 || age > 120) return null
+  return age
+}
+
+// Сводка путешественников по запросу предложения (сервер, service-role — travellers это ПДн)
+async function loadTravellers(requestId: string | null | undefined): Promise<TravellersSummary | null> {
+  if (!requestId) return null
+  const admin = createSupabaseAdmin()
+  const { data: req } = await admin.from('requests').select('traveller_ids').eq('id', requestId).single()
+  const ids: string[] = Array.isArray(req?.traveller_ids) ? req!.traveller_ids : []
+  if (ids.length === 0) return null
+
+  const { data: trav } = await admin.from('travellers').select('title, date_of_birth').in('id', ids)
+  if (!trav || trav.length === 0) return null
+
+  let adults = 0
+  let children = 0
+  const childAges: number[] = []
+  for (const t of trav) {
+    const isChild = CHILD_TITLES.has((t.title as string) || '')
+    if (isChild) {
+      children++
+      const age = ageFromDob(t.date_of_birth as string | null)
+      if (age != null) childAges.push(age)
+    } else {
+      adults++
+    }
+  }
+  childAges.sort((a, b) => b - a)
+  return { adults, children, childAges }
+}
 
 const DAYS_SELECT = `
   id, day_number, date, title_ru, title_en, intro_text_ru, intro_text_en, variant_id,
@@ -99,6 +150,8 @@ export async function loadProposal(slug: string): Promise<LoadedProposal | null>
         name_en: 'Route 1',
         subtitle_ru: null,
         subtitle_en: null,
+        overview_ru: null,
+        overview_en: null,
         is_selected: true,
         total_price: proposal.total_price ?? null,
         payment_terms_ru: proposal.payment_terms_ru ?? null,
@@ -120,9 +173,12 @@ export async function loadProposal(slug: string): Promise<LoadedProposal | null>
     ]
   }
 
+  const travellers = await loadTravellers(proposal.request_id)
+
   return {
     proposal: proposal as LoadedProposal['proposal'],
     company: (company as LoadedProposal['company']) ?? null,
     variants,
+    travellers,
   }
 }

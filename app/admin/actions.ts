@@ -18,6 +18,8 @@ type ProposalUpdate = {
   cover_image_url?: string | null
   intro_text_ru?: string | null
   intro_text_en?: string | null
+  country_ru?: string | null
+  country_en?: string | null
   payment_terms_ru?: string | null
   payment_terms_en?: string | null
   cancellation_policy_ru?: string | null
@@ -45,11 +47,23 @@ async function createProposalOfKind(kind: 'individual' | 'destination') {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // company_id из профиля создателя — чтобы предложение сразу принадлежало его бренду
+  let companyId: string | null = null
+  if (user) {
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    companyId = me?.company_id ?? null
+  }
+
   const { data, error } = await supabase
     .from('proposals')
     .insert({
       slug,
       kind,
+      company_id: companyId,
       client_name_ru: null,
       client_name_en: null,
       trip_title_ru: null,

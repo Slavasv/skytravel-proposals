@@ -69,6 +69,8 @@ export type PublicVariant = {
   name_en: string | null
   subtitle_ru: string | null
   subtitle_en: string | null
+  overview_ru: string | null
+  overview_en: string | null
   is_selected: boolean
   total_price: number | null
   payment_terms_ru: string | null
@@ -101,6 +103,8 @@ export type PublicProposal = {
   cover_image_url: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  country_ru: string | null
+  country_en: string | null
   tagline_ru: string | null
   tagline_en: string | null
   season_ru: string | null
@@ -120,8 +124,16 @@ export type PublicCompany = {
   footer_note: string | null
 }
 
+// Сводка по путешественникам (считается на сервере — travellers это ПДн, анону не отдаём)
+export type TravellersSummary = {
+  adults: number
+  children: number
+  childAges: number[] // известные возрасты детей, по убыванию
+}
+
 export type LoadedProposal = {
   proposal: PublicProposal
   company: PublicCompany | null
   variants: PublicVariant[]
+  travellers: TravellersSummary | null
 }

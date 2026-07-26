@@ -16,6 +16,8 @@ export type VariantBrief = {
 
 export type VariantFull = {
   id: string
+  overview_ru: string | null
+  overview_en: string | null
   payment_terms_ru: string | null
   payment_terms_en: string | null
   cancellation_policy_ru: string | null
@@ -79,6 +81,8 @@ export type VariantUpdate = {
   name_en?: string | null
   subtitle_ru?: string | null
   subtitle_en?: string | null
+  overview_ru?: string | null
+  overview_en?: string | null
   total_price?: number | null
   payment_terms_ru?: string | null
   payment_terms_en?: string | null

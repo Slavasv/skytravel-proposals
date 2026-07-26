@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import './proposal.css'
+import ProposalOverview from './proposal-overview'
 import type { LoadedProposal, Lang, PublicVariant } from './types'
 
 /* Секции страницы (без «Авиаперелёт» — добавим отдельным этапом). */
@@ -28,7 +29,7 @@ function pick(lang: Lang, ru: string | null, en: string | null): string {
 }
 
 export default function ProposalView({ data, lang }: { data: LoadedProposal; lang: Lang }) {
-  const { proposal, company, variants } = data
+  const { proposal, company, variants, travellers } = data
   const currency = proposal.cost_currency || proposal.currency || 'EUR'
   const accent = company?.accent_color || '' // акцент бренда переопределяет --tp-accent
 
@@ -42,6 +43,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
   const [menuOpen, setMenuOpen] = useState(false)
   const [burgerOpen, setBurgerOpen] = useState(false)
   const [activeSection, setActiveSection] = useState(SECTIONS[0].id)
+  const [solidHeader, setSolidHeader] = useState(false) // прозрачный над hero → плотный при скролле
 
   const active: PublicVariant | undefined =
     variants.find((v) => v.id === activeId) ?? variants[0]
@@ -71,6 +73,14 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
     return () => { document.body.style.overflow = '' }
   }, [burgerOpen])
 
+  // хедер: прозрачный над hero, плотный после прокрутки за него
+  useEffect(() => {
+    const onScroll = () => setSolidHeader(window.scrollY > window.innerHeight * 0.6)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   function selectVariant(id: string) {
     setActiveId(id)
     setMenuOpen(false)
@@ -99,7 +109,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
       style={accent ? ({ ['--tp-accent' as string]: accent } as React.CSSProperties) : undefined}
     >
       {/* ===================== ФИКС-ХЕДЕР ===================== */}
-      <header className="tp-header">
+      <header className="tp-header" data-solid={solidHeader}>
         <div className="tp-header__top">
           <a
             href={lang === 'ru' ? `/p/${proposal.slug}` : `/en/p/${proposal.slug}`}
@@ -192,16 +202,31 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
       {/* ===================== СЕКЦИИ (пока плейсхолдеры) ===================== */}
       <main className="tp-main">
         {SECTIONS.map((s) => (
-          <section key={s.id} id={s.id} className="tp-section">
-            <div className="tp-container">
-              <div className="tp-placeholder">
-                <span className="tp-label">
-                  {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {activeIndex + 1} ·{' '}
-                  {pick(lang, active.name_ru, active.name_en)}
-                </span>
-                <span className="tp-placeholder__title">{sectionLabel(s)}</span>
+          <section
+            key={s.id}
+            id={s.id}
+            className={s.id === 'obzor' ? 'tp-section tp-section--flush' : 'tp-section'}
+          >
+            {s.id === 'obzor' ? (
+              <ProposalOverview
+                proposal={proposal}
+                company={company}
+                variant={active}
+                variantNumber={activeIndex + 1}
+                travellers={travellers}
+                lang={lang}
+              />
+            ) : (
+              <div className="tp-container">
+                <div className="tp-placeholder">
+                  <span className="tp-label">
+                    {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {activeIndex + 1} ·{' '}
+                    {pick(lang, active.name_ru, active.name_en)}
+                  </span>
+                  <span className="tp-placeholder__title">{sectionLabel(s)}</span>
+                </div>
               </div>
-            </div>
+            )}
           </section>
         ))}
       </main>
