@@ -1,0 +1,269 @@
+/* ============================================================
+   ПУБЛИЧНАЯ СТРАНИЦА ПРЕДЛОЖЕНИЯ — глобальные стили (Sky Travel / TIGU)
+   Всё оформление здесь, по классам .tp-*  (tp = travel proposal).
+   Правки цветов / шрифтов / отступов — в блоке :root ниже.
+   ============================================================ */
+
+/* --- Шрифты-плейсхолдеры (заменим на шрифты Насти) ---------
+   Чтобы поменять шрифт: (1) замени этот @import на свой,
+   (2) поправь --tp-font-display / --tp-font-body ниже. Всё. */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap');
+
+:root {
+  /* ШРИФТЫ */
+  --tp-font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --tp-font-body: 'Montserrat', system-ui, -apple-system, Segoe UI, sans-serif;
+
+  /* ПАЛИТРА */
+  --tp-bg: #e9e4dc;            /* основной фон страницы */
+  --tp-surface: #efeae2;       /* карточки / светлые панели */
+  --tp-accent: #5c3626;        /* коричневый: активная карточка, кнопки, CTA */
+  --tp-accent-text: #f3ece2;   /* текст на коричневом */
+  --tp-text: #33302b;          /* основной текст */
+  --tp-text-soft: #6a6055;     /* второстепенный текст */
+  --tp-text-muted: #9a9086;    /* капс-лейблы, подписи */
+  --tp-line: #d6cfc4;          /* хайрлайны / рамки */
+  --tp-line-soft: #e2dcd1;     /* тонкие разделители строк */
+  --tp-hero-overlay: rgba(58, 42, 30, 0.42); /* затемнение фото в hero/дивайдерах */
+
+  /* РАЗМЕРЫ */
+  --tp-maxw: 1180px;           /* макс. ширина контента */
+  --tp-header-h: 118px;        /* высота фикс-хедера (строка лого + строка навигации) */
+  --tp-radius: 4px;
+  --tp-gutter: 40px;           /* боковые поля контента */
+}
+
+/* --- База ------------------------------------------------- */
+.tp-root {
+  background: var(--tp-bg);
+  color: var(--tp-text);
+  font-family: var(--tp-font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+.tp-root * { box-sizing: border-box; }
+
+.tp-container {
+  max-width: var(--tp-maxw);
+  margin: 0 auto;
+  padding-left: var(--tp-gutter);
+  padding-right: var(--tp-gutter);
+}
+
+/* капс-лейбл (МАРШРУТ №1, ДАТЫ, ПРОЖИВАНИЕ …) */
+.tp-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tp-text-muted);
+  font-weight: 500;
+}
+
+/* заголовок секции (крупный серииф) */
+.tp-h2 {
+  font-family: var(--tp-font-display);
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 1.1;
+  color: var(--tp-text);
+  margin: 0;
+}
+
+/* =====================  ФИКС-ХЕДЕР  ===================== */
+.tp-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--tp-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--tp-line);
+}
+.tp-header__top {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  max-width: var(--tp-maxw);
+  margin: 0 auto;
+  padding: 12px var(--tp-gutter);
+}
+.tp-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.tp-logo-img {
+  max-height: 44px;
+  max-width: 210px;
+  object-fit: contain;
+  display: block;
+}
+.tp-logo {
+  font-family: var(--tp-font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--tp-text);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* текущий вариант в хедере (кнопка со «Сменить» + шеврон) */
+.tp-variant-current {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--tp-line);
+  padding: 2px 0 2px 24px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--tp-text);
+}
+.tp-variant-current__meta { display: flex; flex-direction: column; gap: 1px; }
+.tp-variant-current__eyebrow { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tp-text-muted); }
+.tp-variant-current__eyebrow b { color: var(--tp-accent); font-weight: 600; }
+.tp-variant-current__name { font-family: var(--tp-font-display); font-size: 22px; font-weight: 500; line-height: 1.1; }
+.tp-variant-current__sub { font-size: 11px; color: var(--tp-text-soft); }
+.tp-chevron { color: var(--tp-text-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.tp-variant-current[data-open="true"] .tp-chevron { transform: rotate(180deg); }
+
+.tp-burger-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 8px; color: var(--tp-text);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* строка навигации по секциям */
+.tp-nav {
+  border-top: 1px solid var(--tp-line-soft);
+}
+.tp-nav__inner {
+  display: flex;
+  gap: 34px;
+  max-width: var(--tp-maxw);
+  margin: 0 auto;
+  padding: 11px var(--tp-gutter);
+}
+.tp-nav__link {
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 13px; color: var(--tp-text-soft);
+  letter-spacing: 0.02em; padding: 2px 0; position: relative;
+  transition: color 0.15s ease;
+}
+.tp-nav__link:hover { color: var(--tp-text); }
+.tp-nav__link[data-active="true"] { color: var(--tp-accent); font-weight: 500; }
+
+/* выпадашка вариантов из хедера */
+.tp-variant-menu {
+  position: absolute;
+  top: calc(100% + 1px); left: 0; right: 0;
+  background: var(--tp-surface);
+  border-bottom: 1px solid var(--tp-line);
+  box-shadow: 0 18px 40px rgba(40, 30, 22, 0.14);
+  z-index: 49;
+}
+.tp-variant-menu__inner {
+  max-width: var(--tp-maxw); margin: 0 auto; padding: 12px var(--tp-gutter);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+}
+.tp-variant-opt {
+  text-align: left; background: none; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--tp-line); border-radius: var(--tp-radius);
+  padding: 14px 16px; color: var(--tp-text); transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tp-variant-opt:hover { border-color: var(--tp-accent); }
+.tp-variant-opt[data-active="true"] { background: var(--tp-accent); color: var(--tp-accent-text); border-color: var(--tp-accent); }
+.tp-variant-opt[data-active="true"] .tp-variant-opt__price { color: var(--tp-accent-text); }
+.tp-variant-opt__eyebrow { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; margin-bottom: 4px; }
+.tp-variant-opt__name { font-family: var(--tp-font-display); font-size: 19px; font-weight: 500; line-height: 1.15; }
+.tp-variant-opt__price { font-family: var(--tp-font-display); font-size: 17px; color: var(--tp-text-soft); margin-top: 4px; }
+
+/* =====================  ОСНОВНОЙ КОНТЕНТ  ===================== */
+.tp-main { padding-top: var(--tp-header-h); }
+
+.tp-section {
+  scroll-margin-top: var(--tp-header-h);
+  padding: 72px 0;
+  border-top: 1px solid var(--tp-line-soft);
+}
+.tp-section:first-child { border-top: none; }
+
+/* временный плейсхолдер секции (уберём при наполнении) */
+.tp-placeholder {
+  min-height: 42vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-align: center; color: var(--tp-text-muted);
+}
+.tp-placeholder__title { font-family: var(--tp-font-display); font-size: 30px; color: var(--tp-text-soft); }
+
+/* =====================  БУРГЕР-МЕНЮ (СОДЕРЖАНИЕ)  ===================== */
+.tp-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(30, 22, 16, 0.4);
+  opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.tp-overlay[data-open="true"] { opacity: 1; visibility: visible; }
+
+.tp-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  width: 380px; max-width: 88vw;
+  background: var(--tp-surface);
+  border-left: 1px solid var(--tp-line);
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column;
+  padding: 24px 28px;
+  overflow-y: auto;
+}
+.tp-drawer[data-open="true"] { transform: translateX(0); }
+.tp-drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+.tp-drawer__close { background: none; border: none; cursor: pointer; color: var(--tp-text-soft); padding: 4px; font-size: 20px; line-height: 1; }
+
+.tp-drawer__active {
+  border-bottom: 1px solid var(--tp-line); padding-bottom: 20px; margin-bottom: 22px;
+}
+.tp-drawer__active-name { font-family: var(--tp-font-display); font-size: 22px; font-weight: 500; margin: 4px 0 2px; }
+.tp-drawer__active-meta { font-size: 12px; color: var(--tp-text-soft); }
+
+.tp-drawer__nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.tp-drawer__link {
+  display: flex; align-items: center; gap: 14px;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  text-align: left; padding: 11px 6px; color: var(--tp-text-soft);
+  border-radius: var(--tp-radius); transition: color 0.15s ease, background 0.15s ease;
+}
+.tp-drawer__link:hover { background: rgba(92, 54, 38, 0.06); color: var(--tp-text); }
+.tp-drawer__num { font-family: var(--tp-font-display); font-size: 15px; color: var(--tp-text-muted); min-width: 22px; }
+.tp-drawer__link[data-active="true"] { color: var(--tp-accent); }
+.tp-drawer__link[data-active="true"] .tp-drawer__num { color: var(--tp-accent); font-weight: 600; }
+.tp-drawer__dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--tp-accent); opacity: 0; }
+.tp-drawer__link[data-active="true"] .tp-drawer__dot { opacity: 1; }
+
+.tp-switch { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--tp-line); }
+.tp-switch__label { margin-bottom: 12px; }
+.tp-switch__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.tp-switch-btn {
+  flex: 1; min-width: 64px;
+  background: none; cursor: pointer; font-family: inherit; font-size: 13px;
+  border: 1px solid var(--tp-line); border-radius: var(--tp-radius);
+  padding: 10px 8px; color: var(--tp-text); text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tp-switch-btn:hover { border-color: var(--tp-accent); }
+.tp-switch-btn[data-active="true"] { background: var(--tp-accent); color: var(--tp-accent-text); border-color: var(--tp-accent); }
+
+/* =====================  АДАПТИВ  ===================== */
+@media (max-width: 720px) {
+  :root { --tp-gutter: 20px; --tp-header-h: 96px; }
+  .tp-nav { display: none; }               /* на мобиле навигация — через бургер */
+  .tp-variant-current__sub { display: none; }
+  .tp-h2 { font-size: 32px; }
+}
