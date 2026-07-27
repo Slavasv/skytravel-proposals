@@ -22,6 +22,13 @@ type Props = {
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
+// Маска времени: агент вводит цифры, «:» ставится сам → 11:00
+function formatTime(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`
+}
+
 export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId }: Props) {
   const { updateBlockRooms, refresh } = useDays()
   const isMobile = useIsMobile()
@@ -41,6 +48,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
   } = useSortable({ id: dayBlock.id, disabled: isPending || blockedByOuter })
 
   const [noteForm, setNoteForm] = useState({
+    time: dayBlock.time || '',
     custom_note_ru: dayBlock.custom_note_ru || '',
     custom_note_en: dayBlock.custom_note_en || '',
     room_type_ru: dayBlock.room_type_ru || '',
@@ -92,6 +100,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
     const promise = (async () => {
       try {
         await updateDayBlock(dayBlock.id, {
+          time: currentForm.time || null,
           custom_note_ru: currentForm.custom_note_ru || null,
           custom_note_en: currentForm.custom_note_en || null,
           room_type_ru: currentForm.room_type_ru || null,
@@ -283,6 +292,20 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
             {description}
           </p>
         )}
+
+        {/* Время — общее для всех типов блоков (отель / активность / трансфер) */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Time</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={noteForm.time}
+            onChange={(e) => setField('time', formatTime(e.target.value))}
+            placeholder="11:00"
+            maxLength={5}
+            style={{ width: '120px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+        </div>
 
         {block.type === 'hotel' && (() => {
           const hotelRooms = normalizeRooms(block.rooms)

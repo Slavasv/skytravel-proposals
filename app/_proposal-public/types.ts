@@ -16,11 +16,14 @@ export type PublicContentBlock = {
   type: string // 'hotel' | 'activity' | 'transfer' | 'city'
   title_ru: string | null
   title_en: string | null
+  subtitle_ru: string | null
+  subtitle_en: string | null
   description_ru: string | null
   description_en: string | null
   image_url: string | null
-  images: string[] | null
+  images: unknown // jsonb: (string | {url, caption_ru, caption_en})[] — нормализуем через normalizePhotos
   location: string | null
+  link_url: string | null
   tags: string[] | null
   rooms: unknown // jsonb [{id, images, title_ru, title_en, subtitle_ru, subtitle_en}]
 }
@@ -28,6 +31,7 @@ export type PublicContentBlock = {
 export type PublicDayBlock = {
   id: string
   sort_order: number
+  time: string | null
   custom_note_ru: string | null
   custom_note_en: string | null
   room_type_ru: string | null

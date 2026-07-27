@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import { photoUrls } from '@/lib/photos'
 import BlockGallery from '@/app/p/[slug]/block-gallery'
 
 type Params = { slug: string }
@@ -59,7 +60,7 @@ function normalizeRooms(data: unknown): Room[] {
 
 function photosOf(b: { image_url: string | null; images: string[] | null } | null | undefined): string[] {
   if (!b) return []
-  return [b.image_url, ...(Array.isArray(b.images) ? b.images : [])].filter(Boolean) as string[]
+  return [b.image_url, ...photoUrls(b.images)].filter(Boolean) as string[]
 }
 
 const H2: React.CSSProperties = { fontSize: '22px', fontWeight: 500, marginBottom: '24px', borderBottom: '1px solid var(--client-border)', paddingBottom: '12px' }
@@ -262,7 +263,7 @@ export default async function DestinationPage({ params }: { params: Promise<Para
               {hotel.description_ru && <p style={{ fontSize: '16px', lineHeight: 1.7, color: 'var(--client-text)', marginBottom: '24px' }}>{hotel.description_ru}</p>}
 
               {rooms.map((r) => {
-                const rp = r.images.filter(Boolean)
+                const rp = photoUrls(r.images)
                 return (
                   <div key={r.id} style={{ marginBottom: '24px' }}>
                     <div style={{ fontSize: '18px', fontWeight: 500, color: 'var(--client-text)' }}>{r.title_ru}</div>
@@ -284,7 +285,7 @@ export default async function DestinationPage({ params }: { params: Promise<Para
 
         // GALLERY
         if (section.type === 'gallery') {
-          const images = Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : []
+          const images = photoUrls(data.images)
           if (images.length === 0) return null
           return (
             <div key={section.id} style={{ marginBottom: '56px' }}>

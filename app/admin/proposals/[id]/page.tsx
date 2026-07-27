@@ -73,6 +73,7 @@ export default async function EditProposalPage({
       day_blocks (
         id,
         sort_order,
+        time,
         custom_note_ru,
         custom_note_en,
         room_type_ru,

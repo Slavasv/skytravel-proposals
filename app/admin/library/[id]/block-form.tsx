@@ -10,6 +10,7 @@ import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
 import GalleryUploader from './gallery-uploader'
 import RoomsEditor, { normalizeRooms, type Room } from './rooms-editor'
+import { normalizePhotos } from '@/lib/photos'
 import { useIsMobile } from '@/lib/use-is-mobile'
 
 type Block = {
@@ -19,11 +20,14 @@ type Block = {
   country_id: string | null
   title_ru: string | null
   title_en: string | null
+  subtitle_ru: string | null
+  subtitle_en: string | null
   description_ru: string | null
   description_en: string | null
   image_url: string | null
   images: string[] | null
   location: string | null
+  link_url: string | null
   tags: string[] | null
   notable_amenities_ru: string | null
   notable_amenities_en: string | null
@@ -94,11 +98,14 @@ export default function BlockForm({ block }: { block: Block }) {
     country_id: block.country_id,
     title_ru: block.title_ru || '',
     title_en: block.title_en || '',
+    subtitle_ru: block.subtitle_ru || '',
+    subtitle_en: block.subtitle_en || '',
     description_ru: block.description_ru || '',
     description_en: block.description_en || '',
     image_url: block.image_url || '',
-    images: (block.images ?? []) as string[],
+    images: normalizePhotos(block.images),
     location: block.location || '',
+    link_url: block.link_url || '',
     tags: block.tags || [],
     // hotel
     notable_amenities_ru: block.notable_amenities_ru || '',
@@ -143,11 +150,14 @@ export default function BlockForm({ block }: { block: Block }) {
           country_id: currentForm.type === 'city' ? currentForm.country_id : null,
           title_ru: currentForm.title_ru || null,
           title_en: currentForm.title_en || null,
+          subtitle_ru: currentForm.subtitle_ru || null,
+          subtitle_en: currentForm.subtitle_en || null,
           description_ru: currentForm.description_ru || null,
           description_en: currentForm.description_en || null,
           image_url: currentForm.image_url || null,
           images: currentForm.images,
           location: currentForm.location || null,
+          link_url: currentForm.link_url || null,
           tags: currentForm.tags,
           notable_amenities_ru: currentForm.type === 'hotel' ? (currentForm.notable_amenities_ru || null) : null,
           notable_amenities_en: currentForm.type === 'hotel' ? (currentForm.notable_amenities_en || null) : null,
@@ -237,6 +247,7 @@ export default function BlockForm({ block }: { block: Block }) {
 
   // Keys для двуязычных полей в зависимости от выбранного языка
   const titleKey = lang === 'ru' ? 'title_ru' : 'title_en'
+  const subtitleKey = lang === 'ru' ? 'subtitle_ru' : 'subtitle_en'
   const descKey = lang === 'ru' ? 'description_ru' : 'description_en'
   const amenitiesKey = lang === 'ru' ? 'notable_amenities_ru' : 'notable_amenities_en'
   const seasonKey = lang === 'ru' ? 'best_season_ru' : 'best_season_en'
@@ -355,6 +366,16 @@ export default function BlockForm({ block }: { block: Block }) {
             />
           </div>
           <div>
+            <label style={labelStyle}>Subtitle</label>
+            <input
+              type="text"
+              value={form[subtitleKey]}
+              onChange={(e) => set(subtitleKey, e.target.value)}
+              style={inputStyle}
+              placeholder={lang === 'ru' ? 'Короткая строка под названием' : 'Short line under the title'}
+            />
+          </div>
+          <div>
             <label style={labelStyle}>Description</label>
             <textarea
               value={form[descKey]}
@@ -363,6 +384,19 @@ export default function BlockForm({ block }: { block: Block }) {
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={lang === 'ru' ? 'Подробное описание...' : 'Detailed description...'}
             />
+          </div>
+          <div>
+            <label style={labelStyle}>Link (website)</label>
+            <input
+              type="url"
+              value={form.link_url}
+              onChange={(e) => set('link_url', e.target.value)}
+              style={inputStyle}
+              placeholder="https://..."
+            />
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+              {lang === 'ru' ? 'Например, сайт отеля — на клиентской покажется ссылкой.' : 'e.g. hotel website — shown as a link on the client page.'}
+            </p>
           </div>
         </div>
       </section>
@@ -410,6 +444,7 @@ export default function BlockForm({ block }: { block: Block }) {
             <GalleryUploader
               images={form.images}
               onChange={(imgs) => set('images', imgs)}
+              lang={lang}
             />
           </div>
         </div>

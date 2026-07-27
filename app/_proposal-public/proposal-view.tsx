@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import './proposal.css'
 import ProposalOverview from './proposal-overview'
+import ProposalItinerary from './proposal-itinerary'
+import ProposalAccommodation from './proposal-accommodation'
+import ProposalCosts from './proposal-costs'
+import ProposalTerms from './proposal-terms'
 import type { LoadedProposal, Lang, PublicVariant } from './types'
 
 /* Секции страницы (без «Авиаперелёт» — добавим отдельным этапом). */
@@ -214,6 +218,38 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
                 variant={active}
                 variantNumber={activeIndex + 1}
                 travellers={travellers}
+                lang={lang}
+              />
+            ) : s.id === 'marshrut' ? (
+              <ProposalItinerary
+                key={active.id}
+                days={active.days}
+                variantNumber={activeIndex + 1}
+                lang={lang}
+              />
+            ) : s.id === 'prozhivanie' ? (
+              <ProposalAccommodation
+                key={active.id}
+                variant={active}
+                variantNumber={activeIndex + 1}
+                tripStart={proposal.start_date}
+                tripEnd={proposal.end_date}
+                lang={lang}
+              />
+            ) : s.id === 'stoimost' ? (
+              <ProposalCosts
+                variants={variants}
+                activeId={active.id}
+                onSelect={selectVariant}
+                proposal={proposal}
+                lang={lang}
+              />
+            ) : s.id === 'usloviya' ? (
+              <ProposalTerms
+                key={active.id}
+                variant={active}
+                variantNumber={activeIndex + 1}
+                proposal={proposal}
                 lang={lang}
               />
             ) : (

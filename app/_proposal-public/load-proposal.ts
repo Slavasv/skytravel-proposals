@@ -65,12 +65,12 @@ async function loadTravellers(requestId: string | null | undefined): Promise<Tra
 const DAYS_SELECT = `
   id, day_number, date, title_ru, title_en, intro_text_ru, intro_text_en, variant_id,
   day_blocks (
-    id, sort_order, custom_note_ru, custom_note_en,
+    id, sort_order, time, custom_note_ru, custom_note_en,
     room_type_ru, room_type_en, from_ru, from_en, to_ru, to_en,
     selected_rooms, price, guests,
     content_blocks (
-      id, type, title_ru, title_en, description_ru, description_en,
-      image_url, images, location, tags, rooms
+      id, type, title_ru, title_en, subtitle_ru, subtitle_en, description_ru, description_en,
+      image_url, images, location, link_url, tags, rooms
     )
   )
 `

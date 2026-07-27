@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from 'react'
 import GalleryUploader from '@/app/admin/library/[id]/gallery-uploader'
 import { updateSection } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
+import { normalizePhotos, type Photo } from '@/lib/photos'
 
 type Lang = 'ru' | 'en'
 
-function getImages(data: unknown): string[] {
+function getImages(data: unknown): Photo[] {
   if (data && typeof data === 'object' && 'images' in data) {
-    const imgs = (data as { images?: unknown }).images
-    if (Array.isArray(imgs)) return imgs.filter((x): x is string => typeof x === 'string')
+    return normalizePhotos((data as { images?: unknown }).images)
   }
   return []
 }
@@ -24,7 +24,7 @@ export default function SectionGallery({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
-  const [images, setImages] = useState<string[]>(getImages(section.data))
+  const [images, setImages] = useState<Photo[]>(getImages(section.data))
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -73,7 +73,7 @@ export default function SectionGallery({
 
       <div>
         <label style={labelStyle}>Photos</label>
-        <GalleryUploader images={images} onChange={setImages} />
+        <GalleryUploader images={images} onChange={setImages} lang={lang} />
       </div>
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>

@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import GalleryUploader from './gallery-uploader'
+import { normalizePhotos, type Photo } from '@/lib/photos'
 
 export type Room = {
   id: string
@@ -23,7 +24,7 @@ export type Room = {
   title_en: string
   subtitle_ru: string
   subtitle_en: string
-  images: string[]
+  images: Photo[]
 }
 
 type Lang = 'ru' | 'en'
@@ -38,7 +39,7 @@ export function normalizeRooms(data: unknown): Room[] {
       title_en: typeof x.title_en === 'string' ? x.title_en : '',
       subtitle_ru: typeof x.subtitle_ru === 'string' ? x.subtitle_ru : '',
       subtitle_en: typeof x.subtitle_en === 'string' ? x.subtitle_en : '',
-      images: Array.isArray(x.images) ? x.images.filter((i): i is string => typeof i === 'string') : [],
+      images: normalizePhotos(x.images),
     }))
 }
 
@@ -100,7 +101,7 @@ function SortableRoom({
         </div>
         <div>
           <label style={labelStyle}>Room photos</label>
-          <GalleryUploader images={room.images} onChange={(imgs) => onChange(room.id, { images: imgs })} />
+          <GalleryUploader images={room.images} onChange={(imgs) => onChange(room.id, { images: imgs })} lang={lang} />
         </div>
       </div>
     </div>

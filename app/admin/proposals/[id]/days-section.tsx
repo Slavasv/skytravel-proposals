@@ -63,7 +63,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
     const orderedIds = reordered.map((d) => d.id)
 
     startTransition(async () => {
-      await reorderDays(proposalId, orderedIds)
+      await reorderDays(proposalId, orderedIds, variantId)
       await refresh()
     })
   }
@@ -133,7 +133,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
           No days yet. Click + Add day to start building the itinerary.
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext id="days-reorder" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={days.map((d) => d.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {days.map((day) => (

@@ -56,6 +56,7 @@ export type ContentBlock = {
 export type DayBlock = {
   id: string
   sort_order: number
+  time: string | null
   custom_note_ru: string | null
   custom_note_en: string | null
   room_type_ru: string | null

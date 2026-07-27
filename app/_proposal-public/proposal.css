@@ -470,3 +470,312 @@
 @media (max-width: 720px) {
   .tp-carousel__nav { width: 36px; height: 36px; font-size: 18px; }
 }
+
+/* =====================  МАРШРУТ ПО ДНЯМ  ===================== */
+.tp-itin__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--tp-line);
+  margin-bottom: 8px;
+}
+.tp-itin__list { display: flex; flex-direction: column; }
+
+.tp-day { border-bottom: 1px solid var(--tp-line-soft); }
+.tp-day__row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 62px 1fr 34px;
+  gap: 22px;
+  align-items: start;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  padding: 26px 0;
+  color: var(--tp-text);
+}
+.tp-day__num { display: flex; flex-direction: column; gap: 4px; }
+.tp-day__n {
+  font-family: var(--tp-font-display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--tp-text);
+}
+.tp-day__date { font-size: 11px; color: var(--tp-text-muted); line-height: 1.3; }
+.tp-day__head { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+.tp-day__title { font-family: var(--tp-font-display); font-size: 23px; font-weight: 500; line-height: 1.15; color: var(--tp-text); }
+.tp-day__sub { font-size: 13px; color: var(--tp-text-muted); line-height: 1.5; }
+.tp-day__toggle {
+  justify-self: end;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--tp-line);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1; color: var(--tp-text-soft);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.tp-day[data-open="true"] .tp-day__toggle { border-color: var(--tp-accent); color: var(--tp-accent); }
+
+.tp-day__body { padding: 2px 0 28px 84px; }
+.tp-day__intro {
+  font-size: 15px; line-height: 1.75; color: var(--tp-text-soft);
+  max-width: 700px; margin: 0 0 22px;
+}
+
+.tp-block {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 18px;
+  padding: 16px 0;
+  border-top: 1px solid var(--tp-line-soft);
+}
+.tp-block:first-child { border-top: none; }
+.tp-block__time {
+  font-size: 13px; font-weight: 500; color: var(--tp-accent);
+  letter-spacing: 0.02em; padding-top: 1px;
+}
+.tp-block__title { font-size: 15px; font-weight: 500; color: var(--tp-text); margin-bottom: 5px; }
+.tp-block__desc { font-size: 14px; line-height: 1.7; color: var(--tp-text-soft); margin: 0; }
+.tp-block__note {
+  font-size: 13px; line-height: 1.6; color: var(--tp-text-soft);
+  background: rgba(92, 54, 38, 0.06); border-radius: 4px;
+  padding: 8px 12px; margin: 10px 0 0;
+}
+
+@media (max-width: 720px) {
+  .tp-day__row { grid-template-columns: 46px 1fr 30px; gap: 14px; padding: 20px 0; }
+  .tp-day__n { font-size: 27px; }
+  .tp-day__title { font-size: 20px; }
+  .tp-day__body { padding-left: 0; }
+  .tp-block { grid-template-columns: 60px 1fr; gap: 12px; }
+}
+
+/* =====================  ПРОЖИВАНИЕ  ===================== */
+.tp-hotels__title { margin-bottom: 22px; }
+.tp-hotels { display: flex; flex-direction: column; gap: 64px; }
+
+.tp-hotel__head {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 22px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+.tp-hotel__num {
+  font-family: var(--tp-font-display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--tp-text);
+}
+.tp-hotel__info { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.tp-hotel__name {
+  font-family: var(--tp-font-display);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.1;
+  margin: 2px 0 0;
+  color: var(--tp-text);
+}
+.tp-hotel__sub {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--tp-text-soft);
+  margin: 2px 0 0;
+  max-width: 660px;
+}
+
+/* разворот «Подробнее об отеле» */
+.tp-hotel__more { margin-bottom: 6px; }
+.tp-hotel__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--tp-text-soft);
+  padding: 6px 0;
+  transition: color 0.15s ease;
+}
+.tp-hotel__toggle:hover { color: var(--tp-accent); }
+.tp-hotel__toggle-ic {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--tp-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+.tp-hotel__detail { padding: 8px 0 4px; max-width: 700px; }
+.tp-hotel__desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--tp-text-soft);
+  margin: 0 0 14px;
+}
+.tp-hotel__link {
+  font-size: 13px;
+  color: var(--tp-accent);
+  text-decoration: none;
+}
+.tp-hotel__link:hover { text-decoration: underline; }
+
+.tp-hotel__media { margin-bottom: 26px; }
+.tp-hotel__media-label { margin-bottom: 12px; }
+
+.tp-room {
+  margin-top: 22px;
+  padding-top: 24px;
+  border-top: 1px solid var(--tp-line-soft);
+}
+.tp-room__name {
+  font-family: var(--tp-font-display);
+  font-size: 21px;
+  font-weight: 500;
+  margin: 8px 0 4px;
+  color: var(--tp-text);
+}
+.tp-room__sub { font-size: 14px; color: var(--tp-text-soft); margin: 0 0 14px; }
+
+@media (max-width: 720px) {
+  .tp-hotel__head { grid-template-columns: 44px 1fr; gap: 14px; }
+  .tp-hotel__num { font-size: 27px; }
+  .tp-hotel__name { font-size: 22px; }
+}
+
+/* =====================  СТОИМОСТЬ  ===================== */
+.tp-costs__title { margin-bottom: 22px; }
+
+.tp-costcards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin-bottom: 44px;
+}
+.tp-costcard {
+  text-align: left;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--tp-radius);
+  padding: 22px 24px;
+  color: var(--tp-text);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tp-costcard:hover { border-color: var(--tp-accent); }
+.tp-costcard[data-active="true"] {
+  background: var(--tp-accent);
+  border-color: var(--tp-accent);
+  color: var(--tp-accent-text);
+}
+.tp-costcard__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tp-text-muted);
+  margin-bottom: 14px;
+}
+.tp-costcard[data-active="true"] .tp-costcard__eyebrow { color: rgba(243, 236, 226, 0.7); }
+.tp-costcard__price {
+  font-family: var(--tp-font-display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+}
+.tp-costcard__meta { font-size: 12px; color: var(--tp-text-muted); margin-top: 12px; }
+.tp-costcard[data-active="true"] .tp-costcard__meta { color: rgba(243, 236, 226, 0.7); }
+
+.tp-coststruct__label { margin-bottom: 8px; }
+.tp-costrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--tp-line-soft);
+}
+.tp-costrow__name { font-size: 16px; color: var(--tp-text); margin-bottom: 4px; }
+.tp-costrow__desc { font-size: 13px; color: var(--tp-text-muted); line-height: 1.5; }
+.tp-costrow__price { font-family: var(--tp-font-display); font-size: 20px; color: var(--tp-text); white-space: nowrap; }
+
+.tp-costtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 26px 0 8px;
+}
+.tp-costtotal__label { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tp-text-muted); }
+.tp-costtotal__price { font-family: var(--tp-font-display); font-size: 30px; font-weight: 500; color: var(--tp-text); }
+.tp-costnote { font-size: 13px; color: var(--tp-text-muted); line-height: 1.6; margin: 8px 0 0; max-width: 640px; }
+
+@media (max-width: 720px) {
+  .tp-costcard__price { font-size: 28px; }
+  .tp-costtotal__price { font-size: 26px; }
+}
+
+/* =====================  УСЛОВИЯ  ===================== */
+.tp-terms__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  padding: 8px 0 40px;
+  border-bottom: 1px solid var(--tp-line-soft);
+  margin-bottom: 40px;
+}
+.tp-terms__cols--incl { border-bottom: none; padding-bottom: 8px; }
+.tp-terms__collabel { margin-bottom: 18px; }
+
+.tp-pay { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.tp-pay__item { display: grid; grid-template-columns: 32px 1fr; gap: 14px; align-items: baseline; }
+.tp-pay__num { font-family: var(--tp-font-display); font-size: 16px; color: var(--tp-text-muted); }
+.tp-pay__text { font-size: 15px; line-height: 1.6; color: var(--tp-text); }
+
+.tp-cancel { display: flex; flex-direction: column; }
+.tp-cancel__row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 20px;
+  padding: 12px 0; border-bottom: 1px solid var(--tp-line-soft);
+}
+.tp-cancel__row:first-child { padding-top: 0; }
+.tp-cancel__period { font-size: 14px; font-weight: 500; color: var(--tp-text); }
+.tp-cancel__rule { font-size: 14px; color: var(--tp-text-muted); text-align: right; }
+
+.tp-incl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tp-incl li { position: relative; padding-left: 18px; font-size: 15px; line-height: 1.6; color: var(--tp-text-soft); }
+.tp-incl li::before { content: '—'; position: absolute; left: 0; color: var(--tp-text-muted); }
+
+.tp-terms__notes { padding-top: 8px; margin-bottom: 40px; max-width: 760px; }
+
+.tp-terms__cta { padding-top: 24px; }
+.tp-btn {
+  display: inline-block;
+  background: var(--tp-accent);
+  color: var(--tp-accent-text);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 16px 30px;
+  border-radius: var(--tp-radius);
+  transition: opacity 0.15s ease;
+}
+.tp-btn:hover { opacity: 0.9; }
+.tp-terms__cta-note { font-size: 13px; color: var(--tp-text-muted); line-height: 1.6; margin: 16px 0 0; max-width: 560px; }
+
+@media (max-width: 720px) {
+  .tp-terms__cols { grid-template-columns: 1fr; gap: 32px; }
+  .tp-cancel__rule { text-align: left; }
+}

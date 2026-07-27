@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import { photoUrls } from '@/lib/photos'
 import ProposalItinerary from '@/app/p/[slug]/proposal-itinerary'
 import BlockGallery from '@/app/p/[slug]/block-gallery'
 
@@ -183,7 +184,7 @@ export default async function ProposalPageEN({ params }: { params: Promise<Param
               return (
                 <div key={db.id} className="client-block" style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px' }}>
                   {(() => {
-                    const photos = [block.image_url, ...(Array.isArray(block.images) ? block.images : [])].filter(Boolean) as string[]
+                    const photos = [block.image_url, ...photoUrls(block.images)].filter(Boolean) as string[]
                     return photos.length > 0 ? (
                       <div className="client-block-image">
                         <BlockGallery photos={photos} alt={block.title_en || ''} width={160} height={110} />

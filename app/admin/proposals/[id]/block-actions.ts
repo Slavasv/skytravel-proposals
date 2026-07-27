@@ -4,6 +4,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
 export type DayBlockUpdate = {
+  time?: string | null
   custom_note_ru?: string | null
   custom_note_en?: string | null
   room_type_ru?: string | null
@@ -236,6 +237,7 @@ export async function getProposalDays(proposalId: string, variantId?: string | n
       day_blocks (
         id,
         sort_order,
+        time,
         custom_note_ru,
         custom_note_en,
         room_type_ru,
