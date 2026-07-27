@@ -45,7 +45,9 @@ export async function notifyClientChoice(input: {
   const port = Number(process.env.EMAIL_PORT || 465)
   const user = process.env.EMAIL_USER
   const pass = process.env.EMAIL_PASS
-  toEmail = toEmail || user || ''
+  // адрес-отправитель: у Gmail/Outlook = логин, у Resend логин="resend", поэтому отдельно
+  const from = process.env.EMAIL_FROM || user || ''
+  toEmail = toEmail || from || ''
 
   if (!host || !user || !pass || !toEmail) {
     // почта не настроена — выбор всё равно отмечен, просто без письма
@@ -70,7 +72,7 @@ export async function notifyClientChoice(input: {
       secure: port === 465,
       auth: { user, pass },
     })
-    await transporter.sendMail({ from: user, to: toEmail, subject, text })
+    await transporter.sendMail({ from, to: toEmail, subject, text })
     return { ok: true }
   } catch {
     return { ok: false }
