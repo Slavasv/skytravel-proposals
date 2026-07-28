@@ -24,7 +24,7 @@ function fmtPrice(value: number | null | undefined, currency: string): string {
   if (value == null) return ''
   const sym = CURRENCY_SYMBOL[currency] ?? (currency ? currency + ' ' : '')
   // разряды тонким пробелом: 68 400
-  const num = Math.round(value).toLocaleString('ru-RU').replace(/ /g, ' ')
+  const num = Math.round(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   return `${sym}${num}`
 }
 
@@ -37,6 +37,13 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
   const currency = proposal.cost_currency || proposal.currency || 'EUR'
   const accent = company?.accent_color || '' // акцент бренда переопределяет --tp-accent
 
+  // отельное предложение — без программы по дням: секцию «Маршрут по дням» не показываем
+  const isHotel = proposal.layout === 'hotel'
+  const sections = useMemo(
+    () => SECTIONS.filter((s) => !(isHotel && s.id === 'marshrut')),
+    [isHotel]
+  )
+
   // активный вариант: выбранный клиентом, иначе первый
   const initialId = useMemo(() => {
     const chosen = variants.find((v) => v.is_selected)
@@ -46,7 +53,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
   const [activeId, setActiveId] = useState(initialId)
   const [menuOpen, setMenuOpen] = useState(false)
   const [burgerOpen, setBurgerOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState(SECTIONS[0].id)
+  const [activeSection, setActiveSection] = useState(sections[0].id)
   const [solidHeader, setSolidHeader] = useState(false) // прозрачный над hero → плотный при скролле
 
   const active: PublicVariant | undefined =
@@ -56,7 +63,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
 
   // скролл-спай: подсветка активной секции в навигации
   useEffect(() => {
-    const els = SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean) as HTMLElement[]
+    const els = sections.map((s) => document.getElementById(s.id)).filter(Boolean) as HTMLElement[]
     if (els.length === 0) return
     const obs = new IntersectionObserver(
       (entries) => {
@@ -69,7 +76,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
     )
     els.forEach((el) => obs.observe(el))
     return () => obs.disconnect()
-  }, [])
+  }, [sections])
 
   // блокируем скролл body при открытом бургере
   useEffect(() => {
@@ -107,6 +114,24 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
 
   if (!active) return null
 
+  // единый ярлык варианта: при ОДНОМ варианте не упоминаем «Маршрут» вовсе;
+  // при нескольких — показываем НАЗВАНИЕ варианта (фолбэк «Маршрут N», если имя пустое)
+  const hasMultiple = variants.length > 1
+  const variantLabel: string | null = hasMultiple
+    ? (pick(lang, active.name_ru, active.name_en) || `${lang === 'ru' ? 'Маршрут' : 'Route'} ${activeIndex + 1}`)
+    : null
+
+  // длительность: по датам поездки, иначе по числу дней варианта (для отельного days = служебный день)
+  const durationDays = (() => {
+    if (proposal.start_date && proposal.end_date) {
+      const diff = Math.round(
+        (new Date(proposal.end_date).getTime() - new Date(proposal.start_date).getTime()) / 86400000
+      ) + 1
+      if (diff > 0) return diff
+    }
+    return active.days.length
+  })()
+
   return (
     <div
       className="tp-root"
@@ -115,11 +140,8 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
       {/* ===================== ФИКС-ХЕДЕР ===================== */}
       <header className="tp-header" data-solid={solidHeader}>
         <div className="tp-header__top">
-          <a
-            href={lang === 'ru' ? `/p/${proposal.slug}` : `/en/p/${proposal.slug}`}
-            className="tp-logo-link"
-            aria-label={brandName}
-          >
+          
+            <a href={lang === 'ru' ? `/p/${proposal.slug}` : `/en/p/${proposal.slug}`} className="tp-logo-link" aria-label={brandName}>
             {company?.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={company.logo_url} alt={brandName} className="tp-logo-img" />
@@ -128,24 +150,27 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
             )}
           </a>
 
-          <button
-            className="tp-variant-current"
-            data-open={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            <span className="tp-variant-current__meta">
-              <span className="tp-variant-current__eyebrow">
-                {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {activeIndex + 1} · <b>{lang === 'ru' ? 'СМЕНИТЬ' : 'CHANGE'}</b>
+          {/* переключатель варианта — только когда вариантов несколько */}
+          {hasMultiple && (
+            <button
+              className="tp-variant-current"
+              data-open={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              <span className="tp-variant-current__meta">
+                <span className="tp-variant-current__eyebrow">
+                  {lang === 'ru' ? 'ВЫБРАННЫЙ МАРШРУТ' : 'SELECTED ROUTE'} · <b>{lang === 'ru' ? 'СМЕНИТЬ' : 'CHANGE'}</b>
+                </span>
+                <span className="tp-variant-current__name">
+                  {pick(lang, active.name_ru, active.name_en) || `${lang === 'ru' ? 'Маршрут' : 'Route'} ${activeIndex + 1}`}
+                </span>
+                {pick(lang, active.subtitle_ru, active.subtitle_en) && (
+                  <span className="tp-variant-current__sub">{pick(lang, active.subtitle_ru, active.subtitle_en)}</span>
+                )}
               </span>
-              <span className="tp-variant-current__name">
-                {pick(lang, active.name_ru, active.name_en) || `${lang === 'ru' ? 'Маршрут' : 'Route'} ${activeIndex + 1}`}
-              </span>
-              {pick(lang, active.subtitle_ru, active.subtitle_en) && (
-                <span className="tp-variant-current__sub">{pick(lang, active.subtitle_ru, active.subtitle_en)}</span>
-              )}
-            </span>
-            <Chevron />
-          </button>
+              <Chevron />
+            </button>
+          )}
 
           <button className="tp-burger-btn" aria-label="Menu" onClick={() => setBurgerOpen(true)}>
             <BurgerIcon />
@@ -155,7 +180,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
         {/* навигация по секциям */}
         <nav className="tp-nav">
           <div className="tp-nav__inner">
-            {SECTIONS.map((s) => (
+            {sections.map((s) => (
               <button
                 key={s.id}
                 className="tp-nav__link"
@@ -169,7 +194,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
         </nav>
 
         {/* выпадашка смены варианта из хедера */}
-        {menuOpen && variants.length > 1 && (
+        {menuOpen && hasMultiple && (
           <div className="tp-variant-menu">
             <div className="tp-variant-menu__inner">
               {variants.map((v) => (
@@ -203,9 +228,9 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
         />
       )}
 
-      {/* ===================== СЕКЦИИ (пока плейсхолдеры) ===================== */}
+      {/* ===================== СЕКЦИИ ===================== */}
       <main className="tp-main">
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <section
             key={s.id}
             id={s.id}
@@ -216,7 +241,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
                 proposal={proposal}
                 company={company}
                 variant={active}
-                variantNumber={activeIndex + 1}
+                variantLabel={variantLabel}
                 travellers={travellers}
                 lang={lang}
               />
@@ -224,14 +249,14 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
               <ProposalItinerary
                 key={active.id}
                 days={active.days}
-                variantNumber={activeIndex + 1}
+                variantLabel={variantLabel}
                 lang={lang}
               />
             ) : s.id === 'prozhivanie' ? (
               <ProposalAccommodation
                 key={active.id}
                 variant={active}
-                variantNumber={activeIndex + 1}
+                variantLabel={variantLabel}
                 tripStart={proposal.start_date}
                 tripEnd={proposal.end_date}
                 lang={lang}
@@ -248,17 +273,13 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
               <ProposalTerms
                 key={active.id}
                 variant={active}
-                variantNumber={activeIndex + 1}
+                variantLabel={variantLabel}
                 proposal={proposal}
                 lang={lang}
               />
             ) : (
               <div className="tp-container">
                 <div className="tp-placeholder">
-                  <span className="tp-label">
-                    {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {activeIndex + 1} ·{' '}
-                    {pick(lang, active.name_ru, active.name_en)}
-                  </span>
                   <span className="tp-placeholder__title">{sectionLabel(s)}</span>
                 </div>
               </div>
@@ -278,18 +299,22 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
         </div>
 
         <div className="tp-drawer__active">
-          <span className="tp-label">{lang === 'ru' ? 'АКТИВНЫЙ МАРШРУТ' : 'ACTIVE ROUTE'}</span>
-          <div className="tp-drawer__active-name">
-            № {activeIndex + 1} — {pick(lang, active.name_ru, active.name_en)}
-          </div>
+          {hasMultiple && (
+            <>
+              <span className="tp-label">{lang === 'ru' ? 'АКТИВНЫЙ МАРШРУТ' : 'ACTIVE ROUTE'}</span>
+              <div className="tp-drawer__active-name">
+                № {activeIndex + 1} — {pick(lang, active.name_ru, active.name_en)}
+              </div>
+            </>
+          )}
           <div className="tp-drawer__active-meta">
             {active.total_price != null && <>{fmtPrice(active.total_price, currency)} · </>}
-            {daysWord(active.days.length)}
+            {daysWord(durationDays)}
           </div>
         </div>
 
         <nav className="tp-drawer__nav">
-          {SECTIONS.map((s, i) => (
+          {sections.map((s, i) => (
             <button
               key={s.id}
               className="tp-drawer__link"
@@ -303,7 +328,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
           ))}
         </nav>
 
-        {variants.length > 1 && (
+        {hasMultiple && (
           <div className="tp-switch">
             <div className="tp-label tp-switch__label">{lang === 'ru' ? 'СМЕНИТЬ МАРШРУТ' : 'CHANGE ROUTE'}</div>
             <div className="tp-switch__btns">

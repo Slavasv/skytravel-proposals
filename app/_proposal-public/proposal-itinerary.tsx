@@ -27,11 +27,11 @@ function fmtDayDate(s: string | null, lang: Lang): string {
 
 export default function ProposalItinerary({
   days,
-  variantNumber,
+  variantLabel,
   lang,
 }: {
   days: PublicDay[]
-  variantNumber: number
+  variantLabel: string | null
   lang: Lang
 }) {
   const ordered = [...days].sort((a, b) => a.day_number - b.day_number)
@@ -51,7 +51,7 @@ export default function ProposalItinerary({
     <div className="tp-container">
       <div className="tp-itin__head">
         <span className="tp-label">
-          {lang === 'ru' ? 'ПРОГРАММА' : 'PROGRAMME'} · {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {variantNumber}
+          {lang === 'ru' ? 'ПРОГРАММА' : 'PROGRAMME'}{variantLabel ? ` · ${variantLabel}` : ''}
         </span>
         <span className="tp-label">
           {ordered.length} {daysWord(ordered.length, lang)}

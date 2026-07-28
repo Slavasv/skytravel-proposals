@@ -116,6 +116,7 @@ export type PublicProposal = {
   cost_currency: string | null
   currency: string | null
   company_id: string | null
+  layout: string | null // 'full' | 'hotel' — отельное предложение без программы по дням
 }
 
 export type PublicCompany = {

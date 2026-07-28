@@ -39,6 +39,10 @@ export default function ProposalCosts({
   if (!active) return null
 
   const activeIndex = variants.findIndex((v) => v.id === active.id)
+  // при одном варианте «Маршрут» не упоминаем; при нескольких — название варианта
+  const variantLabel = variants.length > 1
+    ? (pick(lang, active.name_ru, active.name_en) || `${lang === 'ru' ? 'Маршрут' : 'Route'} ${activeIndex + 1}`)
+    : null
   const currency = proposal.cost_currency || proposal.currency || 'EUR'
   const costs = computeCosts(active.days, proposal.start_date, proposal.end_date, lang)
   const allIncl = lang === 'ru' ? 'всё включено' : 'all inclusive'
@@ -52,9 +56,6 @@ export default function ProposalCosts({
   return (
     <div className="tp-container">
       <h2 className="tp-h2 tp-costs__title">{lang === 'ru' ? 'Стоимость' : 'Costs'}</h2>
-      <div className="tp-itin__head">
-        <span className="tp-label">{lang === 'ru' ? 'СТОИМОСТЬ' : 'COSTS'}</span>
-      </div>
 
       {/* карточки-цены вариантов */}
       <div className="tp-costcards">
@@ -66,10 +67,11 @@ export default function ProposalCosts({
             data-active={v.id === active.id}
             onClick={() => onSelect(v.id)}
           >
-            <div className="tp-costcard__eyebrow">
-              {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {i + 1}
-              {pick(lang, v.name_ru, v.name_en) ? ` · ${pick(lang, v.name_ru, v.name_en)}` : ''}
-            </div>
+            {(() => {
+              const cardLabel = pick(lang, v.name_ru, v.name_en) ||
+                (variants.length > 1 ? `${lang === 'ru' ? 'Маршрут' : 'Route'} ${i + 1}` : '')
+              return cardLabel ? <div className="tp-costcard__eyebrow">{cardLabel}</div> : null
+            })()}
             <div className="tp-costcard__price">{fmtPrice(v.total_price, currency) || '—'}</div>
             {proposal.guest_count ? (
               <div className="tp-costcard__meta">
@@ -84,7 +86,7 @@ export default function ProposalCosts({
       {cats.length > 0 && (
         <div className="tp-coststruct">
           <div className="tp-label tp-coststruct__label">
-            {lang === 'ru' ? 'СТРУКТУРА СТОИМОСТИ' : 'COST BREAKDOWN'} · {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {activeIndex + 1}
+            {lang === 'ru' ? 'СТРУКТУРА СТОИМОСТИ' : 'COST BREAKDOWN'}{variantLabel ? ` · ${variantLabel}` : ''}
           </div>
 
           {cats.map((cat) => (

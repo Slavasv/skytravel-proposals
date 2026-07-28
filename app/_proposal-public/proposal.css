@@ -564,6 +564,8 @@
   align-items: start;
   margin-bottom: 22px;
 }
+/* один отель — номера нет, текст на всю ширину (иначе схлопывается в узкую колонку под номер) */
+.tp-hotel__head.tp-hotel__head--solo { grid-template-columns: 1fr; }
 .tp-hotel__num {
   font-family: var(--tp-font-display);
   font-size: 34px;

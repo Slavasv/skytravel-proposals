@@ -16,7 +16,7 @@ export default function HotelsSection({
   proposalId: string
   lang: Lang
 }) {
-  const { days, refresh } = useDays()
+  const { days, refresh, variantId } = useDays()
   const [isPending, startTransition] = useTransition()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -29,7 +29,10 @@ export default function HotelsSection({
     if (holder || creating) return
     setCreating(true)
     startTransition(async () => {
-      await createDay(proposalId)
+      // служебный день должен принадлежать активному варианту,
+      // иначе загрузка (фильтр по variant_id) его не увидит и holder навсегда null
+      await createDay(proposalId, variantId)
+      await refresh()
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holder])
@@ -39,6 +42,7 @@ export default function HotelsSection({
     setPickerOpen(false)
     startTransition(async () => {
       await addBlockToDay(holder.id, blockId)
+      await refresh()
     })
   }
 

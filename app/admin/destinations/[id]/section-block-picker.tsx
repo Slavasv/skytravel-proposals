@@ -26,6 +26,24 @@ const TYPE_LABEL: Record<PickType, string> = {
   activity: 'activity',
 }
 
+// Supabase-джойн может вернуть объект или массив — берём первый
+function pickOne<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
+// «Город, Страна» для блока (город и/или страна), иначе текстовое поле location
+function formatLocation(b: LibraryBlock, lang: Lang): string | null {
+  const ru = lang === 'ru'
+  const city = pickOne(b.cities)
+  const cityName = city ? (ru ? city.name_ru : city.name_en) : null
+  const country = pickOne(city?.countries) ?? pickOne(b.countries)
+  const countryName = country ? (ru ? country.name_ru : country.name_en) : null
+  const parts = [cityName, countryName].filter(Boolean)
+  if (parts.length) return parts.join(', ')
+  return b.location?.trim() || null
+}
+
 export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockType, lang, returnTo, title, attachKind, attachSectionId }: Props) {
   const router = useRouter()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
@@ -179,6 +197,14 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
                       <div style={{ fontSize: '14px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {t || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
                       </div>
+                      {(() => {
+                        const geo = formatLocation(b, lang)
+                        return geo ? (
+                          <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {geo}
+                          </div>
+                        ) : null
+                      })()}
                       {b.tags && b.tags.length > 0 && (
                         <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
                           {b.tags.slice(0, 4).map((t) => `#${t}`).join(' ')}

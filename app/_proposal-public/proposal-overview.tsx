@@ -57,14 +57,14 @@ function travellersText(t: TravellersSummary | null, guestCount: number | null, 
 export default function ProposalOverview({
   proposal,
   variant,
-  variantNumber,
+  variantLabel,
   travellers,
   lang,
 }: {
   proposal: PublicProposal
   company: PublicCompany | null
   variant: PublicVariant
-  variantNumber: number
+  variantLabel: string | null
   travellers: TravellersSummary | null
   lang: Lang
 }) {
@@ -136,9 +136,7 @@ export default function ProposalOverview({
 
         {variantSub && (
           <div className="tp-meta__variant">
-            <span className="tp-label">
-              {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {variantNumber}
-            </span>
+            {variantLabel && <span className="tp-label">{variantLabel}</span>}
             <span className="tp-meta__variant-text">{variantSub}</span>
           </div>
         )}

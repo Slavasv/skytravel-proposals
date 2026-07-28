@@ -40,13 +40,13 @@ function normalizeRooms(raw: unknown): RoomDef[] {
 
 export default function ProposalAccommodation({
   variant,
-  variantNumber,
+  variantLabel,
   tripStart,
   tripEnd,
   lang,
 }: {
   variant: PublicVariant
-  variantNumber: number
+  variantLabel: string | null
   tripStart: string | null
   tripEnd: string | null
   lang: Lang
@@ -76,11 +76,11 @@ export default function ProposalAccommodation({
   return (
     <div className="tp-container">
       <h2 className="tp-h2 tp-hotels__title">{lang === 'ru' ? 'Проживание' : 'Accommodation'}</h2>
-      <div className="tp-itin__head">
-        <span className="tp-label">
-          {lang === 'ru' ? 'ПРОЖИВАНИЕ' : 'ACCOMMODATION'} · {lang === 'ru' ? 'МАРШРУТ' : 'ROUTE'} № {variantNumber}
-        </span>
-      </div>
+      {variantLabel && (
+        <div className="tp-itin__head">
+          <span className="tp-label">{variantLabel}</span>
+        </div>
+      )}
 
       <div className="tp-hotels">
         {hotels.map((h, i) => {
@@ -110,8 +110,8 @@ export default function ProposalAccommodation({
 
           return (
             <div className="tp-hotel" key={h.block.id}>
-              <div className="tp-hotel__head">
-                <span className="tp-hotel__num">{String(i + 1).padStart(2, '0')}</span>
+              <div className={`tp-hotel__head${hotels.length > 1 ? '' : ' tp-hotel__head--solo'}`}>
+                {hotels.length > 1 && <span className="tp-hotel__num">{String(i + 1).padStart(2, '0')}</span>}
                 <div className="tp-hotel__info">
                   {metaBits.length > 0 && <div className="tp-label">{metaBits.join(' · ')}</div>}
                   {name && <h3 className="tp-hotel__name">{name}</h3>}

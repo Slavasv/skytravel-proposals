@@ -21,12 +21,12 @@ function splitCancel(line: string): [string, string] {
 
 export default function ProposalTerms({
   variant,
-  variantNumber,
+  variantLabel,
   proposal,
   lang,
 }: {
   variant: PublicVariant
-  variantNumber: number
+  variantLabel: string | null
   proposal: PublicProposal
   lang: Lang
 }) {
@@ -52,8 +52,9 @@ export default function ProposalTerms({
     payment.length || cancellation.length || includes.length || excludes.length || notes.length
   if (!hasAnything) return null
 
-  const routeLabel = `${lang === 'ru' ? 'Маршрут' : 'Route'} № ${variantNumber}`
-  const ctaText = `${lang === 'ru' ? 'ЗАБРОНИРОВАТЬ' : 'BOOK'} · ${routeLabel.toUpperCase()}`
+  const ctaText = variantLabel
+    ? `${lang === 'ru' ? 'ЗАБРОНИРОВАТЬ' : 'BOOK'} · ${variantLabel.toUpperCase()}`
+    : (lang === 'ru' ? 'ЗАБРОНИРОВАТЬ' : 'BOOK')
 
   return (
     <div className="tp-container">
