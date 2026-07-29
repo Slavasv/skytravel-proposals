@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import ImageUploader from '@/app/admin/_components/image-uploader'
 import { updateSection } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
 
@@ -43,6 +44,14 @@ function getItems(data: unknown): TimelineItem[] {
     }
   }
   return []
+}
+
+function getStr(data: unknown, key: string): string {
+  if (data && typeof data === 'object' && key in data) {
+    const v = (data as Record<string, unknown>)[key]
+    return typeof v === 'string' ? v : ''
+  }
+  return ''
 }
 
 const inputStyle: React.CSSProperties = {
@@ -107,6 +116,8 @@ export default function SectionSampleDay({
   const [items, setItems] = useState<TimelineItem[]>(getItems(section.data))
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
+  const [imageLeft, setImageLeft] = useState(getStr(section.data, 'image_left'))
+  const [imageRight, setImageRight] = useState(getStr(section.data, 'image_right'))
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -115,19 +126,20 @@ export default function SectionSampleDay({
   useEffect(() => {
     if (isInitial.current) { isInitial.current = false; return }
     setSaveState('saving')
-    onLocalChange({ title_ru: titleRu || null, title_en: titleEn || null, data: { items } })
+    const payload = { items, image_left: imageLeft, image_right: imageRight }
+    onLocalChange({ title_ru: titleRu || null, title_en: titleEn || null, data: payload })
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       await updateSection(section.id, {
         title_ru: titleRu || null,
         title_en: titleEn || null,
-        data: { items },
+        data: payload,
       })
       setSaveState('saved')
     }, 1200)
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, titleRu, titleEn])
+  }, [items, titleRu, titleEn, imageLeft, imageRight])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -179,6 +191,14 @@ export default function SectionSampleDay({
           style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: '4px' }}>
           + Add entry
         </button>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Side photos (optional) — shown left & right of the timeline</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <ImageUploader value={imageLeft} onChange={setImageLeft} label="Left photo" height={200} />
+          <ImageUploader value={imageRight} onChange={setImageRight} label="Right photo" height={200} />
+        </div>
       </div>
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>

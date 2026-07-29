@@ -3,7 +3,7 @@ import { createSupabaseServer } from './supabase-server'
 export type Profile = {
   id: string
   email: string
-  role: 'superadmin' | 'owner' | 'admin' | 'manager'
+  role: 'superadmin' | 'owner' | 'admin' | 'manager' | 'accountant'
   company_name: string | null
 }
 
@@ -33,4 +33,9 @@ export async function getProfile(): Promise<Profile | null> {
 // Админский уровень внутри бренда: owner и admin (но НЕ manager, НЕ superadmin)
 export function canManageBrand(role: string | undefined): boolean {
   return role === 'owner' || role === 'admin'
+}
+
+// Доступ к кабинету бухгалтера: owner, admin и бухгалтер
+export function canSeeAccounting(role: string | undefined): boolean {
+  return role === 'owner' || role === 'admin' || role === 'accountant'
 }

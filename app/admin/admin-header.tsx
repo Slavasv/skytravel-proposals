@@ -11,9 +11,10 @@ type Props = {
   email: string
   companyName: string | null
   isSuperadmin: boolean
+  isAccountant?: boolean
 }
 
-export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin }: Props) {
+export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin, isAccountant }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -22,10 +23,15 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
     ? [
         { href: '/admin/companies', label: 'Компании', matchPrefix: '/admin/companies' },
       ]
+    : isAccountant
+    ? [
+        { href: '/admin/accounting', label: 'Accounting', matchPrefix: '/admin/accounting' },
+      ]
     : [
         { href: '/admin/clients', label: 'Clients', matchPrefix: '/admin/clients' },
         { href: '/admin/requests', label: 'Requests', matchPrefix: '/admin/requests' },
         { href: '/admin/bookings', label: 'Bookings', matchPrefix: '/admin/bookings' },
+        ...(isAdmin ? [{ href: '/admin/accounting', label: 'Accounting', matchPrefix: '/admin/accounting' }] : []),
         { href: '/admin/partners', label: 'Partners', matchPrefix: '/admin/partners' },
         { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
         { href: '/admin/destinations', label: 'Destinations', matchPrefix: '/admin/destinations' },

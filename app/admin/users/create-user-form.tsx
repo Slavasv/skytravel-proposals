@@ -7,7 +7,7 @@ export default function CreateUserForm() {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'manager' | 'admin'>('manager')
+  const [role, setRole] = useState<'manager' | 'admin' | 'accountant'>('manager')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -100,7 +100,7 @@ export default function CreateUserForm() {
           />
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as 'manager' | 'admin')}
+            onChange={(e) => setRole(e.target.value as 'manager' | 'admin' | 'accountant')}
             style={{
               padding: '10px 12px',
               fontSize: '14px',
@@ -114,6 +114,7 @@ export default function CreateUserForm() {
           >
             <option value="manager">Manager</option>
             <option value="admin">Admin</option>
+            <option value="accountant">Accountant</option>
           </select>
         </div>
 

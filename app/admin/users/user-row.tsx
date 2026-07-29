@@ -18,10 +18,10 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
 
   const isSelf = user.id === currentUserId
 
-  async function handleToggleRole() {
+  async function handleSetRole(role: 'manager' | 'admin' | 'accountant') {
     setLoading(true)
     setMenuOpen(false)
-    await toggleRole(user.id, user.role === 'admin' ? 'manager' : 'admin')
+    await toggleRole(user.id, role)
     setLoading(false)
   }
 
@@ -119,14 +119,17 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                 minWidth: '180px',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               }}>
-                <button
-                  onClick={handleToggleRole}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                >
-                  Make {user.role === 'admin' ? 'manager' : 'admin'}
-                </button>
+                {(['manager', 'admin', 'accountant'] as const).filter((r) => r !== user.role).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => handleSetRole(r)}
+                    style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                  >
+                    Make {r}
+                  </button>
+                ))}
                 <button
                   onClick={handleResetPassword}
                   style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}

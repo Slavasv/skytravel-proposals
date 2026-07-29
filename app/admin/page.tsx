@@ -18,6 +18,11 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     redirect('/admin/companies')
   }
 
+  // Бухгалтер видит только финансы — сразу в кабинет
+  if (profile?.role === 'accountant') {
+    redirect('/admin/accounting')
+  }
+
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
 

@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { updateSection, getBlockBrief, type BlockBrief } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
 import SectionBlockPicker from './section-block-picker'
 
 type Lang = 'ru' | 'en'
+
+function getStr(data: unknown, key: string): string {
+  if (data && typeof data === 'object' && key in data) {
+    const v = (data as Record<string, unknown>)[key]
+    return typeof v === 'string' ? v : ''
+  }
+  return ''
+}
 
 export default function SectionCity({
   section,
@@ -20,6 +28,26 @@ export default function SectionCity({
   const [brief, setBrief] = useState<BlockBrief | null>(null)
   const [loadingBrief, setLoadingBrief] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+
+  // Подзаголовок региона/города (курсивная строка под заголовком на публичной странице)
+  const [subtitleRu, setSubtitleRu] = useState(getStr(section.data, 'subtitle_ru'))
+  const [subtitleEn, setSubtitleEn] = useState(getStr(section.data, 'subtitle_en'))
+  const [subSaved, setSubSaved] = useState(false)
+  const subTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const subInitial = useRef(true)
+
+  useEffect(() => {
+    if (subInitial.current) { subInitial.current = false; return }
+    const payload = { subtitle_ru: subtitleRu, subtitle_en: subtitleEn }
+    onLocalChange({ data: payload })
+    if (subTimer.current) clearTimeout(subTimer.current)
+    subTimer.current = setTimeout(async () => {
+      await updateSection(section.id, { data: payload })
+      setSubSaved(true)
+    }, 1000)
+    return () => { if (subTimer.current) clearTimeout(subTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtitleRu, subtitleEn])
 
   // подтянуть превью выбранного города
   useEffect(() => {
@@ -50,6 +78,11 @@ export default function SectionCity({
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
     color: 'var(--admin-text-muted)', marginBottom: '6px', fontWeight: 500,
+  }
+  const inputStyle: React.CSSProperties = {
+    padding: '8px 10px', fontSize: '14px', color: 'var(--admin-text)',
+    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+    borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   }
 
   const title = brief ? (lang === 'ru' ? brief.title_ru : brief.title_en) : ''
@@ -113,6 +146,22 @@ export default function SectionCity({
           </div>
         </div>
       )}
+
+      <div>
+        <label style={labelStyle}>Subtitle (optional) · {lang.toUpperCase()}</label>
+        {lang === 'ru' ? (
+          <input type="text" value={subtitleRu} onChange={(e) => { setSubtitleRu(e.target.value); setSubSaved(false) }}
+            style={{ ...inputStyle, width: '100%' }}
+            placeholder="Например: Бесконечная саванна, где разворачивается природная драма" />
+        ) : (
+          <input type="text" value={subtitleEn} onChange={(e) => { setSubtitleEn(e.target.value); setSubSaved(false) }}
+            style={{ ...inputStyle, width: '100%' }}
+            placeholder="e.g.: Endless savannah where nature's greatest drama unfolds" />
+        )}
+        <div style={{ fontSize: '11px', color: subSaved ? 'var(--admin-success)' : 'var(--admin-text-muted)', marginTop: '4px' }}>
+          {subSaved ? '● Saved' : ''}
+        </div>
+      </div>
 
       <SectionBlockPicker
         isOpen={pickerOpen}

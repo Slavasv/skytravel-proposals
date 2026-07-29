@@ -5,7 +5,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { revalidatePath } from 'next/cache'
 
-export async function createUser(email: string, password: string, role: 'admin' | 'manager') {
+export async function createUser(email: string, password: string, role: 'admin' | 'manager' | 'accountant') {
   // Проверяем, что вызывающий — owner или admin, и узнаём его компанию
   const profile = await getProfile()
   if (!canManageBrand(profile?.role)) {
@@ -108,7 +108,7 @@ export async function resetPassword(id: string, newPassword: string) {
   revalidatePath('/admin/users')
 }
 
-export async function toggleRole(id: string, newRole: 'admin' | 'manager') {
+export async function toggleRole(id: string, newRole: 'admin' | 'manager' | 'accountant') {
   // Проверяем права вызывающего — менять роли может только owner/admin
   const profile = await getProfile()
   if (!canManageBrand(profile?.role)) {

@@ -1,0 +1,204 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { addInvoice, updateInvoice, deleteInvoice, type SupplierInvoice } from '../invoice-actions'
+import type { PartnerOption } from '../actions'
+import PartnerPicker from '@/app/admin/_components/partner-picker'
+
+const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP']
+
+const labelSt: React.CSSProperties = {
+  fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+  color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
+}
+const inputSt: React.CSSProperties = {
+  width: '100%', padding: '8px 10px', fontSize: '13px', color: 'var(--admin-text)',
+  background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+}
+
+function money(n: number): string {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+function InvoiceCard({
+  invoice, partners, onRemove, onChange,
+}: {
+  invoice: SupplierInvoice
+  partners: PartnerOption[]
+  onRemove: (id: string) => void
+  onChange: (id: string, patch: Partial<SupplierInvoice>) => void
+}) {
+  const [form, setForm] = useState({
+    partner_id: invoice.partner_id || '',
+    invoice_number: invoice.invoice_number || '',
+    amount: invoice.amount ?? ('' as number | ''),
+    currency: invoice.currency || 'EUR',
+    issue_date: invoice.issue_date || '',
+    due_date: invoice.due_date || '',
+    notes: invoice.notes || '',
+  })
+  const [saved, setSaved] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const first = useRef(true)
+
+  function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
+    setForm((p) => ({ ...p, [key]: value }))
+    setSaved(false)
+  }
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      const amountNum = form.amount === '' ? 0 : Number(form.amount)
+      await updateInvoice(invoice.id, {
+        partner_id: form.partner_id || null,
+        invoice_number: form.invoice_number || null,
+        amount: amountNum,
+        currency: form.currency,
+        issue_date: form.issue_date || null,
+        due_date: form.due_date || null,
+        notes: form.notes || null,
+      })
+      onChange(invoice.id, { amount: amountNum, currency: form.currency })
+      setSaved(true)
+    }, 1200)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form])
+
+  return (
+    <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '14px', background: 'var(--admin-card)' }}>
+      {/* строка 1: поставщик, номер счёта */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div style={{ width: '220px' }}>
+          <label style={labelSt}>Supplier</label>
+          <PartnerPicker
+            partners={partners}
+            value={form.partner_id}
+            onChange={(id) => set('partner_id', id)}
+            returnTo={`/admin/bookings/${invoice.booking_id}`}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: '160px' }}>
+          <label style={labelSt}>Invoice №</label>
+          <input type="text" value={form.invoice_number} onChange={(e) => set('invoice_number', e.target.value)} style={inputSt} placeholder="INV-2026-001" />
+        </div>
+      </div>
+
+      {/* строка 2: сумма, валюта, даты */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '10px' }}>
+        <div style={{ width: '140px' }}>
+          <label style={labelSt}>Amount</label>
+          <input type="number" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value === '' ? '' : Number(e.target.value))} style={inputSt} placeholder="0" />
+        </div>
+        <div style={{ width: '90px' }}>
+          <label style={labelSt}>Currency</label>
+          <select value={form.currency} onChange={(e) => set('currency', e.target.value)} style={inputSt}>
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ width: '150px' }}>
+          <label style={labelSt}>Issue date</label>
+          <input type="date" value={form.issue_date} onChange={(e) => set('issue_date', e.target.value)} style={inputSt} />
+        </div>
+        <div style={{ width: '150px' }}>
+          <label style={labelSt}>Due date</label>
+          <input type="date" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} style={inputSt} />
+        </div>
+      </div>
+
+      {/* заметка */}
+      <div style={{ marginBottom: '10px' }}>
+        <label style={labelSt}>Note (optional)</label>
+        <input type="text" value={form.notes} onChange={(e) => set('notes', e.target.value)} style={inputSt} placeholder="What this invoice covers…" />
+      </div>
+
+      {/* действия */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '11px', color: saved ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
+          {saved ? '● Saved' : ''}
+        </span>
+        <button type="button" onClick={() => onRemove(invoice.id)}
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '5px 9px', fontFamily: 'inherit' }}>
+          ✕ Remove
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function BookingInvoices({
+  bookingId, initial, partners,
+}: {
+  bookingId: string
+  initial: SupplierInvoice[]
+  partners: PartnerOption[]
+}) {
+  const [invoices, setInvoices] = useState<SupplierInvoice[]>(initial)
+
+  async function handleAdd() {
+    const created = await addInvoice(bookingId)
+    if (created) setInvoices((p) => [...p, created])
+  }
+
+  async function handleRemove(id: string) {
+    if (!confirm('Remove this invoice?')) return
+    setInvoices((p) => p.filter((i) => i.id !== id))
+    await deleteInvoice(id)
+  }
+
+  // локально обновляем суммы, чтобы итоги пересчитывались сразу
+  function handleChange(id: string, patch: Partial<SupplierInvoice>) {
+    setInvoices((p) => p.map((i) => (i.id === id ? { ...i, ...patch } : i)))
+  }
+
+  // итоги по валютам (сумма инвойсов)
+  const totals = invoices.reduce((acc, i) => {
+    const cur = i.currency || 'EUR'
+    acc[cur] = (acc[cur] ?? 0) + (i.amount ?? 0)
+    return acc
+  }, {} as Record<string, number>)
+  const currencies = Object.keys(totals).sort()
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+        {invoices.length === 0 ? (
+          <div style={{ padding: '28px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+            No supplier invoices yet. Add the bills you received from hotels and partners.
+          </div>
+        ) : (
+          invoices.map((i) => (
+            <InvoiceCard key={i.id} invoice={i} partners={partners}
+              onRemove={handleRemove} onChange={handleChange} />
+          ))
+        )}
+      </div>
+
+      <button type="button" onClick={handleAdd}
+        style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+        + Add invoice
+      </button>
+
+      {/* ИТОГИ по валютам */}
+      {currencies.length > 0 && (
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <div style={{ ...labelSt, marginBottom: '10px' }}>Invoiced totals</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {currencies.map((cur) => (
+              <div key={cur} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '10px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', minWidth: '44px' }}>{cur}</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, marginLeft: 'auto', color: 'var(--admin-text)' }}>{money(totals[cur])}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '8px 0 0' }}>
+            Currencies are kept separate — no conversion.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}

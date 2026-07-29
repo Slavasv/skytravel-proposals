@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getBookingServices, getPartnerOptions, getClientsForBooking, getBookingTravellers, getVouchersForBooking } from '../actions'
+import { getBookingInvoices } from '../invoice-actions'
 import BookingForm from './booking-form'
 
 export default async function BookingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +18,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   if (error || !booking) notFound()
 
   const services = await getBookingServices(id)
+  const invoices = await getBookingInvoices(id)
   const partners = await getPartnerOptions()
   const clients = await getClientsForBooking()
   const travellers = await getBookingTravellers(id)
@@ -33,7 +35,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
         </h1>
       </div>
 
-      <BookingForm booking={booking} services={services} partners={partners} clients={clients} travellers={travellers} vouchers={vouchers} />
+      <BookingForm booking={booking} services={services} invoices={invoices} partners={partners} clients={clients} travellers={travellers} vouchers={vouchers} />
     </div>
   )
 }

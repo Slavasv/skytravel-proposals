@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateBooking, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
+import BookingInvoices from './booking-invoices'
 import BookingTravellers from './booking-travellers'
+import type { SupplierInvoice } from '../invoice-actions'
 import ClientPicker from '@/app/admin/_components/client-picker'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -39,10 +41,11 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function BookingForm({
-  booking, services, partners, clients, travellers, vouchers = [],
+  booking, services, invoices, partners, clients, travellers, vouchers = [],
 }: {
   booking: Booking
   services: BookingService[]
+  invoices: SupplierInvoice[]
   partners: PartnerOption[]
   clients: BookingClientOption[]
   travellers: { all: BookingTraveller[]; selected: string[]; requestId: string | null }
@@ -181,6 +184,15 @@ export default function BookingForm({
           Everything booked for this trip. Commission is calculated as Gross − Net.
         </p>
         <BookingServices bookingId={booking.id} initial={services} partners={partners} />
+      </section>
+
+      {/* ИНВОЙСЫ ПОСТАВЩИКОВ */}
+      <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Supplier invoices</h2>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+          Bills received from hotels and partners for this booking. The accountant records payments against them.
+        </p>
+        <BookingInvoices bookingId={booking.id} initial={invoices} partners={partners} />
       </section>
 
       {/* ВАУЧЕРЫ */}
