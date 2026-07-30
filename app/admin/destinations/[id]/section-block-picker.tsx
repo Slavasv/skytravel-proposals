@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 import { getLibraryBlocks, type LibraryBlock } from '@/app/admin/proposals/[id]/block-actions'
 import { createBlockMinimal } from '@/app/admin/library/actions'
 
@@ -26,6 +27,12 @@ const TYPE_LABEL: Record<PickType, string> = {
   activity: 'activity',
 }
 
+const TYPE_LABEL_RU: Record<PickType, string> = {
+  city: 'город',
+  hotel: 'отель',
+  activity: 'активность',
+}
+
 // Supabase-джойн может вернуть объект или массив — берём первый
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
   if (value == null) return null
@@ -46,6 +53,7 @@ function formatLocation(b: LibraryBlock, lang: Lang): string | null {
 
 export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockType, lang, returnTo, title, attachKind, attachSectionId }: Props) {
   const router = useRouter()
+  const t = useT()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -136,11 +144,11 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid var(--admin-border-card)' }}>
           <div>
             <h2 style={{ fontSize: '17px', fontWeight: 500, margin: '0 0 2px' }}>
-              {title || `Choose a ${TYPE_LABEL[blockType]}`}
+              {title || t(`Choose a ${TYPE_LABEL[blockType]}`, `Выберите ${TYPE_LABEL_RU[blockType]}`)}
             </h2>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--admin-text-muted)' }}>{filtered.length} of {blocks.length}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--admin-text-muted)' }}>{filtered.length} {t('of', 'из')} {blocks.length}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close"
+          <button type="button" onClick={onClose} aria-label={t('Close', 'Закрыть')}
             style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', fontSize: '22px', lineHeight: 1, cursor: 'pointer', padding: '4px 10px', fontFamily: 'inherit' }}>×</button>
         </div>
 
@@ -151,7 +159,7 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
               placeholder={lang === 'ru' ? 'Поиск...' : 'Search...'} style={inputStyle} />
             <button type="button" onClick={() => setCreatingOpen((v) => !v)}
               style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 500, background: 'transparent', color: 'var(--admin-accent)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-              + New
+              + {t('New', 'Создать')}
             </button>
           </div>
 
@@ -173,15 +181,15 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
         {/* List */}
         <div style={{ flex: 1, overflow: 'auto', padding: '14px 22px' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '14px' }}>Loading...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '14px' }}>{t('Loading...', 'Загрузка...')}</div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '28px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-border)', borderRadius: '8px', fontSize: '13px' }}>
-              {blocks.length === 0 ? `No ${TYPE_LABEL[blockType]} blocks yet. Create one with + New.` : 'Nothing matches your search.'}
+              {blocks.length === 0 ? t(`No ${TYPE_LABEL[blockType]} blocks yet. Create one with + New.`, `Блоков «${TYPE_LABEL_RU[blockType]}» пока нет. Создайте через + Создать.`) : t('Nothing matches your search.', 'Ничего не найдено.')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {filtered.map((b) => {
-                const t = lang === 'ru' ? b.title_ru : b.title_en
+                const tx = lang === 'ru' ? b.title_ru : b.title_en
                 return (
                   <button key={b.id} type="button" onClick={() => handleSelect(b.id)} disabled={isPending}
                     style={{
@@ -195,7 +203,7 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
                     <div style={{ width: '56px', height: '56px', borderRadius: '4px', background: b.image_url ? `url(${b.image_url}) center/cover no-repeat` : 'var(--admin-card)' }} />
                     <div style={{ minWidth: 0, alignSelf: 'center' }}>
                       <div style={{ fontSize: '14px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {t || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+                        {tx || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
                       </div>
                       {(() => {
                         const geo = formatLocation(b, lang)
@@ -207,7 +215,7 @@ export default function SectionBlockPicker({ isOpen, onClose, onSelect, blockTyp
                       })()}
                       {b.tags && b.tags.length > 0 && (
                         <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
-                          {b.tags.slice(0, 4).map((t) => `#${t}`).join(' ')}
+                          {b.tags.slice(0, 4).map((tag) => `#${tag}`).join(' ')}
                         </div>
                       )}
                     </div>

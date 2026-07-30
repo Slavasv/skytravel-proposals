@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
 import {
   updateSection,
   getSectionBlocks,
@@ -48,6 +49,7 @@ function SortableBlockRow({
   lang: Lang
   onRemove: (rowId: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -60,15 +62,15 @@ function SortableBlockRow({
   const title = lang === 'ru' ? item.title_ru : item.title_en
   return (
     <div ref={setNodeRef} style={style}>
-      <button type="button" {...attributes} {...listeners} aria-label="Drag"
+      <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
         style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>⋮⋮</button>
       <div style={{ width: '44px', height: '44px', borderRadius: '4px', flexShrink: 0, background: item.image_url ? `url(${item.image_url}) center/cover no-repeat` : 'var(--admin-card)' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--admin-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+          {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
         </div>
         {item.duration_hours != null && (
-          <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{item.duration_hours}h</div>
+          <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{item.duration_hours}{t('h', 'ч')}</div>
         )}
       </div>
       <button type="button" onClick={() => onRemove(item.id)}
@@ -86,6 +88,7 @@ export default function SectionActivities({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
+  const t = useT()
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
   const [items, setItems] = useState<SectionBlockItem[]>([])
@@ -145,21 +148,21 @@ export default function SectionActivities({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
       <div>
-        <label style={labelStyle}>Theme title · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Theme title', 'Заголовок темы')} · {lang.toUpperCase()}</label>
         {lang === 'ru' ? (
           <input type="text" value={titleRu} onChange={(e) => setTitleRu(e.target.value)} style={inputStyle} placeholder="Например: Природа · Культура и гастрономия" />
         ) : (
           <input type="text" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} style={inputStyle} placeholder="e.g.: Nature · Culture & dining" />
         )}
         <div style={{ fontSize: '11px', marginTop: '4px', color: titleSaveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-          {titleSaveState === 'saving' ? '● Saving...' : titleSaveState === 'saved' ? '● Saved' : ''}
+          {titleSaveState === 'saving' ? t('● Saving...', '● Сохранение...') : titleSaveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
         </div>
       </div>
 
       <div>
-        <label style={labelStyle}>Activities</label>
+        <label style={labelStyle}>{t('Activities', 'Активности')}</label>
         {loading ? (
-          <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>Loading...</div>
+          <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('Loading...', 'Загрузка...')}</div>
         ) : items.length > 0 ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -171,11 +174,11 @@ export default function SectionActivities({
             </SortableContext>
           </DndContext>
         ) : (
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>No activities yet.</p>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>{t('No activities yet.', 'Пока нет активностей.')}</p>
         )}
         <button type="button" onClick={() => setPickerOpen(true)}
           style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: '4px' }}>
-          + Add activity
+          + {t('Add activity', 'Добавить активность')}
         </button>
       </div>
 

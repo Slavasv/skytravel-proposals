@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { updatePartner } from '../actions'
+import { useT } from '@/lib/i18n-client'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -37,6 +38,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function PartnerForm({ partner, returnTo }: { partner: Partner; returnTo?: string }) {
+  const t = useT()
   const router = useRouter()
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -79,7 +81,7 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
       setSavedAt(new Date())
       setSaveState('saved')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+      setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
       setSaveState('error')
     }
   }
@@ -93,11 +95,11 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
   }, [form])
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● {t('Saving...', 'Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
   }
 
   async function handleDone() {
@@ -123,11 +125,11 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
       <section>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <div style={{ flex: 1, minWidth: '240px' }}>
-            <label style={labelStyle}>Name</label>
+            <label style={labelStyle}>{t('Name', 'Название')}</label>
             <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} style={inputStyle} placeholder="Park Hyatt Vienna" />
           </div>
           <div style={{ width: '200px' }}>
-            <label style={labelStyle}>Service type</label>
+            <label style={labelStyle}>{t('Service type', 'Тип услуги')}</label>
             <select
               value={customType ? '__custom__' : form.service_type}
               onChange={(e) => {
@@ -141,9 +143,9 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
               }}
               style={inputStyle}
             >
-              <option value="">— Select —</option>
-              {SERVICE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              <option value="__custom__">Custom…</option>
+              <option value="">{t('— Select —', '— Выбрать —')}</option>
+              {SERVICE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+              <option value="__custom__">{t('Custom…', 'Другой…')}</option>
             </select>
             {customType && (
               <input
@@ -151,7 +153,7 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
                 value={form.service_type}
                 onChange={(e) => set('service_type', e.target.value)}
                 style={{ ...inputStyle, marginTop: '8px' }}
-                placeholder="Enter custom type"
+                placeholder={t('Enter custom type', 'Введите свой тип')}
                 autoFocus
               />
             )}

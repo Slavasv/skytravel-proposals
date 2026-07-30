@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 
 export type PickerClient = {
   id: string
@@ -23,6 +24,7 @@ export default function ClientPicker({
   onChange: (clientId: string) => void
   returnTo: string              // куда вернуться после создания клиента
 }) {
+  const t = useT()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -84,7 +86,7 @@ export default function ClientPicker({
         <span style={{ color: selected ? 'var(--admin-text)' : 'var(--admin-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selected
             ? `${selected.name}${selected.client_code ? ` · ${selected.client_code}` : ''}`
-            : '— No client —'}
+            : t('— No client —', '— Без клиента —')}
         </span>
         <span style={{ color: 'var(--admin-text-muted)', fontSize: '11px', flexShrink: 0 }}>▾</span>
       </button>
@@ -103,7 +105,7 @@ export default function ClientPicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name or code…"
+              placeholder={t('Search by name or code…', 'Поиск по имени или коду…')}
               style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
             />
           </div>
@@ -121,12 +123,12 @@ export default function ClientPicker({
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              — No client —
+              {t('— No client —', '— Без клиента —')}
             </button>
 
             {filtered.length === 0 ? (
               <div style={{ padding: '14px 10px', fontSize: '13px', color: 'var(--admin-text-muted)', textAlign: 'center' }}>
-                Nothing found
+                {t('Nothing found', 'Ничего не найдено')}
               </div>
             ) : (
               filtered.map((c) => {
@@ -146,7 +148,7 @@ export default function ClientPicker({
                     onMouseLeave={(e) => { e.currentTarget.style.background = isSel ? 'var(--admin-card)' : 'transparent' }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.name || 'Untitled'}
+                      {c.name || t('Untitled', 'Без названия')}
                     </span>
                     {c.client_code && (
                       <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', flexShrink: 0 }}>
@@ -172,7 +174,7 @@ export default function ClientPicker({
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              + Create new client
+              {t('+ Create new client', '+ Создать нового клиента')}
             </button>
           </div>
         </div>

@@ -4,10 +4,13 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getClientsForRequest, getLinkedProposals, getAvailableDestinations } from '../actions'
 import { getRequestDestinations } from '../destinations-actions'
 import { getBookingsForRequest } from '@/app/admin/bookings/actions'
+import { getUiLang } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import RequestForm from './request-form'
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const lang = await getUiLang()
   const supabase = await createSupabaseServer()
 
   const { data: request, error } = await supabase
@@ -28,10 +31,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ marginBottom: '24px' }}>
         <Link href="/admin/requests" style={{ fontSize: '13px', color: 'var(--admin-text-muted)', textDecoration: 'none' }}>
-          ← Requests
+          ← {tr(lang, 'Requests', 'Заявки')}
         </Link>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '8px 0 0', letterSpacing: '-0.01em' }}>
-          {request.request_code || 'Request'}
+          {request.request_code || tr(lang, 'Request', 'Заявка')}
         </h1>
       </div>
 

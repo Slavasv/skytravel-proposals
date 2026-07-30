@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 export type PickerPartner = {
   id: string
   name: string
@@ -23,6 +24,7 @@ export default function PartnerPicker({
   preferType?: string | null   // тип услуги — такие партнёры идут первыми
   returnTo?: string            // куда вернуться после создания партнёра
 }) {
+  const t = useT()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -66,7 +68,7 @@ export default function PartnerPicker({
       <button type="button" onClick={() => setOpen((v) => !v)}
         style={{ ...inputStyle, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
         <span style={{ color: selected ? 'var(--admin-text)' : 'var(--admin-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selected ? selected.name : '— none —'}
+          {selected ? selected.name : t('— none —', '— нет —')}
         </span>
         <span style={{ color: 'var(--admin-text-muted)', fontSize: '10px', flexShrink: 0 }}>▾</span>
       </button>
@@ -75,7 +77,7 @@ export default function PartnerPicker({
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', zIndex: 40, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: '240px' }}>
           <div style={{ padding: '8px', borderBottom: '1px solid var(--admin-border-card)' }}>
             <input type="text" autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search partners…" style={{ ...inputStyle, fontSize: '12px' }} />
+              placeholder={t('Search partners…', 'Поиск партнёров…')} style={{ ...inputStyle, fontSize: '12px' }} />
           </div>
 
           <div style={{ maxHeight: '240px', overflowY: 'auto', padding: '4px' }}>
@@ -83,12 +85,12 @@ export default function PartnerPicker({
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', background: 'transparent', border: 'none', fontSize: '12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text-muted)' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-              — none —
+              {t('— none —', '— нет —')}
             </button>
 
             {filtered.length === 0 ? (
               <div style={{ padding: '12px 10px', fontSize: '12px', color: 'var(--admin-text-muted)', textAlign: 'center' }}>
-                Nothing found
+                {t('Nothing found', 'Ничего не найдено')}
               </div>
             ) : (
               filtered.map((p) => (
@@ -112,7 +114,7 @@ export default function PartnerPicker({
                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', background: 'transparent', border: 'none', fontSize: '12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-accent)', fontWeight: 500 }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                + Create new partner
+                + {t('Create new partner', 'Создать нового партнёра')}
               </button>
             </div>
           )}

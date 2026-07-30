@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useT } from '@/lib/i18n-client'
 import LocationPicker from '@/app/admin/_components/location-picker'
 import { getCitiesByIds, getCityCountry, type CityRow } from '@/app/admin/_components/location-actions'
 import {
@@ -23,6 +24,7 @@ function DestinationCard({
   index: number
   onRemove: (id: string) => void
 }) {
+  const t = useT()
   const [countryId, setCountryId] = useState<string | null>(dest.country_id)
   const [cityIds, setCityIds] = useState<string[]>(dest.city_ids || [])
   const [cityLabels, setCityLabels] = useState<Record<string, string>>({})
@@ -80,20 +82,20 @@ function DestinationCard({
   return (
     <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '16px', marginBottom: '12px', background: 'var(--admin-card)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>Destination {index + 1}</span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>{t('Destination', 'Направление')} {index + 1}</span>
         <button type="button" onClick={() => onRemove(dest.id)}
           style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '5px 8px', fontFamily: 'inherit' }}>
-          ✕ Remove
+          {t('✕ Remove', '✕ Удалить')}
         </button>
       </div>
 
       <div style={{ marginBottom: '14px' }}>
-        <label style={labelStyle}>Country</label>
+        <label style={labelStyle}>{t('Country', 'Страна')}</label>
         <LocationPicker mode="country" value={countryId} onChange={handleCountryChange} />
       </div>
 
       <div>
-        <label style={labelStyle}>Cities</label>
+        <label style={labelStyle}>{t('Cities', 'Города')}</label>
 
         {/* теги выбранных городов */}
         {cityIds.length > 0 && (
@@ -117,7 +119,8 @@ function DestinationCard({
           countryFilter={countryId}
         />
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-          Pick cities one by one. Choosing a city without a country will fill the country automatically.
+          {t('Pick cities one by one. Choosing a city without a country will fill the country automatically.',
+             'Добавляйте города по одному. Если выбрать город без страны — страна подставится автоматически.')}
         </p>
       </div>
     </div>
@@ -130,6 +133,7 @@ export default function RequestDestinations({
   requestId: string
   initial: RequestDestination[]
 }) {
+  const t = useT()
   const [dests, setDests] = useState<RequestDestination[]>(initial)
 
   async function handleAdd() {
@@ -149,7 +153,7 @@ export default function RequestDestinations({
       ))}
       <button type="button" onClick={handleAdd}
         style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: dests.length > 0 ? '4px' : '0' }}>
-        + Add destination
+        {t('+ Add destination', '+ Добавить направление')}
       </button>
     </div>
   )

@@ -14,6 +14,7 @@ import { useDays } from './days-context'
 import type { VariantFull } from './variant-actions'
 import HotelsSection from './hotels-section'
 import type { Day } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 type Proposal = {
   id: string
@@ -92,6 +93,12 @@ type Props = {
 }
 
 export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, activeVariant, clients = [] }: Props) {
+  const t = useT()
+  const statusLabels: Record<string, string> = {
+    draft: t('Draft', 'Черновик'),
+    sent: t('Sent', 'Отправлено'),
+    confirmed: t('Confirmed', 'Подтверждено'),
+  }
   const { days } = useDays()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -183,7 +190,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -264,18 +271,18 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
   function renderSaveIndicator() {
     if (saveState === 'error') {
-      return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
+      return <span style={{ color: 'var(--admin-danger)' }}>{t('● Error', '● Ошибка')}: {errorMsg}</span>
     }
     if (saveState === 'saving') {
-      return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
+      return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
     }
     if (saveState === 'editing') {
-      return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
+      return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
     }
     if (saveState === 'saved' && savedAt) {
-      return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
+      return <span style={{ color: 'var(--admin-success)' }}>{t('● Saved at', '● Сохранено в')} {savedAt.toLocaleTimeString()}</span>
     }
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● All changes saved', '● Все изменения сохранены')}</span>
   }
 
   return (
@@ -291,7 +298,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-            Editing in
+            {t('Editing in', 'Редактирование на')}
           </span>
           <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             <button
@@ -331,16 +338,16 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-              Layout
+              {t('Layout', 'Макет')}
             </span>
             <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
               <button type="button" onClick={() => set('layout', 'full')}
                 style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout !== 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout !== 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Full
+                {t('Full', 'Полный')}
               </button>
               <button type="button" onClick={() => set('layout', 'hotel')}
                 style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout === 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout === 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Hotel
+                {t('Hotel', 'Отель')}
               </button>
             </div>
           </div>
@@ -352,10 +359,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Client & dates <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Client & dates', 'Клиент и даты')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>CRM Client</label>
+          <label style={labelStyle}>{t('CRM Client', 'Клиент CRM')}</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <ClientPicker
@@ -372,21 +379,21 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
                   const c = clients.find((x) => x.id === form.client_id)
                   if (c?.name) set(clientKey, c.name)
                 }}
-                title="Fill the client name field from the CRM client"
+                title={t('Fill the client name field from the CRM client', 'Заполнить поле имени клиента из клиента CRM')}
                 style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
-                ↓ Use name
+                {t('↓ Use name', '↓ Использовать имя')}
               </button>
             )}
           </div>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-            Link this proposal to a CRM client to see it in their history.
+            {t('Link this proposal to a CRM client to see it in their history.', 'Привяжите это предложение к клиенту CRM, чтобы видеть его в истории клиента.')}
           </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Client name</label>
+            <label style={labelStyle}>{t('Client name', 'Имя клиента')}</label>
             <input
               type="text"
               value={form[clientKey]}
@@ -396,7 +403,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             />
           </div>
           <div>
-            <label style={labelStyle}>Guests</label>
+            <label style={labelStyle}>{t('Guests', 'Гости')}</label>
             <input
               type="number"
               min={1}
@@ -406,7 +413,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             />
           </div>
           <div>
-            <label style={labelStyle}>Start date</label>
+            <label style={labelStyle}>{t('Start date', 'Дата начала')}</label>
             <input
               type="date"
               value={form.start_date}
@@ -415,7 +422,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             />
           </div>
           <div>
-            <label style={labelStyle}>End date</label>
+            <label style={labelStyle}>{t('End date', 'Дата окончания')}</label>
             <input
               type="date"
               value={form.end_date}
@@ -428,11 +435,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Trip details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Trip details', 'Детали поездки')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Trip title</label>
+            <label style={labelStyle}>{t('Trip title', 'Название поездки')}</label>
             <input
               type="text"
               value={form[titleKey]}
@@ -445,12 +452,12 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             <ImageUploader
               value={form.cover_image_url}
               onChange={(url) => set('cover_image_url', url)}
-              label="Cover image"
+              label={t('Cover image', 'Обложка')}
               height={240}
             />
           </div>
           <div>
-            <label style={labelStyle}>Intro text</label>
+            <label style={labelStyle}>{t('Intro text', 'Вступительный текст')}</label>
             <textarea
               value={form[introKey]}
               onChange={(e) => set(introKey, e.target.value)}
@@ -460,7 +467,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             />
           </div>
           <div>
-            <label style={labelStyle}>Country</label>
+            <label style={labelStyle}>{t('Country', 'Страна')}</label>
             <input
               type="text"
               value={form[countryKey]}
@@ -474,9 +481,9 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       {variantSwitcher && (
         <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Route variants</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Route variants', 'Варианты маршрута')}</h2>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-            Offer the client several full scenarios. Each variant has its own days, costs and terms.
+            {t('Offer the client several full scenarios. Each variant has its own days, costs and terms.', 'Предложите клиенту несколько полных сценариев. У каждого варианта свои дни, стоимость и условия.')}
           </p>
           {variantSwitcher}
         </section>
@@ -484,9 +491,9 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       {activeVariant && form.layout !== 'hotel' && (
         <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Impressions</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Impressions', 'Впечатления')}</h2>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-            Gallery, text and a divider photo shown before the itinerary.
+            {t('Gallery, text and a divider photo shown before the itinerary.', 'Галерея, текст и фото-разделитель, показываемые перед маршрутом.')}
           </p>
           <VariantImpressions key={activeVariant.id} variant={activeVariant} lang={lang} />
         </section>
@@ -502,11 +509,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Costs <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Costs', 'Стоимость')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ maxWidth: '200px' }}>
-            <label style={labelStyle}>Currency (for this Costs section)</label>
+            <label style={labelStyle}>{t('Currency (for this Costs section)', 'Валюта (для этого раздела «Стоимость»)')}</label>
             <select
               value={form.cost_currency}
               onChange={(e) => set('cost_currency', e.target.value)}
@@ -520,12 +527,12 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
           <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '4px' }}>
-              Price breakdown
+              {t('Price breakdown', 'Детализация цены')}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-              Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.
+              {t('Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.', 'Разбивка по отелям, трансферам и активностям. Указывайте цену точно как в предложении — мы её не пересчитываем.')}
             </p>
-            <CostBreakdown lang={lang} currency={form.cost_currency} onTotalChange={(t) => set('total_price', t)} />
+            <CostBreakdown lang={lang} currency={form.cost_currency} onTotalChange={(total) => set('total_price', total)} />
           </div>
           {activeVariant && (
             <div style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
@@ -538,10 +545,10 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
       
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Total & status</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Total & status', 'Итого и статус')}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Total price</label>
+            <label style={labelStyle}>{t('Total price', 'Итоговая цена')}</label>
             <input
               type="number"
               value={form.total_price}
@@ -550,18 +557,18 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
               placeholder="0"
             />
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              {`Calculated from the Costs section above · ${form.cost_currency}.`}
+              {`${t('Calculated from the Costs section above', 'Рассчитано из раздела «Стоимость» выше')} · ${form.cost_currency}.`}
             </p>
           </div>
           <div>
-            <label style={labelStyle}>Status</label>
+            <label style={labelStyle}>{t('Status', 'Статус')}</label>
             <select
               value={form.status}
               onChange={(e) => set('status', e.target.value)}
               style={inputStyle}
             >
               {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{statusLabels[s.value] ?? s.label}</option>
               ))}
             </select>
           </div>
@@ -571,7 +578,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>URL</h2>
         <div>
-          <label style={labelStyle}>Slug</label>
+          <label style={labelStyle}>{t('Slug', 'Slug')}</label>
           <input
             type="text"
             value={form.slug}
@@ -580,7 +587,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             placeholder="e.g.: aliyev-provence-jul26"
           />
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-            Public URL: /p/{form.slug} (RU) · /en/p/{form.slug} (EN)
+            {t('Public URL', 'Публичная ссылка')}: /p/{form.slug} (RU) · /en/p/{form.slug} (EN)
           </p>
         </div>
       </section>
@@ -621,7 +628,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             e.currentTarget.style.background = 'var(--admin-text-on-dark)'
           }}
         >
-          Done
+          {t('Done', 'Готово')}
         </button>
       </div>
     </div>

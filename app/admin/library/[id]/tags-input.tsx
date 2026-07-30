@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, KeyboardEvent } from 'react'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   value: string[]
@@ -8,6 +9,7 @@ type Props = {
 }
 
 export default function TagsInput({ value, onChange }: Props) {
+  const t = useT()
   const [draft, setDraft] = useState('')
 
   function addTag(raw: string) {
@@ -22,7 +24,7 @@ export default function TagsInput({ value, onChange }: Props) {
   }
 
   function removeTag(tag: string) {
-    onChange(value.filter((t) => t !== tag))
+    onChange(value.filter((item) => item !== tag))
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -66,7 +68,7 @@ export default function TagsInput({ value, onChange }: Props) {
           <button
             type="button"
             onClick={() => removeTag(tag)}
-            aria-label={`Remove ${tag}`}
+            aria-label={`${t('Remove', 'Удалить')} ${tag}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

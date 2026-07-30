@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useT } from '@/lib/i18n-client'
 import { updateSection, getBlockBrief, type BlockBrief } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
 import SectionBlockPicker from './section-block-picker'
@@ -38,6 +39,7 @@ export default function SectionHotel({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
+  const t = useT()
   const initial = getHotelData(section.data)
   const [hotelBlockId, setHotelBlockId] = useState<string | null>(section.hotel_block_id)
   const [brief, setBrief] = useState<BlockBrief | null>(null)
@@ -107,40 +109,40 @@ export default function SectionHotel({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
       <div>
-        <label style={labelStyle}>Hotel block</label>
+        <label style={labelStyle}>{t('Hotel block', 'Блок отеля')}</label>
         {!hotelBlockId ? (
           <button type="button" onClick={() => setPickerOpen(true)}
             style={{ width: '100%', padding: '12px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-            + Choose a hotel from library
+            + {t('Choose a hotel from library', 'Выбрать отель из библиотеки')}
           </button>
         ) : (
           <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '12px', background: 'var(--admin-input)' }}>
             {loadingBrief ? (
-              <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>Loading...</div>
+              <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>{t('Loading...', 'Загрузка...')}</div>
             ) : brief ? (
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div style={{ width: '64px', height: '64px', borderRadius: '6px', flexShrink: 0, background: brief.image_url ? `url(${brief.image_url}) center/cover no-repeat` : 'var(--admin-card)' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--admin-text)' }}>
-                    {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+                    {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
-                    {rooms.length} {rooms.length === 1 ? 'room type' : 'room types'}
+                    {rooms.length} {rooms.length === 1 ? t('room type', 'тип номера') : t('room types', 'типов номеров')}
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '13px', color: 'var(--admin-danger)' }}>Hotel block not found (deleted?).</div>
+              <div style={{ fontSize: '13px', color: 'var(--admin-danger)' }}>{t('Hotel block not found (deleted?).', 'Блок отеля не найден (удалён?).')}</div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
               <button type="button" onClick={() => setPickerOpen(true)}
-                style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>Change</button>
+                style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('Change', 'Изменить')}</button>
               {brief && (
                 <a href={`/admin/library/${brief.id}?returnTo=${encodeURIComponent(returnTo)}`}
-                  style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>Edit hotel →</a>
+                  style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>{t('Edit hotel', 'Редактировать отель')} →</a>
               )}
               <button type="button" onClick={handleClear}
-                style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-danger)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>Remove</button>
+                style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-danger)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('Remove', 'Удалить')}</button>
             </div>
           </div>
         )}
@@ -149,9 +151,9 @@ export default function SectionHotel({
       {/* Выбор номеров для показа */}
       {hotelBlockId && rooms.length > 0 && (
         <div>
-          <label style={labelStyle}>Rooms to show</label>
+          <label style={labelStyle}>{t('Rooms to show', 'Отображаемые номера')}</label>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 8px' }}>
-            All shown by default. Uncheck to hide a room type on this page.
+            {t('All shown by default. Uncheck to hide a room type on this page.', 'По умолчанию показаны все. Снимите галочку, чтобы скрыть тип номера на этой странице.')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {rooms.map((r) => {
@@ -161,7 +163,7 @@ export default function SectionHotel({
                 <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', background: isRoomShown(r.id) ? 'var(--admin-input)' : 'transparent', opacity: isRoomShown(r.id) ? 1 : 0.5 }}>
                   <input type="checkbox" checked={isRoomShown(r.id)} onChange={() => toggleRoom(r.id)} />
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--admin-text)' }}>{rt || 'Untitled room'}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--admin-text)' }}>{rt || t('Untitled room', 'Номер без названия')}</span>
                     {rs && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}> · {rs}</span>}
                   </span>
                 </label>
@@ -174,7 +176,7 @@ export default function SectionHotel({
       {/* Активности отеля — простой текст */}
       {hotelBlockId && (
         <div>
-          <label style={labelStyle}>Hotel activities (optional) · {lang.toUpperCase()}</label>
+          <label style={labelStyle}>{t('Hotel activities (optional)', 'Активности отеля (необяз.)')} · {lang.toUpperCase()}</label>
           {lang === 'ru' ? (
             <textarea value={actRu} onChange={(e) => setActRu(e.target.value)} rows={5}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
@@ -184,12 +186,12 @@ export default function SectionHotel({
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
               placeholder={'Morning and evening game drives\nWalking safari\nBush dinner'} />
           )}
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>One activity per line.</p>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>{t('One activity per line.', 'По одной активности на строку.')}</p>
         </div>
       )}
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-        {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+        {saveState === 'saving' ? t('● Saving...', '● Сохранение...') : saveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
       </div>
 
       <SectionBlockPicker

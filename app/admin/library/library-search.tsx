@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import LocationPicker from '@/app/admin/_components/location-picker'
+import { useT } from '@/lib/i18n-client'
 
 type Filter = { value: string | null; label: string }
 
@@ -30,6 +31,7 @@ export default function LibrarySearch({
   totalCount,
   archivedTotal,
 }: Props) {
+  const t = useT()
   const router = useRouter()
   const [value, setValue] = useState(defaultQuery)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -87,7 +89,7 @@ export default function LibrarySearch({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Search by title, description, location..."
+          placeholder={t('Search by title, description, location...', 'Поиск по названию, описанию, локации...')}
           style={{
             width: '100%',
             padding: '10px 14px',
@@ -146,14 +148,14 @@ export default function LibrarySearch({
           mode="country"
           value={activeCountry}
           onChange={handleCountryChange}
-          label="Страна"
+          label={t('Country', 'Страна')}
           disableCreate
         />
         <LocationPicker
           mode="city"
           value={activeCity}
           onChange={handleCityChange}
-          label="Город"
+          label={t('City', 'Город')}
           disableCreate
           countryFilter={activeCountry}
         />
@@ -229,7 +231,7 @@ export default function LibrarySearch({
             }
           }}
         >
-          {showArchived ? '← Back to active' : 'Show archived'} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{archivedTotal}</span>
+          {showArchived ? t('← Back to active', '← Назад к активным') : t('Show archived', 'Показать архив')} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{archivedTotal}</span>
         </Link>
       </div>
     </div>

@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { updateVariant, type VariantFull } from './variant-actions'
 import type { Lang } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 export default function VariantTerms({ variant, lang }: { variant: VariantFull; lang: Lang }) {
+  const t = useT()
   const includesKey = lang === 'ru' ? 'cost_includes_ru' : 'cost_includes_en'
   const excludesKey = lang === 'ru' ? 'cost_excludes_ru' : 'cost_excludes_en'
   const notesKey = lang === 'ru' ? 'cost_notes_ru' : 'cost_notes_en'
@@ -65,45 +67,45 @@ export default function VariantTerms({ variant, lang }: { variant: VariantFull; 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
-        <label style={labelStyle}>This cost includes</label>
+        <label style={labelStyle}>{t('This cost includes', 'В стоимость входит')}</label>
         <textarea value={form[includesKey]} onChange={(e) => set(includesKey, e.target.value)} rows={6}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-          placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'} />
-        <p style={hint}>One item per line.</p>
+          placeholder={t('e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive', 'напр.:\nТрансферы из аэропорта\n2 ночи в Four Seasons — вилла, всё включено')} />
+        <p style={hint}>{t('One item per line.', 'По одному пункту в строке.')}</p>
       </div>
       <div>
-        <label style={labelStyle}>This cost does not include</label>
+        <label style={labelStyle}>{t('This cost does not include', 'В стоимость не входит')}</label>
         <textarea value={form[excludesKey]} onChange={(e) => set(excludesKey, e.target.value)} rows={5}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-          placeholder={'e.g.:\nInternational flights\nVisas\nPersonal insurance'} />
-        <p style={hint}>One item per line.</p>
+          placeholder={t('e.g.:\nInternational flights\nVisas\nPersonal insurance', 'напр.:\nМеждународные перелёты\nВизы\nЛичная страховка')} />
+        <p style={hint}>{t('One item per line.', 'По одному пункту в строке.')}</p>
       </div>
       <div>
-        <label style={labelStyle}>Notes</label>
+        <label style={labelStyle}>{t('Notes', 'Примечания')}</label>
         <textarea value={form[notesKey]} onChange={(e) => set(notesKey, e.target.value)} rows={4}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-          placeholder={'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'} />
-        <p style={hint}>One item per line.</p>
+          placeholder={t('e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags', 'напр.:\nДля Кении требуется ETA до поездки\nБагаж строго 15 кг в мягких сумках')} />
+        <p style={hint}>{t('One item per line.', 'По одному пункту в строке.')}</p>
       </div>
 
       <div style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
         <h3 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Terms &amp; Conditions <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Terms & Conditions', 'Условия и положения')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Payment terms</label>
+            <label style={labelStyle}>{t('Payment terms', 'Условия оплаты')}</label>
             <textarea value={form[paymentKey]} onChange={(e) => set(paymentKey, e.target.value)} rows={4}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'} />
-            <p style={hint}>One item per line.</p>
+              placeholder={t('e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival', 'напр.:\n30% — при подтверждении\n70% — за 45 дней до прибытия')} />
+            <p style={hint}>{t('One item per line.', 'По одному пункту в строке.')}</p>
           </div>
           <div>
-            <label style={labelStyle}>Cancellation policy</label>
+            <label style={labelStyle}>{t('Cancellation policy', 'Политика отмены')}</label>
             <textarea value={form[cancellationKey]} onChange={(e) => set(cancellationKey, e.target.value)} rows={6}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'} />
-            <p style={hint}>One item per line.</p>
+              placeholder={t('e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited', 'напр.:\nБолее чем за 120 дней до прибытия — депозит 20% возвращается...\nМенее чем за 30 дней — удерживается 100%')} />
+            <p style={hint}>{t('One item per line.', 'По одному пункту в строке.')}</p>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useIsMobile } from '@/lib/use-is-mobile'
 import type { Lang } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 export type CostLine = {
   id: string
@@ -61,7 +62,19 @@ function newId() {
 }
 
 export default function CostLines({ lines, lang, suggestions = [], onChange }: Props) {
+  const t = useT()
   const isMobile = useIsMobile()
+
+  const catTitles: Record<string, string> = {
+    Hotels: t('Hotels', 'Отели'),
+    Transfers: t('Transfers', 'Трансферы'),
+    Activities: t('Activities', 'Активности'),
+  }
+  const catAddLabels: Record<string, string> = {
+    hotel: t('+ Add hotel', '+ Добавить отель'),
+    transfer: t('+ Add transfer', '+ Добавить трансфер'),
+    activity: t('+ Add activity', '+ Добавить активность'),
+  }
 
   function addLine(category: CostLine['category']) {
     onChange([
@@ -112,7 +125,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
         return (
           <div key={cat.key}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '10px' }}>
-              {cat.title}
+              {catTitles[cat.title] ?? cat.title}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -137,19 +150,19 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                     gap: '10px',
                   }}>
                     <div>
-                      <label style={labelStyle}>Label</label>
+                      <label style={labelStyle}>{t('Label', 'Название')}</label>
                       <input
                         type="text"
                         list={`sug-${line.category}-${lang}`}
                         value={line[labelKey]}
                         onChange={(e) => updateLine(line.id, { [labelKey]: e.target.value })}
                         style={inputStyle}
-                        placeholder="e.g.: Four Seasons Serengeti"
+                        placeholder={t('e.g.: Four Seasons Serengeti', 'напр.: Four Seasons Serengeti')}
                       />
                     </div>
                     {isHotel && (
                       <div>
-                        <label style={labelStyle}>Nights</label>
+                        <label style={labelStyle}>{t('Nights', 'Ночи')}</label>
                         <input
                           type="number"
                           min={0}
@@ -165,25 +178,25 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                       </div>
                     )}
                     <div>
-                      <label style={labelStyle}>Price</label>
+                      <label style={labelStyle}>{t('Price', 'Цена')}</label>
                       <input
                         type="text"
                         value={line.price}
                         onChange={(e) => updateLine(line.id, { price: e.target.value })}
                         style={inputStyle}
-                        placeholder="13,539.75 per person"
+                        placeholder={t('13,539.75 per person', '13,539.75 за человека')}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Details</label>
+                    <label style={labelStyle}>{t('Details', 'Детали')}</label>
                     <input
                       type="text"
                       value={line[detailsKey]}
                       onChange={(e) => updateLine(line.id, { [detailsKey]: e.target.value })}
                       style={inputStyle}
-                      placeholder="Deluxe City View, All Inclusive"
+                      placeholder={t('Deluxe City View, All Inclusive', 'Deluxe City View, всё включено')}
                     />
                   </div>
 
@@ -202,7 +215,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                         fontFamily: 'inherit',
                       }}
                     >
-                      ✕ Remove
+                      {t('✕ Remove', '✕ Удалить')}
                     </button>
                   </div>
                 </div>
@@ -224,7 +237,7 @@ export default function CostLines({ lines, lang, suggestions = [], onChange }: P
                 fontFamily: 'inherit',
               }}
             >
-              {`+ Add ${cat.title.toLowerCase()}`}
+              {catAddLabels[cat.key] ?? `+ Add ${cat.title.toLowerCase()}`}
             </button>
           </div>
         )

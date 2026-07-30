@@ -7,6 +7,7 @@ import DayBlockItem from './day-block-item'
 import SectionBlockPicker from '@/app/admin/destinations/[id]/section-block-picker'
 import type { Lang } from './edit-page-client'
 import { useDays } from './days-context'
+import { useT } from '@/lib/i18n-client'
 
 // Отельное предложение: плоский список отелей.
 // Технически всё лежит в одном служебном "дне" — агент его не видит.
@@ -16,6 +17,7 @@ export default function HotelsSection({
   proposalId: string
   lang: Lang
 }) {
+  const t = useT()
   const { days, refresh, variantId } = useDays()
   const [isPending, startTransition] = useTransition()
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -50,19 +52,19 @@ export default function HotelsSection({
     <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>
-          Hotels <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Hotels', 'Отели')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-          {blocks.length} {blocks.length === 1 ? 'option' : 'options'}
+          {blocks.length} {blocks.length === 1 ? t('option', 'вариант') : t('options', 'вариантов')}
         </span>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-        Add hotel options for the client to choose from. Remove the ones they don&apos;t pick.
+        {t('Add hotel options for the client to choose from. Remove the ones they don’t pick.', 'Добавьте варианты отелей на выбор клиенту. Удалите те, что клиент не выберет.')}
       </p>
 
       {blocks.length === 0 ? (
         <div style={{ padding: '32px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px', marginBottom: '12px' }}>
-          {holder ? 'No hotels yet. Add the first option below.' : 'Preparing…'}
+          {holder ? t('No hotels yet. Add the first option below.', 'Пока нет отелей. Добавьте первый вариант ниже.') : t('Preparing…', 'Подготовка…')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -83,7 +85,7 @@ export default function HotelsSection({
           fontFamily: 'inherit', opacity: !holder || isPending ? 0.5 : 1,
         }}
       >
-        + Add hotel
+        {t('+ Add hotel', '+ Добавить отель')}
       </button>
 
       <SectionBlockPicker

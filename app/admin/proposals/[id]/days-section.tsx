@@ -18,6 +18,7 @@ import { createDay, deleteDay, reorderDays } from './day-actions'
 import DayCard from './day-card'
 import type { Lang } from './edit-page-client'
 import { useDays } from './days-context'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   proposalId: string
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export default function DaysSection({ proposalId, lang }: Props) {
+  const t = useT()
   const { days, refresh, variantId, tripStart, tripEnd } = useDays()
   const [isPending, startTransition] = useTransition()
 
@@ -42,7 +44,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
   }
 
   function handleDeleteRequest(dayId: string, dayTitle: string) {
-    if (!confirm(`Delete this day?\n\n"${dayTitle || 'Untitled'}"\n\nAll content inside (blocks and notes) will be removed. This cannot be undone.`)) {
+    if (!confirm(`${t('Delete this day?', 'Удалить этот день?')}\n\n"${dayTitle || t('Untitled', 'Без названия')}"\n\n${t('All content inside (blocks and notes) will be removed. This cannot be undone.', 'Всё содержимое (блоки и заметки) будет удалено. Это действие необратимо.')}`)) {
       return
     }
     startTransition(async () => {
@@ -80,10 +82,10 @@ export default function DaysSection({ proposalId, lang }: Props) {
       }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-            Itinerary
+            {t('Itinerary', 'Маршрут')}
           </h2>
           <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '13px' }}>
-            {days.length} {days.length === 1 ? 'day' : 'days'}
+            {days.length} {days.length === 1 ? t('day', 'день') : t('days', 'дней')}
           </p>
         </div>
         <button
@@ -104,7 +106,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          + Add day
+          {t('+ Add day', '+ Добавить день')}
         </button>
       </div>
 
@@ -116,7 +118,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
         if (expected <= 0 || expected === days.length) return null
         return (
           <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#2a2417', border: '1px solid #4a3f1e', borderRadius: '8px', fontSize: '13px', color: 'var(--admin-accent)', lineHeight: 1.5 }}>
-            {`${days.length} of ${expected} days filled in.`}
+            {`${days.length} ${t('of', 'из')} ${expected} ${t('days filled in.', 'дней заполнено.')}`}
           </div>
         )
       })()}
@@ -130,7 +132,7 @@ export default function DaysSection({ proposalId, lang }: Props) {
           borderRadius: '8px',
           fontSize: '14px',
         }}>
-          No days yet. Click + Add day to start building the itinerary.
+          {t('No days yet. Click + Add day to start building the itinerary.', 'Пока нет дней. Нажмите «+ Добавить день», чтобы начать составлять маршрут.')}
         </div>
       ) : (
         <DndContext id="days-reorder" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

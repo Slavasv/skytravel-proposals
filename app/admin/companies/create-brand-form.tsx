@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { createBrand } from './actions'
+import { useT } from '@/lib/i18n-client'
 
 export default function CreateBrandForm() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
@@ -24,7 +26,7 @@ export default function CreateBrandForm() {
       setOwnerPassword('')
       setOpen(false)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ошибка создания бренда')
+      setError(err instanceof Error ? err.message : t('Failed to create brand', 'Ошибка создания бренда'))
     } finally {
       setLoading(false)
     }
@@ -66,7 +68,7 @@ export default function CreateBrandForm() {
           marginBottom: '24px',
         }}
       >
-        + Новый бренд
+        {t('+ New brand', '+ Новый бренд')}
       </button>
     )
   }
@@ -80,32 +82,32 @@ export default function CreateBrandForm() {
       marginBottom: '24px',
     }}>
       <h2 style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-        Новый бренд
+        {t('New brand', 'Новый бренд')}
       </h2>
 
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
-            <label style={labelStyle}>Название бренда</label>
+            <label style={labelStyle}>{t('Brand name', 'Название бренда')}</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="TIGU" required autoFocus style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={labelStyle}>Slug (латиницей, без пробелов)</label>
+            <label style={labelStyle}>{t('Slug (Latin letters, no spaces)', 'Slug (латиницей, без пробелов)')}</label>
             <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="tigu" required style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
           </div>
 
           <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
           <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
-            Владелец бренда
+            {t('Brand owner', 'Владелец бренда')}
           </div>
 
           <div>
-            <label style={labelStyle}>Email для входа</label>
+            <label style={labelStyle}>{t('Login email', 'Email для входа')}</label>
             <input type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder="owner@tigu.com" required style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={labelStyle}>Пароль (от 6 символов)</label>
-            <input type="text" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} placeholder="пароль для передачи владельцу" required style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
+            <label style={labelStyle}>{t('Password (at least 6 characters)', 'Пароль (от 6 символов)')}</label>
+            <input type="text" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} placeholder={t('password to hand over to the owner', 'пароль для передачи владельцу')} required style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
 
@@ -132,7 +134,7 @@ export default function CreateBrandForm() {
               fontFamily: 'inherit',
             }}
           >
-            {loading ? 'Создание...' : 'Создать бренд'}
+            {loading ? t('Creating…', 'Создание…') : t('Create brand', 'Создать бренд')}
           </button>
           <button
             type="button"
@@ -148,7 +150,7 @@ export default function CreateBrandForm() {
               fontFamily: 'inherit',
             }}
           >
-            Отмена
+            {t('Cancel', 'Отмена')}
           </button>
         </div>
       </form>

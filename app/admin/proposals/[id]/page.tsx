@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getClientsForProposal } from '../../actions'
 import EditPageClient from './edit-page-client'
+import { tr } from '@/lib/i18n'
+import { getUiLang } from '@/lib/get-profile'
 
 export default async function EditProposalPage({
   params, searchParams,
@@ -12,6 +14,7 @@ export default async function EditProposalPage({
 }) {
   const { id } = await params
   const { variant: variantParam } = await searchParams
+  const lang = await getUiLang()
 
   const supabase = await createSupabaseServer()
 
@@ -121,16 +124,16 @@ export default async function EditProposalPage({
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginBottom: '16px' }}>
         <Link href="/admin" style={{ color: 'var(--admin-text-muted)', textDecoration: 'none' }}>
-          ← Back to proposals
+          {tr(lang, '← Back to proposals', '← Назад к предложениям')}
         </Link>
       </div>
 
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-          {proposal.trip_title_ru || 'Untitled proposal'}
+          {proposal.trip_title_ru || tr(lang, 'Untitled proposal', 'Предложение без названия')}
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-          For {proposal.client_name_ru || 'unknown client'}
+          {tr(lang, 'For', 'Для')} {proposal.client_name_ru || tr(lang, 'unknown client', 'клиент не указан')}
         </p>
       </div>
 

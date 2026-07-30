@@ -5,6 +5,7 @@ import ImageUploader from '@/app/admin/_components/image-uploader'
 import { uploadImage } from '@/lib/upload-image'
 import { updateVariant, type VariantFull } from './variant-actions'
 import type { Lang } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 type GalleryItem = { id: string; image_url: string; caption_ru: string; caption_en: string }
 
@@ -19,6 +20,7 @@ function normalizeGallery(raw: unknown): GalleryItem[] {
 }
 
 export default function VariantImpressions({ variant, lang }: { variant: VariantFull; lang: Lang }) {
+  const t = useT()
   const [gallery, setGallery] = useState<GalleryItem[]>(normalizeGallery(variant.gallery))
   const [text, setText] = useState(lang === 'ru' ? (variant.impressions_text_ru || '') : (variant.impressions_text_en || ''))
   const [divider, setDivider] = useState(variant.divider_image || '')
@@ -85,9 +87,9 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Овервью варианта — абзац-буквица ПЕРЕД блоком «Впечатления» */}
       <div>
-        <label style={labelStyle}>Variant overview · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Variant overview', 'Обзор варианта')} · {lang.toUpperCase()}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 8px' }}>
-          Intro paragraph for this variant, shown before the impressions gallery (with a big drop-cap on the client page).
+          {t('Intro paragraph for this variant, shown before the impressions gallery (with a big drop-cap on the client page).', 'Вступительный абзац для этого варианта, показывается перед галереей впечатлений (с крупной буквицей на странице клиента).')}
         </p>
         <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={4}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
@@ -96,9 +98,9 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
 
       {/* Галерея — компактная сетка */}
       <div>
-        <label style={labelStyle}>Gallery photos</label>
+        <label style={labelStyle}>{t('Gallery photos', 'Фотографии галереи')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
-          Photos with captions shown at the top of the variant. Select several at once.
+          {t('Photos with captions shown at the top of the variant. Select several at once.', 'Фотографии с подписями, показываемые вверху варианта. Можно выбрать несколько сразу.')}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
@@ -109,7 +111,7 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
                   style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(20,20,20,0.75)', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '4px 8px', fontFamily: 'inherit', backdropFilter: 'blur(4px)' }}>✕</button>
               </div>
               <input type="text" value={g[capKey]} onChange={(e) => updateCaption(g.id, e.target.value)}
-                placeholder={`Caption · ${lang.toUpperCase()}`}
+                placeholder={`${t('Caption', 'Подпись')} · ${lang.toUpperCase()}`}
                 style={{ width: '100%', padding: '7px 9px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: 'none', borderTop: '1px solid var(--admin-border-card)', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
             </div>
           ))}
@@ -119,13 +121,13 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
           onChange={(e) => handleFiles(e.target.files)} />
         <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading}
           style={{ marginTop: '12px', padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: uploading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-          {uploading ? 'Uploading…' : '+ Add photos'}
+          {uploading ? t('Uploading…', 'Загрузка…') : t('+ Add photos', '+ Добавить фото')}
         </button>
       </div>
 
       {/* Впечатляющий текст */}
       <div>
-        <label style={labelStyle}>Impressions text · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Impressions text', 'Текст впечатлений')} · {lang.toUpperCase()}</label>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
           placeholder={lang === 'ru' ? 'Текст под галереей впечатлений — атмосфера, детали, эмоции…' : 'Text under the impressions gallery — atmosphere, details, emotions…'} />
@@ -133,11 +135,11 @@ export default function VariantImpressions({ variant, lang }: { variant: Variant
 
       {/* Фото-дивайдер */}
       <div>
-        <label style={labelStyle}>Divider photo</label>
+        <label style={labelStyle}>{t('Divider photo', 'Фото-разделитель')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
-          One full-width photo shown after the text.
+          {t('One full-width photo shown after the text.', 'Одна фотография во всю ширину, показываемая после текста.')}
         </p>
-        <ImageUploader value={divider} onChange={setDivider} label="Divider" height={200} />
+        <ImageUploader value={divider} onChange={setDivider} label={t('Divider', 'Разделитель')} height={200} />
       </div>
     </div>
   )

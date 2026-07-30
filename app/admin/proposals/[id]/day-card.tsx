@@ -23,6 +23,7 @@ import { updateDay } from './day-actions'
 import DayBlockItem from './day-block-item'
 import AddBlockModal from './add-block-modal'
 import type { Day, Lang } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
@@ -58,6 +59,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function DayCard({ day, isPending, onDeleteRequest, lang, proposalId }: Props) {
+  const t = useT()
   const { refresh } = useDays()
   const {
     attributes,
@@ -131,7 +133,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -165,10 +167,10 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>{t('● Error', '● Ошибка')}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>{t('● Saved', '● Сохранено')}</span>
     return null
   }
 
@@ -198,7 +200,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
         {...attributes}
         {...listeners}
         disabled={isPending}
-        aria-label="Drag to reorder"
+        aria-label={t('Drag to reorder', 'Перетащите для изменения порядка')}
         style={{
           position: 'absolute',
           left: '8px',
@@ -259,15 +261,15 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
             fontWeight: 500,
             minWidth: '50px',
           }}>
-            Day {day.day_number}
+            {t('Day', 'День')} {day.day_number}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '14px', fontWeight: 500 }}>
-              {headerTitle || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled day</span>}
+              {headerTitle || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled day', 'День без названия')}</span>}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span>{day.date || 'No date'}</span>
-              <span>{blocksCount} {blocksCount === 1 ? 'block' : 'blocks'}</span>
+              <span>{day.date || t('No date', 'Без даты')}</span>
+              <span>{blocksCount} {blocksCount === 1 ? t('block', 'блок') : t('blocks', 'блоков')}</span>
               {expanded && <span style={{ fontSize: '11px' }}>{renderSaveIndicator()}</span>}
             </div>
           </div>
@@ -285,7 +287,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
           setMenuOpen(!menuOpen)
         }}
         disabled={isPending}
-        aria-label="Day actions"
+        aria-label={t('Day actions', 'Действия с днём')}
         style={{
           position: 'absolute',
           top: '14px',
@@ -354,7 +356,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Delete day
+              {t('Delete day', 'Удалить день')}
             </button>
           </div>
         </>
@@ -367,7 +369,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}>
             <div>
-              <label style={labelStyle}>Day title</label>
+              <label style={labelStyle}>{t('Day title', 'Название дня')}</label>
               <input
                 type="text"
                 value={form[titleKey]}
@@ -379,7 +381,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
               />
             </div>
             <div>
-              <label style={labelStyle}>Day intro</label>
+              <label style={labelStyle}>{t('Day intro', 'Описание дня')}</label>
               <textarea
                 value={form[introKey]}
                 onChange={(e) => set(introKey, e.target.value)}
@@ -398,7 +400,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
               color: 'var(--admin-danger)',
               marginTop: '10px',
             }}>
-              Error: {errorMsg}
+              {t('Error', 'Ошибка')}: {errorMsg}
             </div>
           )}
 
@@ -417,7 +419,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 color: 'var(--admin-text-muted)',
                 fontWeight: 500,
               }}>
-                Blocks
+                {t('Blocks', 'Блоки')}
               </span>
               <button
                 type="button"
@@ -448,7 +450,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                   e.currentTarget.style.background = 'transparent'
                 }}
               >
-                + Add block
+                {t('+ Add block', '+ Добавить блок')}
               </button>
             </div>
 
@@ -461,7 +463,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
                 borderRadius: '6px',
                 fontSize: '13px',
               }}>
-                No blocks yet. Click + Add block to insert from the library.
+                {t('No blocks yet. Click + Add block to insert from the library.', 'Пока нет блоков. Нажмите «+ Добавить блок», чтобы вставить из библиотеки.')}
               </div>
             ) : (
               <DndContext sensors={blockSensors} collisionDetection={closestCenter} onDragEnd={handleBlocksDragEnd}>

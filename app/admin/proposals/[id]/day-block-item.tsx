@@ -12,6 +12,7 @@ import type { DayBlock, Lang } from './edit-page-client'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
 import { useDays } from './days-context'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   dayBlock: DayBlock
@@ -30,6 +31,7 @@ function formatTime(raw: string): string {
 }
 
 export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId }: Props) {
+  const t = useT()
   const { updateBlockRooms, refresh } = useDays()
   const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
@@ -118,7 +120,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -164,7 +166,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
   function handleRemove() {
     setMenuOpen(false)
-    if (!confirm(`Remove "${title || 'this block'}" from this day?\n\nThe block stays in the library and can be added again later.`)) {
+    if (!confirm(`${t('Remove', 'Удалить')} "${title || t('this block', 'этот блок')}" ${t('from this day?', 'из этого дня?')}\n\n${t('The block stays in the library and can be added again later.', 'Блок останется в библиотеке, его можно добавить снова позже.')}`)) {
       return
     }
     startTransition(async () => {
@@ -174,10 +176,10 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>{t('● Error', '● Ошибка')}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>{t('● Saved', '● Сохранено')}</span>
     return null
   }
 
@@ -220,7 +222,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
         {...attributes}
         {...listeners}
         disabled={isPending || blockedByOuter}
-        aria-label="Drag to reorder"
+        aria-label={t('Drag to reorder', 'Перетащите для изменения порядка')}
         style={{
           background: isMobile ? 'rgba(20, 20, 20, 0.85)' : 'transparent',
           border: isMobile ? '1px solid var(--admin-border-hover)' : 'none',
@@ -275,12 +277,12 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
             </span>
             <span style={{ display: 'block', fontSize: '14px', fontWeight: 500 }}>
-              {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+              {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
               {!expanded && block.type === 'hotel' && noteForm.selected_rooms.length > 0 && (
-                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.selected_rooms.length} {noteForm.selected_rooms.length === 1 ? 'room' : 'rooms'}</span>
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.selected_rooms.length} {noteForm.selected_rooms.length === 1 ? t('room', 'номер') : t('rooms', 'номеров')}</span>
               )}
               {!expanded && (block.type === 'activity' || block.type === 'transfer') && noteForm.guests && (
-                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.guests} {noteForm.guests === 1 ? 'guest' : 'guests'}</span>
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.guests} {noteForm.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}</span>
               )}
             </span>
           </span>
@@ -295,7 +297,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
         {/* Время — общее для всех типов блоков (отель / активность / трансфер) */}
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Time</label>
+          <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('Time', 'Время')}</label>
           <input
             type="text"
             inputMode="numeric"
@@ -360,9 +362,9 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                 }
                 return (
                   <div>
-                    <label style={labelSt}>Rooms</label>
+                    <label style={labelSt}>{t('Rooms', 'Номера')}</label>
                     <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
-                      Pick room types and how many guests in each. Prices are set later in Costs.
+                      {t('Pick room types and how many guests in each. Prices are set later in Costs.', 'Выберите типы номеров и число гостей в каждом. Цены задаются позже в разделе «Стоимость».')}
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {picked.map((row) => (
@@ -371,16 +373,16 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                             style={{ ...inputStyle, flex: 1 }}>
                             {hotelRooms.map((r) => {
                               const rt = lang === 'ru' ? r.title_ru : r.title_en
-                              return <option key={r.id} value={r.id}>{rt || 'Room'}</option>
+                              return <option key={r.id} value={r.id}>{rt || t('Room', 'Номер')}</option>
                             })}
                           </select>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>guests</span>
+                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('guests', 'гостей')}</span>
                             <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
                               style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
                           </div>
                           <input type="text" list="meal-plans" value={row.meal ?? ''} onChange={(e) => changeRoom(row.uid, { meal: e.target.value })}
-                            placeholder="Meal" style={{ ...inputStyle, width: '130px' }} />
+                            placeholder={t('Meal', 'Питание')} style={{ ...inputStyle, width: '130px' }} />
                           <button type="button" onClick={() => removeRoom(row.uid)}
                             style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
                         </div>
@@ -388,7 +390,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                     </div>
                     <button type="button" onClick={addRoom}
                       style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      + Add room
+                      {t('+ Add room', '+ Добавить номер')}
                     </button>
                     <datalist id="meal-plans">
                       <option value="Room Only" />
@@ -402,7 +404,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               })()}
 
               <div>
-                <label style={labelSt}>Hotel activities (optional) · {lang.toUpperCase()}</label>
+                <label style={labelSt}>{t('Hotel activities (optional)', 'Активности отеля (необязательно)')} · {lang.toUpperCase()}</label>
                 <textarea
                   value={noteForm[actKey]}
                   onChange={(e) => setField(actKey, e.target.value)}
@@ -411,11 +413,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                   placeholder={lang === 'ru' ? 'Утренние выезды на сафари\nПешее сафари' : 'Morning game drives\nWalking safari'}
                 />
                 <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '4px 0 0' }}>
-                  One activity per line.
+                  {t('One activity per line.', 'По одной активности в строке.')}
                 </p>
               </div>
 
-              {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>Edit hotel →</button> : null}
+              {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>{t('Edit hotel →', 'Редактировать отель →')}</button> : null}
             </div>
           )
         })()}
@@ -425,13 +427,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
                 <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                  From · {lang.toUpperCase()}
+                  {t('From', 'Откуда')} · {lang.toUpperCase()}
                 </label>
                 <input
                   type="text"
                   value={noteForm[fromKey]}
                   onChange={(e) => setField(fromKey, e.target.value)}
-                  placeholder="Marseille Airport"
+                  placeholder={t('Marseille Airport', 'Аэропорт Марселя')}
                   style={{
                     width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
                     color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
@@ -441,13 +443,13 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               </div>
               <div>
                 <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                  To · {lang.toUpperCase()}
+                  {t('To', 'Куда')} · {lang.toUpperCase()}
                 </label>
                 <input
                   type="text"
                   value={noteForm[toKey]}
                   onChange={(e) => setField(toKey, e.target.value)}
-                  placeholder="Hotel in Gordes"
+                  placeholder={t('Hotel in Gordes', 'Отель в Горде')}
                   style={{
                     width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
                     color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
@@ -457,7 +459,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Guests</span>
+              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
               <input
                 type="number" min={1}
                 value={noteForm.guests ?? ''}
@@ -471,7 +473,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
         {block.type === 'activity' && (
           <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Guests</span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
             <input
               type="number" min={1}
               value={noteForm.guests ?? ''}
@@ -499,7 +501,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               textDecorationColor: 'var(--admin-border-hover)',
             }}
           >
-            + Add note for this trip
+            {t('+ Add note for this trip', '+ Добавить заметку для этой поездки')}
           </button>
         ) : (
           <div style={{ marginTop: '4px' }}>
@@ -516,7 +518,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                 color: 'var(--admin-text-muted)',
                 fontWeight: 500,
               }}>
-                Note for this trip · {lang.toUpperCase()}
+                {t('Note for this trip', 'Заметка для этой поездки')} · {lang.toUpperCase()}
               </label>
               <span style={{ fontSize: '11px' }}>
                 {renderSaveIndicator()}
@@ -526,7 +528,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               value={currentNote}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              placeholder="e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby."
+              placeholder={t('e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.', 'напр.: Выезд из отеля в 6:30. Гид встретит вас в лобби.')}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -543,11 +545,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               }}
             />
             <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
-              Visible to client on this trip only. The library block stays unchanged.
+              {t('Visible to client on this trip only. The library block stays unchanged.', 'Видно клиенту только в этой поездке. Блок в библиотеке остаётся без изменений.')}
             </p>
             {errorMsg && (
               <p style={{ fontSize: '11px', color: 'var(--admin-danger)', margin: '4px 0 0' }}>
-                Error: {errorMsg}
+                {t('Error', 'Ошибка')}: {errorMsg}
               </p>
             )}
           </div>
@@ -564,7 +566,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
           setMenuOpen(!menuOpen)
         }}
         disabled={isPending || blockedByOuter}
-        aria-label="Block actions"
+        aria-label={t('Block actions', 'Действия с блоком')}
         style={{
           position: 'absolute',
           top: '8px',
@@ -629,7 +631,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Duplicate
+              {t('Duplicate', 'Дублировать')}
             </button>
             <button
               onClick={handleRemove}
@@ -650,7 +652,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Remove from day
+              {t('Remove from day', 'Удалить из дня')}
             </button>
           </div>
         </>

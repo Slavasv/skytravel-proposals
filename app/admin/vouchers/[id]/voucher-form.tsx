@@ -11,6 +11,7 @@ import DateInput from '@/app/admin/_components/date-input'
 import VoucherActions from './voucher-actions-ui'
 import ClientPicker from '@/app/admin/_components/client-picker'
 import { useSearchParams } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core'
@@ -118,6 +119,7 @@ function GuestCard({
   onRemove: (id: string) => void
   onSaveToCrm: (g: Guest) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: guest.id })
 
   const child = isChildTitle(guest.title)
@@ -140,18 +142,18 @@ function GuestCard({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Drag"
+          aria-label={t('Drag', 'Перетащить')}
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit', flexShrink: 0 }}
         >
           ⋮⋮
         </button>
 
         <select value={guest.title} onChange={(e) => onChangeTitle(guest.id, e.target.value)} style={{ ...inputStyle, width: '110px', flexShrink: 0 }}>
-          <optgroup label="Adult">
-            {ADULT_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+          <optgroup label={t('Adult', 'Взрослый')}>
+            {ADULT_TITLES.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
           </optgroup>
-          <optgroup label="Child">
-            {CHILD_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+          <optgroup label={t('Child', 'Ребёнок')}>
+            {CHILD_TITLES.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
           </optgroup>
         </select>
 
@@ -162,10 +164,10 @@ function GuestCard({
             type="button"
             onClick={() => onSaveToCrm(guest)}
             disabled={savingGuestId === guest.id}
-            title="Save this guest as a traveller of the selected client"
+            title={t('Save this guest as a traveller of the selected client', 'Сохранить этого гостя как путешественника выбранного клиента')}
             style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: savingGuestId === guest.id ? 'wait' : 'pointer', fontSize: '11px', padding: '8px 10px', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
-            {savingGuestId === guest.id ? '…' : '↑ Save to client'}
+            {savingGuestId === guest.id ? '…' : t('↑ Save to client', '↑ Сохранить клиенту')}
           </button>
         )}
 
@@ -175,11 +177,11 @@ function GuestCard({
       {child && (
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px' }}>
           <div style={{ flex: 1 }}>
-            <DateInput value={guest.birth_date} onChange={(v) => onChangeGuest(guest.id, { birth_date: v })} placeholder="Date of birth dd/mm/yyyy" />
+            <DateInput value={guest.birth_date} onChange={(v) => onChangeGuest(guest.id, { birth_date: v })} placeholder={t('Date of birth dd/mm/yyyy', 'Дата рождения дд/мм/гггг')} />
           </div>
           {age && (
             <span style={{ fontSize: '13px', color: 'var(--admin-accent)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-              {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>at last check-out</span>
+              {age} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>{t('at last check-out', 'на дату последнего выезда')}</span>
             </span>
           )}
         </div>
@@ -196,6 +198,7 @@ export default function VoucherForm({
   lastCheckout: string | null
   clients: ClientOption[]
 }) {
+  const t = useT()
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -253,7 +256,7 @@ export default function VoucherForm({
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -289,14 +292,14 @@ export default function VoucherForm({
   }, [form.client_id])
 
   // ---- CRM: добавить гостя из travellers клиента ----
-  function addFromTraveller(t: TravellerOption) {
-    const title = t.title || 'Mr'
+  function addFromTraveller(trav: TravellerOption) {
+    const title = trav.title || 'Mr'
     set('guests', [...form.guests, {
       id: Math.random().toString(36).slice(2),
       title,
-      name: t.name || '',
+      name: trav.name || '',
       is_child: isChildTitle(title),
-      birth_date: t.date_of_birth || '',
+      birth_date: trav.date_of_birth || '',
     }])
     setTravPickerOpen(false)
   }
@@ -304,7 +307,7 @@ export default function VoucherForm({
   // ---- CRM: сохранить гостя в travellers клиента ----
   async function handleSaveGuestToClient(g: Guest) {
     if (!form.client_id) return
-    if (!g.name.trim()) { alert('Enter the name first.'); return }
+    if (!g.name.trim()) { alert(t('Enter the name first.', 'Сначала введите имя.')); return }
 
     setSavingGuestId(g.id)
     try {
@@ -314,9 +317,9 @@ export default function VoucherForm({
         birth_date: g.birth_date,
       })
       if (res.duplicate) {
-        alert(`"${g.name}" is already saved as a traveller for this client.`)
+        alert(t(`"${g.name}" is already saved as a traveller for this client.`, `«${g.name}» уже сохранён как путешественник этого клиента.`))
       } else if (!res.ok) {
-        alert(res.error || 'Could not save traveller.')
+        alert(res.error || t('Could not save traveller.', 'Не удалось сохранить путешественника.'))
       } else {
         // обновим список travellers, чтобы кнопка исчезла
         const list = await getClientTravellers(form.client_id)
@@ -331,7 +334,7 @@ export default function VoucherForm({
   function isInCrm(name: string): boolean {
     const n = name.trim().toLowerCase()
     if (!n) return false
-    return travellers.some((t) => (t.name || '').trim().toLowerCase() === n)
+    return travellers.some((trav) => (trav.name || '').trim().toLowerCase() === n)
   }
 
   // ---- Guests: drag & drop ----
@@ -387,24 +390,24 @@ export default function VoucherForm({
     if (!b) return ''
     const age = fullYearsBetween(b, refDate)
     if (age < 0) return ''
-    return `${age} y.o.`
+    return `${age} ${t('y.o.', 'лет')}`
   }
 
   // ---- Transfers ----
   function addTransfer() { set('transfers', [...form.transfers, { date: '', from: '', to: '', type: '' }]) }
   function changeTransfer(i: number, patch: Partial<Transfer>) {
-    set('transfers', form.transfers.map((t, idx) => (idx === i ? { ...t, ...patch } : t)))
+    set('transfers', form.transfers.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
   }
   function removeTransfer(i: number) {
     set('transfers', form.transfers.filter((_, idx) => idx !== i))
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● All changes saved', '● Все изменения сохранены')}</span>
   }
 
   return (

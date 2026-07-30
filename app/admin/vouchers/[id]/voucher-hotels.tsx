@@ -12,6 +12,7 @@ import {
   addHotel, updateHotel, deleteHotel, duplicateHotel, reorderHotels, type VoucherHotel,
 } from './voucher-actions'
 import DateInput from '@/app/admin/_components/date-input'
+import { useT } from '@/lib/i18n-client'
 
 // парсинг ДД/ММ/ГГГГ (или ДД.ММ.ГГГГ)
 function parseDMY(str: string): Date | null {
@@ -52,6 +53,7 @@ function HotelCard({
   onAddRoom: (id: string) => void
   onCheckoutChange: (id: string, checkOut: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: hotel.id })
   const [form, setForm] = useState({
     city: hotel.city || '',
@@ -129,74 +131,74 @@ function HotelCard({
   return (
     <div ref={setNodeRef} style={style}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-        <button type="button" {...attributes} {...listeners} aria-label="Drag"
+        <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>⋮⋮</button>
         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', flex: 1 }}>
-          Hotel {index + 1}{form.name ? ` · ${form.name}` : ''}
+          {t('Hotel', 'Отель')} {index + 1}{form.name ? ` · ${form.name}` : ''}
         </span>
         <span style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-          {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+          {saveState === 'saving' ? t('● Saving...', '● Сохранение...') : saveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
         </span>
         <button type="button" onClick={() => onAddRoom(hotel.id)}
-          title="Duplicate this hotel block as another room"
-          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add room</button>
+          title={t('Duplicate this hotel block as another room', 'Дублировать этот блок отеля как ещё один номер')}
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>{t('+ Add room', '+ Добавить номер')}</button>
         <button type="button" onClick={() => onRemove(hotel.id)}
-          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ Remove</button>
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>{t('✕ Remove', '✕ Удалить')}</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>City</label>
+            <label style={labelStyle}>{t('City', 'Город')}</label>
             <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} style={inputStyle} placeholder="Dubai" />
           </div>
           <div>
-            <label style={labelStyle}>Country</label>
+            <label style={labelStyle}>{t('Country', 'Страна')}</label>
             <input type="text" value={form.country} onChange={(e) => set('country', e.target.value)} style={inputStyle} placeholder="UAE" />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>Hotel name</label>
+          <label style={labelStyle}>{t('Hotel name', 'Название отеля')}</label>
           <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} style={inputStyle} placeholder="Grand Hotel Villa Cortine" />
         </div>
         <div>
-          <label style={labelStyle}>Address</label>
+          <label style={labelStyle}>{t('Address', 'Адрес')}</label>
           <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} style={inputStyle} placeholder="Viale C. Gennari 2, 25019 Sirmione (BS), Italy" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Phone</label>
+            <label style={labelStyle}>{t('Phone', 'Телефон')}</label>
             <input type="text" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inputStyle} placeholder="+39 030 990 5890" />
           </div>
           <div>
-            <label style={labelStyle}>Booking Ref.</label>
+            <label style={labelStyle}>{t('Booking Ref.', 'Номер брони')}</label>
             <input type="text" value={form.booking_ref} onChange={(e) => set('booking_ref', e.target.value)} style={inputStyle} placeholder="3245678" />
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Check-in</label>
+            <label style={labelStyle}>{t('Check-in', 'Заезд')}</label>
             <DateInput value={form.check_in} onChange={(v) => set('check_in', v)} />
           </div>
           <div>
-            <label style={labelStyle}>Check-out</label>
+            <label style={labelStyle}>{t('Check-out', 'Выезд')}</label>
             <DateInput value={form.check_out} onChange={(v) => set('check_out', v)} />
           </div>
           <div>
-            <label style={labelStyle}>Nights {autoNights != null && <span style={{ color: 'var(--admin-success)', textTransform: 'none', letterSpacing: 0 }}>· auto</span>}</label>
-            <input type="text" value={nightsDisplay} onChange={(e) => set('nights', e.target.value)} readOnly={autoNights != null} style={{ ...inputStyle, opacity: autoNights != null ? 0.7 : 1, cursor: autoNights != null ? 'default' : 'text' }} placeholder="10" title={autoNights != null ? 'Calculated from check-in / check-out' : 'Enter dates as DD/MM/YYYY to auto-calculate'} />
+            <label style={labelStyle}>{t('Nights', 'Ночей')} {autoNights != null && <span style={{ color: 'var(--admin-success)', textTransform: 'none', letterSpacing: 0 }}>{t('· auto', '· авто')}</span>}</label>
+            <input type="text" value={nightsDisplay} onChange={(e) => set('nights', e.target.value)} readOnly={autoNights != null} style={{ ...inputStyle, opacity: autoNights != null ? 0.7 : 1, cursor: autoNights != null ? 'default' : 'text' }} placeholder="10" title={autoNights != null ? t('Calculated from check-in / check-out', 'Рассчитано по датам заезда и выезда') : t('Enter dates as DD/MM/YYYY to auto-calculate', 'Введите даты в формате ДД/ММ/ГГГГ для автоматического расчёта')} />
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Room type</label>
+            <label style={labelStyle}>{t('Room type', 'Тип номера')}</label>
             <input type="text" value={form.room_type} onChange={(e) => set('room_type', e.target.value)} style={inputStyle} placeholder="Deluxe Lake View" />
           </div>
           <div>
-            <label style={labelStyle}>Meal plan</label>
-            <input type="text" list="meal-plan-options" value={form.meal_plan} onChange={(e) => set('meal_plan', e.target.value)} style={inputStyle} placeholder="Select or type..." />
+            <label style={labelStyle}>{t('Meal plan', 'Питание')}</label>
+            <input type="text" list="meal-plan-options" value={form.meal_plan} onChange={(e) => set('meal_plan', e.target.value)} style={inputStyle} placeholder={t('Select or type...', 'Выберите или введите...')} />
             <datalist id="meal-plan-options">
               <option value="Room Only" />
               <option value="Breakfast" />
@@ -207,7 +209,7 @@ function HotelCard({
         </div>
 
         <div>
-          <label style={labelStyle}>Extra services / notes (optional)</label>
+          <label style={labelStyle}>{t('Extra services / notes (optional)', 'Дополнительные услуги / примечания (необязательно)')}</label>
           <textarea value={form.extras} onChange={(e) => set('extras', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Airport transfer, spa access..." />
         </div>
       </div>
@@ -222,6 +224,7 @@ export default function VoucherHotels({
   initialHotels: VoucherHotel[]
   onCheckoutsChange?: (checkouts: string[]) => void
 }) {
+  const t = useT()
   const [hotels, setHotels] = useState<VoucherHotel[]>(initialHotels)
   const checkoutsRef = useRef<Record<string, string>>({})
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -236,7 +239,7 @@ export default function VoucherHotels({
     if (created) setHotels((prev) => [...prev, created])
   }
   async function handleRemove(id: string) {
-    if (!confirm('Remove this hotel?')) return
+    if (!confirm(t('Remove this hotel?', 'Удалить этот отель?'))) return
     delete checkoutsRef.current[id]
     if (onCheckoutsChange) onCheckoutsChange(Object.values(checkoutsRef.current))
     setHotels((prev) => prev.filter((h) => h.id !== id))
@@ -281,7 +284,7 @@ export default function VoucherHotels({
       )}
       <button type="button" onClick={handleAdd}
         style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: hotels.length > 0 ? '4px' : '0' }}>
-        + Add hotel
+        {t('+ Add hotel', '+ Добавить отель')}
       </button>
     </div>
   )

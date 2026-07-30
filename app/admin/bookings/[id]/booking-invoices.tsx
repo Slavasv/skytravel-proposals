@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { addInvoice, updateInvoice, deleteInvoice, type SupplierInvoice } from '../invoice-actions'
 import type { PartnerOption } from '../actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
+import { useT } from '@/lib/i18n-client'
 
 const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP']
 
@@ -29,6 +30,7 @@ function InvoiceCard({
   onRemove: (id: string) => void
   onChange: (id: string, patch: Partial<SupplierInvoice>) => void
 }) {
+  const t = useT()
   const [form, setForm] = useState({
     partner_id: invoice.partner_id || '',
     invoice_number: invoice.invoice_number || '',
@@ -73,7 +75,7 @@ function InvoiceCard({
       {/* строка 1: поставщик, номер счёта */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
         <div style={{ width: '220px' }}>
-          <label style={labelSt}>Supplier</label>
+          <label style={labelSt}>{t('Supplier', 'Поставщик')}</label>
           <PartnerPicker
             partners={partners}
             value={form.partner_id}
@@ -82,7 +84,7 @@ function InvoiceCard({
           />
         </div>
         <div style={{ flex: 1, minWidth: '160px' }}>
-          <label style={labelSt}>Invoice №</label>
+          <label style={labelSt}>{t('Invoice №', 'Инвойс №')}</label>
           <input type="text" value={form.invoice_number} onChange={(e) => set('invoice_number', e.target.value)} style={inputSt} placeholder="INV-2026-001" />
         </div>
       </div>
@@ -90,39 +92,39 @@ function InvoiceCard({
       {/* строка 2: сумма, валюта, даты */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '10px' }}>
         <div style={{ width: '140px' }}>
-          <label style={labelSt}>Amount</label>
+          <label style={labelSt}>{t('Amount', 'Сумма')}</label>
           <input type="number" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value === '' ? '' : Number(e.target.value))} style={inputSt} placeholder="0" />
         </div>
         <div style={{ width: '90px' }}>
-          <label style={labelSt}>Currency</label>
+          <label style={labelSt}>{t('Currency', 'Валюта')}</label>
           <select value={form.currency} onChange={(e) => set('currency', e.target.value)} style={inputSt}>
             {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div style={{ width: '150px' }}>
-          <label style={labelSt}>Issue date</label>
+          <label style={labelSt}>{t('Issue date', 'Дата выставления')}</label>
           <input type="date" value={form.issue_date} onChange={(e) => set('issue_date', e.target.value)} style={inputSt} />
         </div>
         <div style={{ width: '150px' }}>
-          <label style={labelSt}>Due date</label>
+          <label style={labelSt}>{t('Due date', 'Срок оплаты')}</label>
           <input type="date" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} style={inputSt} />
         </div>
       </div>
 
       {/* заметка */}
       <div style={{ marginBottom: '10px' }}>
-        <label style={labelSt}>Note (optional)</label>
-        <input type="text" value={form.notes} onChange={(e) => set('notes', e.target.value)} style={inputSt} placeholder="What this invoice covers…" />
+        <label style={labelSt}>{t('Note (optional)', 'Заметка (необязательно)')}</label>
+        <input type="text" value={form.notes} onChange={(e) => set('notes', e.target.value)} style={inputSt} placeholder={t('What this invoice covers…', 'За что этот счёт…')} />
       </div>
 
       {/* действия */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: '11px', color: saved ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-          {saved ? '● Saved' : ''}
+          {saved ? t('● Saved', '● Сохранено') : ''}
         </span>
         <button type="button" onClick={() => onRemove(invoice.id)}
           style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '5px 9px', fontFamily: 'inherit' }}>
-          ✕ Remove
+          {t('✕ Remove', '✕ Удалить')}
         </button>
       </div>
     </div>
@@ -136,6 +138,7 @@ export default function BookingInvoices({
   initial: SupplierInvoice[]
   partners: PartnerOption[]
 }) {
+  const t = useT()
   const [invoices, setInvoices] = useState<SupplierInvoice[]>(initial)
 
   async function handleAdd() {
@@ -144,7 +147,7 @@ export default function BookingInvoices({
   }
 
   async function handleRemove(id: string) {
-    if (!confirm('Remove this invoice?')) return
+    if (!confirm(t('Remove this invoice?', 'Удалить этот счёт?'))) return
     setInvoices((p) => p.filter((i) => i.id !== id))
     await deleteInvoice(id)
   }
@@ -167,7 +170,8 @@ export default function BookingInvoices({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
         {invoices.length === 0 ? (
           <div style={{ padding: '28px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-            No supplier invoices yet. Add the bills you received from hotels and partners.
+            {t('No supplier invoices yet. Add the bills you received from hotels and partners.',
+               'Пока нет счетов поставщиков. Добавьте счета, полученные от отелей и партнёров.')}
           </div>
         ) : (
           invoices.map((i) => (
@@ -179,13 +183,13 @@ export default function BookingInvoices({
 
       <button type="button" onClick={handleAdd}
         style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-        + Add invoice
+        {t('+ Add invoice', '+ Добавить счёт')}
       </button>
 
       {/* ИТОГИ по валютам */}
       {currencies.length > 0 && (
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <div style={{ ...labelSt, marginBottom: '10px' }}>Invoiced totals</div>
+          <div style={{ ...labelSt, marginBottom: '10px' }}>{t('Invoiced totals', 'Итого по счетам')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {currencies.map((cur) => (
               <div key={cur} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '10px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)' }}>
@@ -195,7 +199,7 @@ export default function BookingInvoices({
             ))}
           </div>
           <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '8px 0 0' }}>
-            Currencies are kept separate — no conversion.
+            {t('Currencies are kept separate — no conversion.', 'Валюты считаются раздельно — без конвертации.')}
           </p>
         </div>
       )}

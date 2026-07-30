@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
 import {
   addSection,
   deleteSection,
@@ -32,17 +33,18 @@ import SectionHotel from './section-hotel'
 
 type Lang = 'ru' | 'en'
 
-const SECTION_TYPES: { type: SectionType; label: string; desc: string }[] = [
-  { type: 'route', label: 'Route', desc: 'Sample itinerary (one per destination)' },
-  { type: 'city', label: 'City', desc: 'Place story with facts' },
-  { type: 'activities', label: 'Activities', desc: 'Themed collection of activities' },
-  { type: 'hotel', label: 'Hotel', desc: 'Hotel with rooms' },
-  { type: 'gallery', label: 'Gallery', desc: 'Photo gallery' },
-  { type: 'sample_day', label: 'Sample day', desc: 'A typical day timeline' },
+const SECTION_TYPES: { type: SectionType; label: string; label_ru: string; desc: string; desc_ru: string }[] = [
+  { type: 'route', label: 'Route', label_ru: 'Маршрут', desc: 'Sample itinerary (one per destination)', desc_ru: 'Примерный маршрут (один на направление)' },
+  { type: 'city', label: 'City', label_ru: 'Город', desc: 'Place story with facts', desc_ru: 'Рассказ о месте с фактами' },
+  { type: 'activities', label: 'Activities', label_ru: 'Активности', desc: 'Themed collection of activities', desc_ru: 'Тематическая подборка активностей' },
+  { type: 'hotel', label: 'Hotel', label_ru: 'Отель', desc: 'Hotel with rooms', desc_ru: 'Отель с номерами' },
+  { type: 'gallery', label: 'Gallery', label_ru: 'Галерея', desc: 'Photo gallery', desc_ru: 'Фотогалерея' },
+  { type: 'sample_day', label: 'Sample day', label_ru: 'Типичный день', desc: 'A typical day timeline', desc_ru: 'Хронология типичного дня' },
 ]
 
-function typeLabel(type: SectionType): string {
-  return SECTION_TYPES.find((t) => t.type === type)?.label ?? type
+function typeLabel(type: SectionType, t: (en: string, ru: string) => string): string {
+  const found = SECTION_TYPES.find((x) => x.type === type)
+  return found ? t(found.label, found.label_ru) : type
 }
 
 function SortableSection({
@@ -62,6 +64,7 @@ function SortableSection({
   onLocalChange: (id: string, patch: Partial<DestinationSection>) => void
   disabled: boolean
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: section.id,
     disabled,
@@ -87,7 +90,7 @@ function SortableSection({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Drag to reorder"
+          aria-label={t('Drag to reorder', 'Перетащите для сортировки')}
           style={{
             background: 'transparent', border: 'none', padding: '2px 6px',
             cursor: disabled ? 'not-allowed' : 'grab', color: 'var(--admin-text-muted)',
@@ -106,7 +109,7 @@ function SortableSection({
         >
           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
             <span style={{ color: 'var(--admin-text-muted)', marginRight: '6px' }}>{expanded ? '▾' : '▸'}</span>
-            {typeLabel(section.type)}
+            {typeLabel(section.type, t)}
             {title && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {title}</span>}
           </div>
         </button>
@@ -120,7 +123,7 @@ function SortableSection({
             borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
           }}
         >
-          ✕ Remove
+          ✕ {t('Remove', 'Удалить')}
         </button>
       </div>
 
@@ -140,7 +143,7 @@ function SortableSection({
             <SectionHotel section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
           ) : (
             <div style={{ paddingTop: '12px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-              Editing for &quot;{typeLabel(section.type)}&quot; is coming in the next step.
+              {t(`Editing for "${typeLabel(section.type, t)}" is coming in the next step.`, `Редактирование «${typeLabel(section.type, t)}» появится на следующем этапе.`)}
             </div>
           )}
         </div>
@@ -158,6 +161,7 @@ export default function SectionList({
   initialSections: DestinationSection[]
   lang: Lang
 }) {
+  const t = useT()
   const [sections, setSections] = useState<DestinationSection[]>(initialSections)
   const [addOpen, setAddOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -176,7 +180,7 @@ export default function SectionList({
   }
 
   function handleDelete(id: string) {
-    if (!confirm('Remove this section?')) return
+    if (!confirm(t('Remove this section?', 'Удалить этот раздел?'))) return
     if (expandedId === id) setExpandedId(null)
     setSections((prev) => prev.filter((s) => s.id !== id))
     startTransition(async () => {
@@ -207,9 +211,9 @@ export default function SectionList({
 
   return (
     <section>
-      <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Sections</h2>
+      <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Sections', 'Разделы')}</h2>
       <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-        Build the destination page from sections. Drag to reorder. All optional except Cover &amp; Costs.
+        {t('Build the destination page from sections. Drag to reorder. All optional except Cover & Costs.', 'Соберите страницу направления из разделов. Перетаскивайте для сортировки. Все необязательны, кроме обложки и стоимости.')}
       </p>
 
       {sections.length > 0 && (
@@ -245,13 +249,13 @@ export default function SectionList({
             marginTop: sections.length > 0 ? '4px' : '0',
           }}
         >
-          + Add section
+          + {t('Add section', 'Добавить раздел')}
         </button>
       ) : (
         <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', padding: '8px', marginTop: '4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>Choose a section type</span>
-            <button type="button" onClick={() => setAddOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>Cancel</button>
+            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('Choose a section type', 'Выберите тип раздела')}</span>
+            <button type="button" onClick={() => setAddOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>{t('Cancel', 'Отмена')}</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             {SECTION_TYPES.map((st) => {
@@ -262,7 +266,7 @@ export default function SectionList({
                   type="button"
                   onClick={() => !blocked && handleAdd(st.type)}
                   disabled={blocked}
-                  title={blocked ? 'Route can only be added once' : st.desc}
+                  title={blocked ? t('Route can only be added once', 'Маршрут можно добавить только один раз') : t(st.desc, st.desc_ru)}
                   style={{
                     textAlign: 'left', padding: '10px 12px',
                     background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
@@ -270,8 +274,8 @@ export default function SectionList({
                     opacity: blocked ? 0.4 : 1, fontFamily: 'inherit',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>{st.label}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>{st.desc}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>{t(st.label, st.label_ru)}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>{t(st.desc, st.desc_ru)}</div>
                 </button>
               )
             })}

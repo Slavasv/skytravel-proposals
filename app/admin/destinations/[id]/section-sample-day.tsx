@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import { useT } from '@/lib/i18n-client'
 import { updateSection } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
 
@@ -76,6 +77,7 @@ function SortableRow({
   onChange: (id: string, patch: Partial<TimelineItem>) => void
   onRemove: (id: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -90,7 +92,7 @@ function SortableRow({
   const textKey = lang === 'ru' ? 'text_ru' : 'text_en'
   return (
     <div ref={setNodeRef} style={style}>
-      <button type="button" {...attributes} {...listeners} aria-label="Drag"
+      <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
         style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>
         ⋮⋮
       </button>
@@ -113,6 +115,7 @@ export default function SectionSampleDay({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
+  const t = useT()
   const [items, setItems] = useState<TimelineItem[]>(getItems(section.data))
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
@@ -164,7 +167,7 @@ export default function SectionSampleDay({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
       <div>
-        <label style={labelStyle}>Section title (optional) · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Section title (optional)', 'Заголовок раздела (необяз.)')} · {lang.toUpperCase()}</label>
         {lang === 'ru' ? (
           <input type="text" value={titleRu} onChange={(e) => setTitleRu(e.target.value)} style={{ ...inputStyle, width: '100%' }} placeholder="Например: Обычный день в буше" />
         ) : (
@@ -173,7 +176,7 @@ export default function SectionSampleDay({
       </div>
 
       <div>
-        <label style={labelStyle}>Timeline</label>
+        <label style={labelStyle}>{t('Timeline', 'Хронология')}</label>
         {items.length > 0 ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -185,24 +188,24 @@ export default function SectionSampleDay({
             </SortableContext>
           </DndContext>
         ) : (
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>No entries yet.</p>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>{t('No entries yet.', 'Пока нет записей.')}</p>
         )}
         <button type="button" onClick={addRow}
           style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: '4px' }}>
-          + Add entry
+          + {t('Add entry', 'Добавить запись')}
         </button>
       </div>
 
       <div>
-        <label style={labelStyle}>Side photos (optional) — shown left & right of the timeline</label>
+        <label style={labelStyle}>{t('Side photos (optional) — shown left & right of the timeline', 'Боковые фото (необяз.) — показываются слева и справа от хронологии')}</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <ImageUploader value={imageLeft} onChange={setImageLeft} label="Left photo" height={200} />
-          <ImageUploader value={imageRight} onChange={setImageRight} label="Right photo" height={200} />
+          <ImageUploader value={imageLeft} onChange={setImageLeft} label={t('Left photo', 'Фото слева')} height={200} />
+          <ImageUploader value={imageRight} onChange={setImageRight} label={t('Right photo', 'Фото справа')} height={200} />
         </div>
       </div>
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-        {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+        {saveState === 'saving' ? t('● Saving...', '● Сохранение...') : saveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
       </div>
     </div>
   )

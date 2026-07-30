@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { createClient } from './actions'
 import ClientsList, { type ClientRow } from './clients-list'
 
 export default async function ClientsPage() {
   const profile = await getProfile()
+  const lang = profile?.ui_language ?? 'en'
 
   if (profile?.role === 'superadmin') {
     redirect('/admin/companies')
@@ -21,7 +23,7 @@ export default async function ClientsPage() {
     .order('updated_at', { ascending: false })
 
   if (error) {
-    return <div style={{ padding: '40px', color: 'red' }}>Error: {error.message}</div>
+    return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>
   }
 
   const clients = (allClients ?? []) as ClientRow[]
@@ -30,15 +32,15 @@ export default async function ClientsPage() {
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Clients</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>{tr(lang, 'Clients', 'Клиенты')}</h1>
           <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-            {clients.length} {clients.length === 1 ? 'client' : 'clients'}
+            {clients.length} {clients.length === 1 ? tr(lang, 'client', 'клиент') : tr(lang, 'clients', 'клиентов')}
           </p>
         </div>
 
         <form action={createClient}>
           <button type="submit" style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            + New client
+            {tr(lang, '+ New client', '+ Новый клиент')}
           </button>
         </form>
       </div>

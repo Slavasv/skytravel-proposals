@@ -1,6 +1,8 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { getUiLang } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -35,7 +37,7 @@ export async function createClient() {
     companyId = me?.company_id ?? null
   }
 
-  if (!companyId) throw new Error('Компания не найдена')
+  if (!companyId) throw new Error(tr(await getUiLang(), 'Company not found', 'Компания не найдена'))
 
   // Авто-код CL-001, CL-002...
   const { data: code } = await supabase.rpc('next_client_code', { p_company_id: companyId })
@@ -56,7 +58,7 @@ export async function createClient() {
     .select()
     .single()
 
-  if (error || !data) throw new Error(error?.message || 'Failed to create client')
+  if (error || !data) throw new Error(error?.message || tr(await getUiLang(), 'Failed to create client', 'Не удалось создать клиента'))
 
   revalidatePath('/admin/clients')
   redirect(`/admin/clients/${data.id}`)
@@ -105,7 +107,7 @@ export async function duplicateClient(id: string) {
     .eq('id', id)
     .single()
 
-  if (fetchError || !original) throw new Error('Client not found')
+  if (fetchError || !original) throw new Error(tr(await getUiLang(), 'Client not found', 'Клиент не найден'))
 
   // новый код для копии
   const { data: code } = await supabase.rpc('next_client_code', {
@@ -185,7 +187,7 @@ export async function addTraveller(clientId: string) {
     .eq('id', clientId)
     .single()
 
-  if (!client) throw new Error('Client not found')
+  if (!client) throw new Error(tr(await getUiLang(), 'Client not found', 'Клиент не найден'))
 
   const { data: existing } = await supabase
     .from('travellers')

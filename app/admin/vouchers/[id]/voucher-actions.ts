@@ -2,6 +2,8 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
+import { tr } from '@/lib/i18n'
+import { getUiLang } from '@/lib/get-profile'
 
 export type Guest = {
   id: string
@@ -67,9 +69,10 @@ export async function saveGuestToClient(
   guest: { title: string; name: string; birth_date: string }
 ): Promise<{ ok: boolean; duplicate: boolean; error?: string }> {
   const supabase = await createSupabaseServer()
+  const lang = await getUiLang()
 
   const cleanName = guest.name.trim()
-  if (!cleanName) return { ok: false, duplicate: false, error: 'Name is empty' }
+  if (!cleanName) return { ok: false, duplicate: false, error: tr(lang, 'Name is empty', 'Имя не указано') }
 
   // проверка дубля (по имени, без учёта регистра)
   const { data: existing } = await supabase
@@ -88,7 +91,7 @@ export async function saveGuestToClient(
     .eq('id', clientId)
     .single()
 
-  if (!client) return { ok: false, duplicate: false, error: 'Client not found' }
+  if (!client) return { ok: false, duplicate: false, error: tr(lang, 'Client not found', 'Клиент не найден') }
 
   const { data: last } = await supabase
     .from('travellers')
@@ -144,8 +147,9 @@ function cleanSlug(raw: string): string {
 
 // возвращает { ok, error } — проверяет уникальность
 export async function updateVoucherSlug(id: string, rawSlug: string): Promise<{ ok: boolean; slug?: string; error?: string }> {
+  const lang = await getUiLang()
   const slug = cleanSlug(rawSlug)
-  if (!slug) return { ok: false, error: 'Slug cannot be empty' }
+  if (!slug) return { ok: false, error: tr(lang, 'Slug cannot be empty', 'Ссылка не может быть пустой') }
 
   const supabase = await createSupabaseServer()
 
@@ -157,7 +161,7 @@ export async function updateVoucherSlug(id: string, rawSlug: string): Promise<{ 
     .neq('id', id)
     .maybeSingle()
 
-  if (existing) return { ok: false, error: 'This link is already taken' }
+  if (existing) return { ok: false, error: tr(lang, 'This link is already taken', 'Эта ссылка уже занята') }
 
   const { error } = await supabase
     .from('vouchers')

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 import { updateProposal } from '@/app/admin/actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import CostLines, { type CostLine } from '@/app/admin/proposals/[id]/cost-lines'
@@ -63,6 +64,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'CHF']
 
 export default function DestinationForm({ proposal, sections }: { proposal: Proposal; sections: DestinationSection[] }) {
   const router = useRouter()
+  const t = useT()
   const [lang, setLang] = useState<Lang>('ru')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -131,7 +133,7 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Ошибка сохранения'))
         setSaveState('error')
       }
     })()
@@ -174,11 +176,11 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● {t('Saving...', 'Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
   }
 
   return (
@@ -186,7 +188,7 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
       {/* Top bar: language + save */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--admin-border-card)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>Editing in</span>
+          <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>{t('Editing in', 'Редактирование на')}</span>
           <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             {(['ru', 'en'] as const).map((l) => (
               <button key={l} type="button" onClick={() => setLang(l)}
@@ -207,26 +209,26 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
       {/* COVER */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Cover <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Cover', 'Обложка')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Destination title</label>
+            <label style={labelStyle}>{t('Destination title', 'Название направления')}</label>
             <input type="text" value={form[titleKey]} onChange={(e) => set(titleKey, e.target.value)} style={inputStyle} placeholder={lang === 'ru' ? 'Например: Африка, Кения' : 'e.g.: Africa, Kenya'} />
           </div>
           <div>
-            <label style={labelStyle}>Season</label>
+            <label style={labelStyle}>{t('Season', 'Сезон')}</label>
             <input type="text" value={form[seasonKey]} onChange={(e) => set(seasonKey, e.target.value)} style={inputStyle} placeholder={lang === 'ru' ? 'Например: Октябрь 2026 · Май–Июнь · Круглый год' : 'e.g.: October 2026 · May–June · Year-round'} />
           </div>
           <div>
-            <label style={labelStyle}>Tagline</label>
+            <label style={labelStyle}>{t('Tagline', 'Слоган')}</label>
             <input type="text" value={form[taglineKey]} onChange={(e) => set(taglineKey, e.target.value)} style={inputStyle} placeholder={lang === 'ru' ? 'Слоган бренда' : 'For people who celebrate life'} />
           </div>
           <div>
-            <ImageUploader value={form.cover_image_url} onChange={(url) => set('cover_image_url', url)} label="Cover image" height={200} />
+            <ImageUploader value={form.cover_image_url} onChange={(url) => set('cover_image_url', url)} label={t('Cover image', 'Изображение обложки')} height={200} />
           </div>
           <div>
-            <label style={labelStyle}>Intro text</label>
+            <label style={labelStyle}>{t('Intro text', 'Вступительный текст')}</label>
             <textarea value={form[introKey]} onChange={(e) => set(introKey, e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={lang === 'ru' ? 'Вводный текст о направлении...' : 'Intro text about the destination...'} />
           </div>
         </div>
@@ -239,47 +241,47 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
 
       {/* COSTS (last — filled last) */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Costs</h2>
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>Pricing for this destination. Required.</p>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Costs', 'Стоимость')}</h2>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>{t('Pricing for this destination. Required.', 'Стоимость этого направления. Обязательно.')}</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={labelStyle}>Currency</label>
+              <label style={labelStyle}>{t('Currency', 'Валюта')}</label>
               <select value={form.cost_currency} onChange={(e) => set('cost_currency', e.target.value)} style={inputStyle}>
                 {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Total price</label>
+              <label style={labelStyle}>{t('Total price', 'Итоговая цена')}</label>
               <input type="text" value={form.total_price} onChange={(e) => set('total_price', e.target.value)} style={inputStyle} placeholder="42870" />
             </div>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--admin-text)' }}>
             <input type="checkbox" checked={form.price_from} onChange={(e) => set('price_from', e.target.checked)} />
-            Show price as &quot;from X&quot; (Стоимость от)
+            {t('Show price as "from X"', 'Показывать цену как «от X»')}
           </label>
 
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '4px' }}>Price breakdown</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '4px' }}>{t('Price breakdown', 'Детализация стоимости')}</div>
             <CostLines lines={form.cost_lines} lang={lang} onChange={(lines) => set('cost_lines', lines)} />
           </div>
 
           <div>
-            <label style={labelStyle}>This cost includes · {lang.toUpperCase()}</label>
+            <label style={labelStyle}>{t('This cost includes', 'В стоимость входит')} · {lang.toUpperCase()}</label>
             <textarea value={form[includesKey]} onChange={(e) => set(includesKey, e.target.value)} rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons'} />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>One item per line.</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>{t('One item per line.', 'По одному пункту на строку.')}</p>
           </div>
           <div>
-            <label style={labelStyle}>This cost does not include · {lang.toUpperCase()}</label>
+            <label style={labelStyle}>{t('This cost does not include', 'В стоимость не входит')} · {lang.toUpperCase()}</label>
             <textarea value={form[excludesKey]} onChange={(e) => set(excludesKey, e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={'e.g.:\nInternational flights\nVisas'} />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>One item per line.</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>{t('One item per line.', 'По одному пункту на строку.')}</p>
           </div>
           <div>
-            <label style={labelStyle}>Notes · {lang.toUpperCase()}</label>
+            <label style={labelStyle}>{t('Notes', 'Примечания')} · {lang.toUpperCase()}</label>
             <textarea value={form[notesKey]} onChange={(e) => set(notesKey, e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={'e.g.:\nKenya requires an ETA prior to travel'} />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>One item per line.</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>{t('One item per line.', 'По одному пункту на строку.')}</p>
           </div>
         </div>
       </section>
@@ -306,7 +308,7 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
               opacity: saveState === 'saving' ? 0.6 : 1,
             }}
           >
-            Done
+            {t('Done', 'Готово')}
           </button>
         </div>
       </div>

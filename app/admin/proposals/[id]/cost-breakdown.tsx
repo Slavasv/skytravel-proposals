@@ -5,6 +5,7 @@ import { useDays } from './days-context'
 import { updateVariant } from './variant-actions'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
 import type { Lang } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 export default function CostBreakdown({
   lang, currency, onTotalChange,
@@ -13,6 +14,7 @@ export default function CostBreakdown({
   currency: string
   onTotalChange?: (total: number) => void
 }) {
+  const t = useT()
   const { days, variantId, updateRoomPrice, updateBlockPrice, getNights } = useDays()
 
   const inputStyle: React.CSSProperties = {
@@ -38,14 +40,14 @@ export default function CostBreakdown({
     for (const b of (d.day_blocks ?? [])) {
       const cb = b.content_blocks
       if (!cb) continue
-      const title = (lang === 'ru' ? cb.title_ru : cb.title_en) || cb.title_en || cb.title_ru || 'Untitled'
+      const title = (lang === 'ru' ? cb.title_ru : cb.title_en) || cb.title_en || cb.title_ru || t('Untitled', 'Без названия')
 
       if (cb.type === 'hotel') {
         const roomDefs = normalizeRooms(cb.rooms)
         const rows: Line[] = (b.selected_rooms ?? []).map((sr) => {
           const def = roomDefs.find((r) => r.id === sr.room_id)
-          const roomName = def ? ((lang === 'ru' ? def.title_ru : def.title_en) || def.title_en || def.title_ru || 'Room') : 'Room'
-          const guestsLabel = `${sr.guests} ${sr.guests === 1 ? 'guest' : 'guests'}`
+          const roomName = def ? ((lang === 'ru' ? def.title_ru : def.title_en) || def.title_en || def.title_ru || t('Room', 'Номер')) : t('Room', 'Номер')
+          const guestsLabel = `${sr.guests} ${sr.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}`
           const sub = sr.meal ? `${guestsLabel} · ${sr.meal}` : guestsLabel
           return {
             key: `${b.id}:${sr.uid}`, blockId: b.id, uid: sr.uid,
@@ -54,10 +56,10 @@ export default function CostBreakdown({
         })
         if (rows.length > 0) hotels.push({ blockId: b.id, hotelName: title, nights: getNights(b.id), rooms: rows })
       } else if (cb.type === 'activity') {
-        const g = b.guests ? `${b.guests} ${b.guests === 1 ? 'guest' : 'guests'}` : ''
+        const g = b.guests ? `${b.guests} ${b.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}` : ''
         activities.push({ key: b.id, blockId: b.id, label: title, sub: g, price: b.price })
       } else if (cb.type === 'transfer') {
-        const g = b.guests ? `${b.guests} ${b.guests === 1 ? 'guest' : 'guests'}` : ''
+        const g = b.guests ? `${b.guests} ${b.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}` : ''
         transfers.push({ key: b.id, blockId: b.id, label: title, sub: g, price: b.price })
       }
     }
@@ -67,7 +69,7 @@ export default function CostBreakdown({
 
   const hotelsTotal = hotels.reduce((s, h) => s + h.rooms.reduce((rs, r) => rs + (r.price || 0), 0), 0)
   const activitiesTotal = activities.reduce((s, a) => s + (a.price || 0), 0)
-  const transfersTotal = transfers.reduce((s, t) => s + (t.price || 0), 0)
+  const transfersTotal = transfers.reduce((s, tx) => s + (tx.price || 0), 0)
   const grandTotal = hotelsTotal + activitiesTotal + transfersTotal
 
   // отдаём итог наверх для отображения в поле Total price
@@ -94,7 +96,7 @@ export default function CostBreakdown({
   if (nothing) {
     return (
       <p style={{ fontSize: '13px', color: 'var(--admin-text-muted)', margin: 0 }}>
-        Add hotels, activities or transfers to the itinerary — they’ll appear here for pricing.
+        {t('Add hotels, activities or transfers to the itinerary — they’ll appear here for pricing.', 'Добавьте отели, активности или трансферы в маршрут — они появятся здесь для расчёта стоимости.')}
       </p>
     )
   }
@@ -121,14 +123,14 @@ export default function CostBreakdown({
       {/* ПРОЖИВАНИЕ */}
       {hotels.length > 0 && (
         <div>
-          <div style={catTitle}>Accommodation</div>
+          <div style={catTitle}>{t('Accommodation', 'Проживание')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {hotels.map((h) => (
               <div key={h.blockId} style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--admin-text)' }}>{h.hotelName}</span>
                   {h.nights != null && (
-                    <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{h.nights} {h.nights === 1 ? 'night' : 'nights'}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{h.nights} {h.nights === 1 ? t('night', 'ночь') : t('nights', 'ночей')}</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -144,14 +146,14 @@ export default function CostBreakdown({
               </div>
             ))}
           </div>
-          {catTotalRow('Accommodation total', hotelsTotal)}
+          {catTotalRow(t('Accommodation total', 'Проживание — итого'), hotelsTotal)}
         </div>
       )}
 
       {/* АКТИВНОСТИ */}
       {activities.length > 0 && (
         <div>
-          <div style={catTitle}>Activities</div>
+          <div style={catTitle}>{t('Activities', 'Активности')}</div>
           <div style={cardStyle}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {activities.map((a) => (
@@ -164,27 +166,27 @@ export default function CostBreakdown({
               ))}
             </div>
           </div>
-          {catTotalRow('Activities total', activitiesTotal)}
+          {catTotalRow(t('Activities total', 'Активности — итого'), activitiesTotal)}
         </div>
       )}
 
       {/* ТРАНСФЕРЫ */}
       {transfers.length > 0 && (
         <div>
-          <div style={catTitle}>Transfers</div>
+          <div style={catTitle}>{t('Transfers', 'Трансферы')}</div>
           <div style={cardStyle}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {transfers.map((t) => (
-                <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {transfers.map((tx) => (
+                <div key={tx.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ flex: 1, fontSize: '13px', color: 'var(--admin-text)' }}>
-                    {t.label}{t.sub && <span style={{ color: 'var(--admin-text-muted)' }}> · {t.sub}</span>}
+                    {tx.label}{tx.sub && <span style={{ color: 'var(--admin-text-muted)' }}> · {tx.sub}</span>}
                   </span>
-                  {priceInput(t.price, (v) => updateBlockPrice(t.blockId, v))}
+                  {priceInput(tx.price, (v) => updateBlockPrice(tx.blockId, v))}
                 </div>
               ))}
             </div>
           </div>
-          {catTotalRow('Transfers total', transfersTotal)}
+          {catTotalRow(t('Transfers total', 'Трансферы — итого'), transfersTotal)}
         </div>
       )}
     </div>

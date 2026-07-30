@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 import {
   updateRequest, createProposalFromRequest, detachProposalFromRequest,
   selectDestination, unselectDestination, approveProposal, unapproveProposal,
@@ -37,27 +38,28 @@ type RequestRow = {
   trip_end: string | null
 }
 
-const STATUSES: { value: string; label: string }[] = [
-  { value: 'new', label: 'New Request' },
-  { value: 'clients_review', label: 'Client review' },
-  { value: 'preparing', label: 'Preparing proposal' },
-  { value: 'proposal_sent', label: 'Proposal sent' },
-  { value: 'revising', label: 'Revising proposal' },
-  { value: 'booking', label: 'Booking in progress' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'cancelled', label: 'Cancelled' },
+// value хранится в БД (не переводим), en/ru — подпись
+const STATUSES: { value: string; en: string; ru: string }[] = [
+  { value: 'new', en: 'New Request', ru: 'Новая заявка' },
+  { value: 'clients_review', en: 'Client review', ru: 'На согласовании у клиента' },
+  { value: 'preparing', en: 'Preparing proposal', ru: 'Готовим предложение' },
+  { value: 'proposal_sent', en: 'Proposal sent', ru: 'Предложение отправлено' },
+  { value: 'revising', en: 'Revising proposal', ru: 'Дорабатываем предложение' },
+  { value: 'booking', en: 'Booking in progress', ru: 'В процессе бронирования' },
+  { value: 'confirmed', en: 'Confirmed', ru: 'Подтверждена' },
+  { value: 'cancelled', en: 'Cancelled', ru: 'Отменена' },
 ]
 
 const PRIORITIES = ['Low', 'Medium', 'High']
 const CLOSING = ['confirmed', 'cancelled']
 
-const CANCEL_REASONS = [
-  'Too expensive',
-  'Chose another agency',
-  'Changed travel plans',
-  'Dates / hotel did not fit',
-  'No response from client',
-  'Other',
+const CANCEL_REASONS: { value: string; en: string; ru: string }[] = [
+  { value: 'Too expensive', en: 'Too expensive', ru: 'Слишком дорого' },
+  { value: 'Chose another agency', en: 'Chose another agency', ru: 'Выбрали другое агентство' },
+  { value: 'Changed travel plans', en: 'Changed travel plans', ru: 'Изменились планы на поездку' },
+  { value: 'Dates / hotel did not fit', en: 'Dates / hotel did not fit', ru: 'Не подошли даты / отель' },
+  { value: 'No response from client', en: 'No response from client', ru: 'Клиент не отвечает' },
+  { value: 'Other', en: 'Other', ru: 'Другое' },
 ]
 
 const labelStyle: React.CSSProperties = {
@@ -70,15 +72,6 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
-function daysBetween(from: string, to: string): string {
-  const a = new Date(from), b = new Date(to)
-  if (isNaN(a.getTime()) || isNaN(b.getTime())) return ''
-  const diff = Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000))
-  if (diff === 0) return 'closed same day'
-  if (diff === 1) return 'closed in 1 day'
-  return `closed in ${diff} days`
-}
-
 export default function RequestForm({
   request, clients, destinations, linked = [], availableDestinations = [], bookings = [],
 }: {
@@ -89,6 +82,7 @@ export default function RequestForm({
   availableDestinations?: DestinationOption[]
   bookings?: RequestBooking[]
 }) {
+  const t = useT()
   const router = useRouter()
   const searchParams = useSearchParams()
   const pickedClient = searchParams.get('pickedClient')
@@ -116,6 +110,18 @@ export default function RequestForm({
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInitial = useRef(true)
+
+  const priorityLabel = (p: string) =>
+    p === 'Low' ? t('Low', 'Низкий') : p === 'Medium' ? t('Medium', 'Средний') : p === 'High' ? t('High', 'Высокий') : p
+
+  function daysBetween(from: string, to: string): string {
+    const a = new Date(from), b = new Date(to)
+    if (isNaN(a.getTime()) || isNaN(b.getTime())) return ''
+    const diff = Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000))
+    if (diff === 0) return t('closed same day', 'закрыта в тот же день')
+    if (diff === 1) return t('closed in 1 day', 'закрыта за 1 день')
+    return t(`closed in ${diff} days`, `закрыта за ${diff} дн.`)
+  }
 
   function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -149,7 +155,7 @@ export default function RequestForm({
       setSavedAt(new Date())
       setSaveState('saved')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+      setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
       setSaveState('error')
     }
   }
@@ -170,11 +176,11 @@ export default function RequestForm({
   }, [pickedClient])
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● {t('Saving...', 'Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
   }
 
   async function handleDone() {
@@ -192,7 +198,7 @@ export default function RequestForm({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--admin-border-card)', fontSize: '12px' }}>
         <span style={{ color: 'var(--admin-text-muted)' }}>
-          Created {new Date(request.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {t('Created', 'Создана')} {new Date(request.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           {closedAt && (
             <span style={{ color: 'var(--admin-success)' }}> · {daysBetween(request.created_at, closedAt)}</span>
           )}
@@ -201,7 +207,7 @@ export default function RequestForm({
       </div>
 
       <section>
-        <label style={labelStyle}>Client</label>
+        <label style={labelStyle}>{t('Client', 'Клиент')}</label>
         <ClientPicker
           clients={clients}
           value={form.client_id}
@@ -212,26 +218,27 @@ export default function RequestForm({
 
       <section style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <label style={labelStyle}>Status</label>
+          <label style={labelStyle}>{t('Status', 'Статус')}</label>
           <select value={form.status} onChange={(e) => set('status', e.target.value)} style={inputStyle}>
-            {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {STATUSES.map((s) => <option key={s.value} value={s.value}>{t(s.en, s.ru)}</option>)}
           </select>
         </div>
         <div style={{ width: '140px' }}>
-          <label style={labelStyle}>Priority</label>
+          <label style={labelStyle}>{t('Priority', 'Приоритет')}</label>
           <select value={form.priority} onChange={(e) => set('priority', e.target.value)} style={inputStyle}>
             <option value="">—</option>
-            {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+            {PRIORITIES.map((p) => <option key={p} value={p}>{priorityLabel(p)}</option>)}
           </select>
         </div>
       </section>
 
-      
+
     {/* КТО ЕДЕТ */}
       <section>
-        <label style={labelStyle}>Travellers</label>
+        <label style={labelStyle}>{t('Travellers', 'Путешественники')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
-          Who&apos;s going on this trip. You can change this later at any stage.
+          {t("Who's going on this trip. You can change this later at any stage.",
+             'Кто едет в эту поездку. Состав можно изменить позже на любом этапе.')}
         </p>
         <RequestTravellers
           requestId={request.id}
@@ -242,17 +249,18 @@ export default function RequestForm({
 
       {/* ДАТЫ ПОЕЗДКИ */}
       <section>
-        <label style={labelStyle}>Trip dates</label>
+        <label style={labelStyle}>{t('Trip dates', 'Даты поездки')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
-          When the client wants to travel. Approximate is fine — estimate if they&apos;re not sure.
+          {t("When the client wants to travel. Approximate is fine — estimate if they're not sure.",
+             'Когда клиент хочет поехать. Ориентировочно тоже подойдёт — прикиньте, если он не уверен.')}
         </p>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ width: '170px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>From</span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>{t('From', 'С')}</span>
             <input type="date" value={form.trip_start} onChange={(e) => set('trip_start', e.target.value)} style={inputStyle} />
           </div>
           <div style={{ width: '170px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>To</span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>{t('To', 'По')}</span>
             <input type="date" value={form.trip_end} onChange={(e) => set('trip_end', e.target.value)} style={inputStyle} />
           </div>
           {(() => {
@@ -263,16 +271,16 @@ export default function RequestForm({
             now.setHours(0, 0, 0, 0)
             const days = Math.round((start.getTime() - now.getTime()) / 86400000)
             let label = ''
-            if (days < 0) label = 'in the past'
-            else if (days === 0) label = 'today'
-            else if (days < 31) label = `in ${days} ${days === 1 ? 'day' : 'days'}`
+            if (days < 0) label = t('in the past', 'в прошлом')
+            else if (days === 0) label = t('today', 'сегодня')
+            else if (days < 31) label = t(`in ${days} ${days === 1 ? 'day' : 'days'}`, `через ${days} дн.`)
             else {
               const months = Math.round(days / 30)
-              label = `in ~${months} ${months === 1 ? 'month' : 'months'}`
+              label = t(`in ~${months} ${months === 1 ? 'month' : 'months'}`, `через ~${months} мес.`)
             }
             return (
               <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', paddingBottom: '10px' }}>
-                Trip {label}
+                {t('Trip', 'Поездка')} {label}
               </span>
             )
           })()}
@@ -281,30 +289,30 @@ export default function RequestForm({
 
       {/* НАПРАВЛЕНИЯ */}
       <section>
-        <label style={labelStyle}>Destinations</label>
+        <label style={labelStyle}>{t('Destinations', 'Направления')}</label>
         <RequestDestinations requestId={request.id} initial={destinations} />
       </section>
 
       <section>
-        <label style={labelStyle}>Request details</label>
-        <textarea value={form.details} onChange={(e) => set('details', e.target.value)} rows={8} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="Dates, hotels, transfers, special requirements, budget..." />
+        <label style={labelStyle}>{t('Request details', 'Детали заявки')}</label>
+        <textarea value={form.details} onChange={(e) => set('details', e.target.value)} rows={8} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder={t('Dates, hotels, transfers, special requirements, budget...', 'Даты, отели, трансферы, особые пожелания, бюджет...')} />
       </section>
 
       {/* ПРИЧИНА ОТМЕНЫ — только для cancelled */}
       {form.status === 'cancelled' && (
         <section style={{ padding: '16px', border: '1px solid var(--admin-danger)', borderRadius: '10px' }}>
-          <label style={labelStyle}>Why was it cancelled?</label>
+          <label style={labelStyle}>{t('Why was it cancelled?', 'Почему отменена?')}</label>
           <select value={form.cancel_reason} onChange={(e) => set('cancel_reason', e.target.value)} style={{ ...inputStyle, marginBottom: '10px' }}>
-            <option value="">— Select a reason —</option>
-            {CANCEL_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            <option value="">{t('— Select a reason —', '— Выберите причину —')}</option>
+            {CANCEL_REASONS.map((r) => <option key={r.value} value={r.value}>{t(r.en, r.ru)}</option>)}
           </select>
-          <textarea value={form.cancel_note} onChange={(e) => set('cancel_note', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Details (optional)" />
+          <textarea value={form.cancel_note} onChange={(e) => set('cancel_note', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={t('Details (optional)', 'Детали (необязательно)')} />
         </section>
       )}
 
       {/* NEXT STEP — дестинейшены и предложения */}
       <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <label style={labelStyle}>Next step</label>
+        <label style={labelStyle}>{t('Next step', 'Следующий шаг')}</label>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: linked.length > 0 ? '14px' : '0' }}>
           <AttachDestination
@@ -315,7 +323,7 @@ export default function RequestForm({
           <form action={createProposalFromRequest.bind(null, request.id)}>
             <button type="submit"
               style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              + Create proposal
+              {t('+ Create proposal', '+ Создать предложение')}
             </button>
           </form>
         </div>
@@ -330,42 +338,42 @@ export default function RequestForm({
               const prevWasDest = idx > 0 && arr[idx - 1].kind === 'destination'
               const isFirstProposal = p.kind !== 'destination' && prevWasDest
               const isDest = p.kind === 'destination'
-              const title = p.trip_title_ru || p.trip_title_en || (isDest ? 'Untitled destination' : 'Untitled proposal')
+              const title = p.trip_title_ru || p.trip_title_en || (isDest ? t('Untitled destination', 'Направление без названия') : t('Untitled proposal', 'Предложение без названия'))
               const href = isDest ? `/admin/destinations/${p.id}` : `/admin/proposals/${p.id}`
               return (
                 <a key={p.id} href={href}
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: p.is_selected ? '1px solid var(--admin-success)' : '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit', marginTop: isFirstProposal ? '16px' : '0', borderTop: isFirstProposal ? '1px solid var(--admin-border-card)' : undefined, paddingTop: isFirstProposal ? '20px' : '12px' }}>
                   <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>
-                    {isDest ? 'Destination' : 'Proposal'}
+                    {isDest ? t('Destination', 'Направление') : t('Proposal', 'Предложение')}
                   </span>
                   <span style={{ fontSize: '14px', color: 'var(--admin-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {title}
                   </span>
                   {p.last_viewed_at && (
-                    <span style={{ fontSize: '11px', color: 'var(--admin-success)', flexShrink: 0 }}>● opened</span>
+                    <span style={{ fontSize: '11px', color: 'var(--admin-success)', flexShrink: 0 }}>● {t('opened', 'открыто')}</span>
                   )}
                   {isDest ? (
                     p.is_selected ? (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unselectDestination(request.id, p.id) }} title="Client changed their mind" style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ Chosen</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unselectDestination(request.id, p.id) }} title={t('Client changed their mind', 'Клиент передумал')} style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ {t('Chosen', 'Выбрано')}</button>
                     ) : (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectDestination(request.id, p.id) }} title="Client picked this destination" style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>Client picked</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectDestination(request.id, p.id) }} title={t('Client picked this destination', 'Клиент выбрал это направление')} style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>{t('Client picked', 'Клиент выбрал')}</button>
                     )
                   ) : null}
                   {!isDest && (
                     p.status === 'confirmed' ? (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unapproveProposal(request.id, p.id) }} title="Undo approval" style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ Approved</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); unapproveProposal(request.id, p.id) }} title={t('Undo approval', 'Отменить подтверждение')} style={{ background: 'var(--admin-success)', border: 'none', color: 'var(--admin-dark-panel)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit', fontWeight: 500 }}>✓ {t('Approved', 'Подтверждено')}</button>
                     ) : (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); approveProposal(request.id, p.id) }} title="Client approved — data can go to a booking" style={{ background: 'transparent', border: '1px solid var(--admin-accent)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>Approve</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); approveProposal(request.id, p.id) }} title={t('Client approved — data can go to a booking', 'Клиент согласовал — данные можно передать в бронь')} style={{ background: 'transparent', border: '1px solid var(--admin-accent)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', padding: '3px 9px', flexShrink: 0, fontFamily: 'inherit' }}>{t('Approve', 'Согласовать')}</button>
                     )
                   )}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.preventDefault(); e.stopPropagation()
-                      if (!confirm('Unlink from this request?')) return
+                      if (!confirm(t('Unlink from this request?', 'Отвязать от этой заявки?'))) return
                       detachProposalFromRequest(request.id, p.id)
                     }}
-                    title="Unlink"
+                    title={t('Unlink', 'Отвязать')}
                     style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '15px', lineHeight: 1, padding: '0 2px', flexShrink: 0, fontFamily: 'inherit' }}>
                     ×
                   </button>
@@ -379,21 +387,21 @@ export default function RequestForm({
       {/* ЗАМЕТКИ */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <label style={labelStyle}>Client notes & revisions</label>
-          <textarea value={form.client_notes} onChange={(e) => set('client_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="What the client asked to change, their reactions, preferences..." />
+          <label style={labelStyle}>{t('Client notes & revisions', 'Заметки клиента и правки')}</label>
+          <textarea value={form.client_notes} onChange={(e) => set('client_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder={t('What the client asked to change, their reactions, preferences...', 'Что клиент просил изменить, его реакции, предпочтения...')} />
         </div>
         <div>
-          <label style={labelStyle}>Agent notes (internal)</label>
-          <textarea value={form.agent_notes} onChange={(e) => set('agent_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="Your own notes — not shown to the client" />
+          <label style={labelStyle}>{t('Agent notes (internal)', 'Заметки агента (внутренние)')}</label>
+          <textarea value={form.agent_notes} onChange={(e) => set('agent_notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder={t('Your own notes — not shown to the client', 'Ваши заметки — клиент их не видит')} />
         </div>
       </section>
 
       {/* ФИДБЕК ПОСЛЕ ПОЕЗДКИ — для подтверждённых */}
       {form.status === 'confirmed' && (
         <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <label style={labelStyle}>After the trip</label>
+          <label style={labelStyle}>{t('After the trip', 'После поездки')}</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>Rating:</span>
+            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('Rating:', 'Оценка:')}</span>
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" onClick={() => set('trip_rating', form.trip_rating === n ? 0 : n)}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '2px', color: n <= form.trip_rating ? 'var(--admin-accent)' : 'var(--admin-text-faint)' }}>
@@ -402,15 +410,16 @@ export default function RequestForm({
             ))}
             {form.trip_rating > 0 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{form.trip_rating}/5</span>}
           </div>
-          <textarea value={form.trip_feedback} onChange={(e) => set('trip_feedback', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder="How did the trip go? What did the client say?" />
+          <textarea value={form.trip_feedback} onChange={(e) => set('trip_feedback', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} placeholder={t('How did the trip go? What did the client say?', 'Как прошла поездка? Что сказал клиент?')} />
         </section>
       )}
 
       {canBook && (
         <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <label style={labelStyle}>Booking</label>
+          <label style={labelStyle}>{t('Booking', 'Бронь')}</label>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
-            Record what you actually booked — hotels, transfers, partners and pricing.
+            {t('Record what you actually booked — hotels, transfers, partners and pricing.',
+               'Зафиксируйте, что вы реально забронировали — отели, трансферы, партнёры и цены.')}
           </p>
           {bookings.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
@@ -453,7 +462,7 @@ export default function RequestForm({
           <form action={createBookingFromRequest.bind(null, request.id)}>
             <button type="submit"
               style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              + Create booking
+              {t('+ Create booking', '+ Создать бронь')}
             </button>
           </form>
         </section>
@@ -462,7 +471,7 @@ export default function RequestForm({
       <section style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={handleDone} disabled={saveState === 'saving'}
           style={{ padding: '10px 24px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: saveState === 'saving' ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: saveState === 'saving' ? 0.6 : 1 }}>
-          {saveState === 'saving' ? 'Saving…' : 'Done'}
+          {saveState === 'saving' ? t('Saving…', 'Сохранение…') : t('Done', 'Готово')}
         </button>
       </section>
     </div>

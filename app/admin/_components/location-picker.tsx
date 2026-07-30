@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useT } from '@/lib/i18n-client'
 import {
   searchCountries,
   searchCities,
@@ -24,6 +25,7 @@ type Props = {
 type Item = CountryRow | CityRow
 
 export default function LocationPicker({ mode, value, onChange, label, disableCreate, countryFilter }: Props) {
+  const t = useT()
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<Item[]>([])
   const [open, setOpen] = useState(false)
@@ -71,7 +73,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           : await searchCities(query, countryFilter)
         setItems(results)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Ошибка поиска')
+        setError(e instanceof Error ? e.message : t('Search error', 'Ошибка поиска'))
       }
     }, 200)
     return () => {
@@ -114,7 +116,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
         setCountriesForNewCity(list)
         setNewCountryId(list[0]?.id ?? null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Не удалось загрузить страны')
+        setError(e instanceof Error ? e.message : t('Failed to load countries', 'Не удалось загрузить страны'))
       }
     }
     setCreating(true)
@@ -128,7 +130,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
       if (mode === 'country') {
         created = await createCountry(newRu, newEn)
       } else {
-        if (!newCountryId) throw new Error('Выберите страну')
+        if (!newCountryId) throw new Error(t('Select a country', 'Выберите страну'))
         created = await createCity(newRu, newEn, newCountryId)
       }
       handleSelect(created)
@@ -136,7 +138,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
       setNewRu('')
       setNewEn('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка создания')
+      setError(e instanceof Error ? e.message : t('Creation error', 'Ошибка создания'))
     } finally {
       setBusy(false)
     }
@@ -155,7 +157,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
       setInlineCountryRu('')
       setInlineCountryEn('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка создания страны')
+      setError(e instanceof Error ? e.message : t('Failed to create country', 'Ошибка создания страны'))
     } finally {
       setBusy(false)
     }
@@ -174,7 +176,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
     outline: 'none',
   }
 
-  const placeholder = mode === 'country' ? 'Поиск страны...' : 'Поиск города...'
+  const placeholder = mode === 'country' ? t('Search country...', 'Поиск страны...') : t('Search city...', 'Поиск города...')
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
@@ -217,7 +219,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
               padding: '0 4px',
               lineHeight: 1,
             }}
-            title="Сбросить"
+            title={t('Clear', 'Сбросить')}
           >
             ×
           </button>
@@ -250,7 +252,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
         }}>
           {items.length === 0 ? (
             <div style={{ padding: '12px', fontSize: '13px', color: 'var(--admin-text-muted)' }}>
-              {query ? `Ничего не найдено по "${query}"` : 'Начните вводить...'}
+              {query ? t(`Nothing found for "${query}"`, `Ничего не найдено по "${query}"`) : t('Start typing...', 'Начните вводить...')}
             </div>
           ) : (
             items.map((item) => (
@@ -286,7 +288,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              + Создать {mode === 'country' ? 'страну' : 'город'}{query ? ` «${query}»` : ''}
+              + {mode === 'country' ? t('Create country', 'Создать страну') : t('Create city', 'Создать город')}{query ? ` «${query}»` : ''}
             </div>
           )}
         </div>
@@ -310,13 +312,13 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
           gap: '8px',
         }}>
           <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginBottom: '4px' }}>
-            Новая {mode === 'country' ? 'страна' : 'город'}
+            {mode === 'country' ? t('New country', 'Новая страна') : t('New city', 'Новый город')}
           </div>
           <input
             type="text"
             value={newRu}
             onChange={(e) => setNewRu(e.target.value)}
-            placeholder="Название на русском"
+            placeholder={t('Name in Russian', 'Название на русском')}
             autoFocus
             style={inputStyle}
           />
@@ -324,7 +326,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
             type="text"
             value={newEn}
             onChange={(e) => setNewEn(e.target.value)}
-            placeholder="Name in English"
+            placeholder={t('Name in English', 'Название на английском')}
             style={inputStyle}
           />
           {mode === 'city' && !creatingCountryInline && (
@@ -334,7 +336,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 onChange={(e) => setNewCountryId(e.target.value || null)}
                 style={inputStyle}
               >
-                <option value="">— выберите страну —</option>
+                <option value="">{t('— select country —', '— выберите страну —')}</option>
                 {countriesForNewCity.map((c) => (
                   <option key={c.id} value={c.id}>{c.name_ru} / {c.name_en}</option>
                 ))}
@@ -354,7 +356,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                   textAlign: 'left',
                 }}
               >
-                + Создать новую страну
+                + {t('Create new country', 'Создать новую страну')}
               </button>
             </>
           )}
@@ -370,13 +372,13 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
               gap: '8px',
             }}>
               <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-                Новая страна
+                {t('New country', 'Новая страна')}
               </div>
               <input
                 type="text"
                 value={inlineCountryRu}
                 onChange={(e) => setInlineCountryRu(e.target.value)}
-                placeholder="Название на русском"
+                placeholder={t('Name in Russian', 'Название на русском')}
                 autoFocus
                 style={inputStyle}
               />
@@ -384,7 +386,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 type="text"
                 value={inlineCountryEn}
                 onChange={(e) => setInlineCountryEn(e.target.value)}
-                placeholder="Name in English"
+                placeholder={t('Name in English', 'Название на английском')}
                 style={inputStyle}
               />
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -405,7 +407,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                     fontFamily: 'inherit',
                   }}
                 >
-                  {busy ? 'Создание...' : 'Создать страну'}
+                  {busy ? t('Creating...', 'Создание...') : t('Create country', 'Создать страну')}
                 </button>
                 <button
                   type="button"
@@ -421,7 +423,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                     fontFamily: 'inherit',
                   }}
                 >
-                  Отмена
+                  {t('Cancel', 'Отмена')}
                 </button>
               </div>
             </div>
@@ -445,7 +447,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 fontFamily: 'inherit',
               }}
             >
-              {busy ? 'Создание...' : 'Создать'}
+              {busy ? t('Creating...', 'Создание...') : t('Create', 'Создать')}
             </button>
             <button
               type="button"
@@ -461,7 +463,7 @@ export default function LocationPicker({ mode, value, onChange, label, disableCr
                 fontFamily: 'inherit',
               }}
             >
-              Отмена
+              {t('Cancel', 'Отмена')}
             </button>
           </div>
         </div>

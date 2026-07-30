@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition } from 'react'
 import Link from 'next/link'
 import { deleteBooking } from './actions'
+import { useT } from '@/lib/i18n-client'
 
 export type BookingRow = {
   id: string
@@ -26,7 +27,16 @@ function money(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
 
+function statusLabel(status: string | null | undefined, t: (en: string, ru: string) => string): string {
+  switch (status) {
+    case 'confirmed': return t('Confirmed', 'Подтверждено')
+    case 'cancelled': return t('Cancelled', 'Отменено')
+    default: return t('Draft', 'Черновик')
+  }
+}
+
 function BookingItem({ b }: { b: BookingRow }) {
+  const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -49,7 +59,7 @@ function BookingItem({ b }: { b: BookingRow }) {
 
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation(); setMenuOpen(false)
-    if (!confirm('Delete this booking?\n\nAll services inside will be deleted too.')) return
+    if (!confirm(t('Delete this booking?\n\nAll services inside will be deleted too.', 'Удалить это бронирование?\n\nВсе услуги внутри также будут удалены.'))) return
     startTransition(async () => { await deleteBooking(b.id) })
   }
 
@@ -63,15 +73,15 @@ function BookingItem({ b }: { b: BookingRow }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
-              {client?.name || 'No client'}
+              {client?.name || t('No client', 'Без клиента')}
             </span>
             {b.booking_code && <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{b.booking_code}</span>}
             <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: meta.color, border: `1px solid ${meta.color}`, borderRadius: '4px', padding: '1px 6px' }}>
-              {meta.label}
+              {statusLabel(b.status, t)}
             </span>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {subline || 'No details yet'}
+            {subline || t('No details yet', 'Пока нет деталей')}
           </div>
         </div>
         {commissionLine && (
@@ -81,7 +91,7 @@ function BookingItem({ b }: { b: BookingRow }) {
         )}
       </Link>
 
-      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen) }} disabled={isPending} aria-label="Actions"
+      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen) }} disabled={isPending} aria-label={t('Actions', 'Действия')}
         style={{ position: 'absolute', top: '50%', right: '14px', transform: 'translateY(-50%)', background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', color: 'var(--admin-text-muted)', fontSize: '18px', lineHeight: 1, borderRadius: '6px', fontFamily: 'inherit' }}>
         ⋯
       </button>
@@ -92,7 +102,7 @@ function BookingItem({ b }: { b: BookingRow }) {
           <div style={{ position: 'absolute', top: '50%', right: '14px', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '4px', minWidth: '140px', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.4)' }}>
             <button onClick={handleDelete}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>
-              Delete
+              {t('Delete', 'Удалить')}
             </button>
           </div>
         </>
@@ -102,6 +112,7 @@ function BookingItem({ b }: { b: BookingRow }) {
 }
 
 export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
+  const t = useT()
   const safe = Array.isArray(bookings) ? bookings : []
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -126,16 +137,16 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by client, code, destination…" style={{ ...inputStyle, flex: 1, minWidth: '200px' }} />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by client, code, destination…', 'Поиск по клиенту, коду, направлению…')} style={{ ...inputStyle, flex: 1, minWidth: '200px' }} />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...inputStyle, width: '180px' }}>
-          <option value="">All statuses</option>
-          {Object.entries(STATUS_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
+          <option value="">{t('All statuses', 'Все статусы')}</option>
+          {Object.entries(STATUS_META).map(([v]) => <option key={v} value={v}>{statusLabel(v, t)}</option>)}
         </select>
       </div>
 
       {filtered.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          {safe.length === 0 ? 'No bookings yet.' : 'Nothing matches your filters.'}
+          {safe.length === 0 ? t('No bookings yet.', 'Пока нет бронирований.') : t('Nothing matches your filters.', 'Ничего не найдено по вашим фильтрам.')}
         </div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>

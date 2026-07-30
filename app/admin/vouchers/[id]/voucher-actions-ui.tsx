@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateVoucherSlug } from './voucher-actions'
+import { useT } from '@/lib/i18n-client'
 
 // живая чистка слага (дублирует серверную для мгновенного отклика)
 function cleanSlugLive(raw: string): string {
@@ -30,6 +31,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function VoucherActions({ voucherId, initialSlug }: { voucherId: string; initialSlug: string }) {
+  const t = useT()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -54,7 +56,7 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
       setSlugState('saved')
       setTimeout(() => setSlugState('idle'), 1500)
     } else {
-      setSlugError(res.error || 'Failed to save')
+      setSlugError(res.error || t('Failed to save', 'Не удалось сохранить'))
       setSlugState('error')
     }
   }
@@ -68,7 +70,7 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {
-      window.prompt('Copy this link:', url)
+      window.prompt(t('Copy this link:', 'Скопируйте эту ссылку:'), url)
     }
   }
 
@@ -76,7 +78,7 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* Слаг */}
       <div>
-        <label style={labelStyle}>Link address</label>
+        <label style={labelStyle}>{t('Link address', 'Адрес ссылки')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="text"
@@ -86,22 +88,22 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
             style={inputStyle}
             placeholder="pertsev-family"
           />
-          {slugState === 'saving' && <span style={{ fontSize: '12px', color: 'var(--admin-accent)', whiteSpace: 'nowrap' }}>Saving…</span>}
-          {slugState === 'saved' && <span style={{ fontSize: '12px', color: 'var(--admin-success)', whiteSpace: 'nowrap' }}>✓ Saved</span>}
+          {slugState === 'saving' && <span style={{ fontSize: '12px', color: 'var(--admin-accent)', whiteSpace: 'nowrap' }}>{t('Saving…', 'Сохранение…')}</span>}
+          {slugState === 'saved' && <span style={{ fontSize: '12px', color: 'var(--admin-success)', whiteSpace: 'nowrap' }}>{t('✓ Saved', '✓ Сохранено')}</span>}
         </div>
         {slugState === 'error' && <div style={{ fontSize: '12px', color: 'var(--admin-danger)', marginTop: '6px' }}>{slugError}</div>}
-        <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '6px' }}>Client link: {displayUrl}</div>
+        <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '6px' }}>{t('Client link', 'Ссылка для клиента')}: {displayUrl}</div>
       </div>
 
       {/* Кнопки */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button type="button" onClick={openPreview} style={btn} title="Open the voucher in a new tab">↗ Preview</button>
+        <button type="button" onClick={openPreview} style={btn} title={t('Open the voucher in a new tab', 'Открыть ваучер в новой вкладке')}>{t('↗ Preview', '↗ Предпросмотр')}</button>
         <button
           type="button"
           onClick={copyLink}
           style={{ ...btn, color: copied ? 'var(--admin-success)' : 'var(--admin-text)', borderColor: copied ? 'var(--admin-success)' : 'var(--admin-border)' }}
         >
-          {copied ? '✓ Copied' : 'Copy link'}
+          {copied ? t('✓ Copied', '✓ Скопировано') : t('Copy link', 'Скопировать ссылку')}
         </button>
         <div style={{ flex: 1 }} />
         <button
@@ -113,7 +115,7 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
             border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          Done
+          {t('Done', 'Готово')}
         </button>
       </div>
     </div>

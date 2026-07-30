@@ -2,17 +2,11 @@ import { NextRequest } from 'next/server'
 import ExcelJS from 'exceljs'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canSeeAccounting } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 
 function one<T>(v: T | T[] | null | undefined): T | null {
   if (v == null) return null
   return Array.isArray(v) ? (v[0] ?? null) : v
-}
-
-const CAT: Record<string, string> = {
-  client_payment: 'Оплата клиента',
-  hotel_commission: 'Комиссия отеля',
-  supplier_payment: 'Оплата поставщику',
-  other: 'Прочее',
 }
 
 // null-дата всегда проходит; иначе — попадание в [from, to]
@@ -26,6 +20,19 @@ export async function GET(req: NextRequest) {
   const profile = await getProfile()
   if (!canSeeAccounting(profile?.role)) {
     return new Response('Forbidden', { status: 403 })
+  }
+
+  // язык выгрузки — язык интерфейса пользователя, который жмёт «Экспорт»
+  const lang = profile?.ui_language ?? 'en'
+  const T = (en: string, ru: string) => tr(lang, en, ru)
+  const catLabel = (cat: string): string => {
+    switch (cat) {
+      case 'client_payment': return T('Client payment', 'Оплата клиента')
+      case 'hotel_commission': return T('Hotel commission', 'Комиссия отеля')
+      case 'supplier_payment': return T('Supplier payment', 'Оплата поставщику')
+      case 'other': return T('Other', 'Прочее')
+      default: return cat
+    }
   }
 
   const from = req.nextUrl.searchParams.get('from')
@@ -64,17 +71,17 @@ export async function GET(req: NextRequest) {
   const wb = new ExcelJS.Workbook()
 
   // --- Лист 1: Приход-расход (за период) ---
-  const ws1 = wb.addWorksheet('Приход-расход')
+  const ws1 = wb.addWorksheet(T('Cash flow', 'Приход-расход'))
   ws1.columns = [
-    { header: 'Дата', key: 'date', width: 12 },
-    { header: 'Бронь', key: 'booking', width: 16 },
-    { header: 'Клиент', key: 'client', width: 22 },
-    { header: 'Тип', key: 'type', width: 20 },
-    { header: 'Направление', key: 'dir', width: 12 },
-    { header: 'Инвойс', key: 'invoice', width: 16 },
-    { header: 'Поставщик', key: 'supplier', width: 22 },
-    { header: 'Сумма', key: 'amount', width: 14 },
-    { header: 'Валюта', key: 'currency', width: 8 },
+    { header: T('Date', 'Дата'), key: 'date', width: 12 },
+    { header: T('Booking', 'Бронь'), key: 'booking', width: 16 },
+    { header: T('Client', 'Клиент'), key: 'client', width: 22 },
+    { header: T('Type', 'Тип'), key: 'type', width: 20 },
+    { header: T('Direction', 'Направление'), key: 'dir', width: 12 },
+    { header: T('Invoice', 'Инвойс'), key: 'invoice', width: 16 },
+    { header: T('Supplier', 'Поставщик'), key: 'supplier', width: 22 },
+    { header: T('Amount', 'Сумма'), key: 'amount', width: 14 },
+    { header: T('Currency', 'Валюта'), key: 'currency', width: 8 },
   ]
   ws1.getRow(1).font = { bold: true }
   for (const r of txRaw ?? []) {
@@ -87,8 +94,8 @@ export async function GET(req: NextRequest) {
       date: r.paid_on ?? '',
       booking: (b as { booking_code?: string | null } | null)?.booking_code ?? '',
       client: (client as { name?: string | null } | null)?.name ?? '',
-      type: CAT[r.category] ?? r.category,
-      dir: r.direction === 'in' ? 'Приход' : 'Расход',
+      type: catLabel(r.category),
+      dir: r.direction === 'in' ? T('Income', 'Приход') : T('Expense', 'Расход'),
       invoice: (inv as { invoice_number?: string | null } | null)?.invoice_number ?? '',
       supplier: (invPartner as { name?: string | null } | null)?.name ?? '',
       amount: Number(r.amount ?? 0),
@@ -97,19 +104,19 @@ export async function GET(req: NextRequest) {
   }
 
   // --- Лист 2: Инвойсы (все, с остатком) ---
-  const ws2 = wb.addWorksheet('Инвойсы')
+  const ws2 = wb.addWorksheet(T('Invoices', 'Инвойсы'))
   ws2.columns = [
-    { header: 'Invoice №', key: 'num', width: 16 },
-    { header: 'Поставщик', key: 'supplier', width: 22 },
-    { header: 'Бронь', key: 'booking', width: 16 },
-    { header: 'Клиент', key: 'client', width: 22 },
-    { header: 'Сумма', key: 'amount', width: 14 },
-    { header: 'Оплачено', key: 'paid', width: 14 },
-    { header: 'Остаток', key: 'balance', width: 14 },
-    { header: 'Статус', key: 'status', width: 12 },
-    { header: 'Валюта', key: 'currency', width: 8 },
-    { header: 'Выставлен', key: 'issue', width: 12 },
-    { header: 'Срок', key: 'due', width: 12 },
+    { header: T('Invoice №', 'Инвойс №'), key: 'num', width: 16 },
+    { header: T('Supplier', 'Поставщик'), key: 'supplier', width: 22 },
+    { header: T('Booking', 'Бронь'), key: 'booking', width: 16 },
+    { header: T('Client', 'Клиент'), key: 'client', width: 22 },
+    { header: T('Amount', 'Сумма'), key: 'amount', width: 14 },
+    { header: T('Paid', 'Оплачено'), key: 'paid', width: 14 },
+    { header: T('Balance', 'Остаток'), key: 'balance', width: 14 },
+    { header: T('Status', 'Статус'), key: 'status', width: 12 },
+    { header: T('Currency', 'Валюта'), key: 'currency', width: 8 },
+    { header: T('Issued', 'Выставлен'), key: 'issue', width: 12 },
+    { header: T('Due', 'Срок'), key: 'due', width: 12 },
   ]
   ws2.getRow(1).font = { bold: true }
   for (const r of invRaw ?? []) {
@@ -118,7 +125,9 @@ export async function GET(req: NextRequest) {
     const partner = one(r.partners as unknown)
     const amount = Number(r.amount ?? 0)
     const paid = paidByInvoice.get(r.id) ?? 0
-    const status = paid <= 0 ? 'Unpaid' : paid >= amount && amount > 0 ? 'Paid' : 'Partial'
+    const status = paid <= 0
+      ? T('Unpaid', 'Не оплачен')
+      : paid >= amount && amount > 0 ? T('Paid', 'Оплачен') : T('Partial', 'Частично')
     ws2.addRow({
       num: r.invoice_number ?? '',
       supplier: (partner as { name?: string | null } | null)?.name ?? '',

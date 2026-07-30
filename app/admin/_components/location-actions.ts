@@ -1,6 +1,8 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { tr } from '@/lib/i18n'
+import { getUiLang } from '@/lib/get-profile'
 
 export type CountryRow = { id: string; name_ru: string; name_en: string }
 export type CityRow = { id: string; name_ru: string; name_en: string; country_id: string }
@@ -57,7 +59,10 @@ export async function createCountry(nameRu: string, nameEn: string): Promise<Cou
   const ru = nameRu.trim()
   const en = nameEn.trim()
 
-  if (!ru || !en) throw new Error('Нужно указать название на двух языках')
+  if (!ru || !en) {
+    const lang = await getUiLang()
+    throw new Error(tr(lang, 'A name in both languages is required', 'Нужно указать название на двух языках'))
+  }
 
   const { data, error } = await supabase
     .from('countries')
@@ -79,8 +84,11 @@ export async function createCity(
   const ru = nameRu.trim()
   const en = nameEn.trim()
 
-  if (!ru || !en) throw new Error('Нужно указать название на двух языках')
-  if (!countryId) throw new Error('Не указана страна')
+  if (!ru || !en || !countryId) {
+    const lang = await getUiLang()
+    if (!ru || !en) throw new Error(tr(lang, 'A name in both languages is required', 'Нужно указать название на двух языках'))
+    if (!countryId) throw new Error(tr(lang, 'Country not specified', 'Не указана страна'))
+  }
 
   const { data, error } = await supabase
     .from('cities')

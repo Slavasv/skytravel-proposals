@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, useTransition } from 'react'
+import { useT } from '@/lib/i18n-client'
 import { attachProposalToRequest, createDestinationFromRequest, type DestinationOption } from '../actions'
 
 const inputStyle: React.CSSProperties = {
@@ -16,6 +17,7 @@ export default function AttachDestination({
   options: DestinationOption[]
   attachedIds: string[]
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -52,20 +54,20 @@ export default function AttachDestination({
     <div ref={boxRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button type="button" onClick={() => setOpen((v) => !v)} disabled={isPending}
         style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: isPending ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: isPending ? 0.5 : 1 }}>
-        {isPending ? 'Attaching…' : 'Attach destination ▾'}
+        {isPending ? t('Attaching…', 'Прикрепляем…') : t('Attach destination ▾', 'Прикрепить направление ▾')}
       </button>
 
       {open && (
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '320px', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', zIndex: 30, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden' }}>
           <div style={{ padding: '8px', borderBottom: '1px solid var(--admin-border-card)' }}>
             <input type="text" autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search destinations…" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
+              placeholder={t('Search destinations…', 'Поиск направлений…')} style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
           </div>
 
           <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '4px' }}>
             {available.length === 0 ? (
               <div style={{ padding: '14px 10px', fontSize: '13px', color: 'var(--admin-text-muted)', textAlign: 'center' }}>
-                {options.length === 0 ? 'No destinations yet' : 'Nothing found'}
+                {options.length === 0 ? t('No destinations yet', 'Пока нет направлений') : t('Nothing found', 'Ничего не найдено')}
               </div>
             ) : (
               available.map((o) => (
@@ -73,7 +75,7 @@ export default function AttachDestination({
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', background: 'transparent', border: 'none', fontSize: '13px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                  {o.trip_title_ru || o.trip_title_en || 'Untitled destination'}
+                  {o.trip_title_ru || o.trip_title_en || t('Untitled destination', 'Направление без названия')}
                 </button>
               ))
             )}
@@ -85,7 +87,7 @@ export default function AttachDestination({
                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px', background: 'transparent', border: 'none', fontSize: '13px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-accent)', fontWeight: 500 }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                + Create new destination
+                {t('+ Create new destination', '+ Создать новое направление')}
               </button>
             </form>
           </div>

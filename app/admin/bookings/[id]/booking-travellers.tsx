@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { setBookingTravellers, type BookingTraveller } from '../actions'
+import { useT } from '@/lib/i18n-client'
 
 const CHILD_TITLES = new Set(['Miss', 'Mstr', 'Chd', 'Inf'])
 
-function ageFrom(dob: string | null): string {
+function ageFrom(dob: string | null, t: (en: string, ru: string) => string): string {
   if (!dob) return ''
   const m = dob.trim().match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)
   let birth: Date | null = null
@@ -20,7 +21,7 @@ function ageFrom(dob: string | null): string {
   const md = now.getMonth() - birth.getMonth()
   if (md < 0 || (md === 0 && now.getDate() < birth.getDate())) age--
   if (age < 0 || age > 120) return ''
-  return `${age} y.o.`
+  return `${age} ${t('y.o.', 'лет')}`
 }
 
 export default function BookingTravellers({
@@ -31,13 +32,14 @@ export default function BookingTravellers({
   all: BookingTraveller[]
   initialSelected: string[]
 }) {
+  const t = useT()
   const [selected, setSelected] = useState<string[]>(initialSelected)
   const firstRun = useRef(true)
 
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return }
     if (!requestId || all.length === 0) return
-    const alive = selected.filter((id) => all.some((t) => t.id === id))
+    const alive = selected.filter((id) => all.some((trav) => trav.id === id))
     setBookingTravellers(bookingId, requestId, alive).catch(() => {})
   }, [selected, bookingId, requestId, all])
 
@@ -50,42 +52,42 @@ export default function BookingTravellers({
   if (all.length === 0) {
     return (
       <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: 0 }}>
-        No travellers for this client yet.
+        {t('No travellers for this client yet.', 'Пока нет путешественников для этого клиента.')}
       </p>
     )
   }
 
   const picked = selected
     .map((id) => all.find((x) => x.id === id))
-    .filter((t): t is BookingTraveller => !!t)
-  const adults = picked.filter((t) => !CHILD_TITLES.has(t.title || '')).length
+    .filter((trav): trav is BookingTraveller => !!trav)
+  const adults = picked.filter((trav) => !CHILD_TITLES.has(trav.title || '')).length
   const children = picked.length - adults
 
   return (
     <div>
       {picked.length > 0 && (
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
-          {adults > 0 && `${adults} ${adults === 1 ? 'adult' : 'adults'}`}
+          {adults > 0 && `${adults} ${adults === 1 ? t('adult', 'взрослый') : t('adults', 'взрослых')}`}
           {adults > 0 && children > 0 && ' · '}
-          {children > 0 && `${children} ${children === 1 ? 'child' : 'children'}`}
+          {children > 0 && `${children} ${children === 1 ? t('child', 'ребёнок') : t('children', 'детей')}`}
         </p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {all.map((t) => {
-          const age = ageFrom(t.date_of_birth)
-          const checked = selected.includes(t.id)
+        {all.map((trav) => {
+          const age = ageFrom(trav.date_of_birth, t)
+          const checked = selected.includes(trav.id)
           return (
-            <label key={t.id}
+            <label key={trav.id}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', color: 'var(--admin-text)', background: checked ? 'var(--admin-card)' : 'transparent' }}>
-              <input type="checkbox" checked={checked} onChange={() => toggle(t.id)} style={{ cursor: 'pointer' }} />
+              <input type="checkbox" checked={checked} onChange={() => toggle(trav.id)} style={{ cursor: 'pointer' }} />
               <span style={{ flex: 1 }}>
-                {t.title && <span style={{ color: 'var(--admin-text-muted)' }}>{t.title} </span>}
-                {t.name || 'Unnamed'}
+                {trav.title && <span style={{ color: 'var(--admin-text-muted)' }}>{trav.title} </span>}
+                {trav.name || t('Unnamed', 'Без имени')}
                 {age && <span style={{ color: 'var(--admin-text-muted)' }}> · {age}</span>}
               </span>
-              {t.relation && (
-                <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t.relation}</span>
+              {trav.relation && (
+                <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{trav.relation}</span>
               )}
             </label>
           )
@@ -93,7 +95,7 @@ export default function BookingTravellers({
       </div>
 
       <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '8px 0 0' }}>
-        Shared with the request — changes here update it too.
+        {t('Shared with the request — changes here update it too.', 'Общие с запросом — изменения здесь обновляют и его.')}
       </p>
     </div>
   )

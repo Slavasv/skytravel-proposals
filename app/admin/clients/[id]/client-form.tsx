@@ -5,6 +5,7 @@ const collapseCss = `.cl-collapse[open] .cl-arrow { transform: rotate(90deg); } 
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n-client'
 import {
   updateClient, ensurePrimaryTraveller,
   type Traveller, type ClientRequest,
@@ -30,14 +31,14 @@ type Client = {
 }
 
 const CLIENT_TYPES = [
-  { value: 'individual', label: 'Individual' },
-  { value: 'family', label: 'Family' },
-  { value: 'company', label: 'Company' },
+  { value: 'individual', label: 'Individual', ru: 'Физическое лицо' },
+  { value: 'family', label: 'Family', ru: 'Семья' },
+  { value: 'company', label: 'Company', ru: 'Компания' },
 ]
 
 const CLIENT_STATUSES = [
-  { value: 'new', label: 'New' },
-  { value: 'regular', label: 'Regular' },
+  { value: 'new', label: 'New', ru: 'Новый' },
+  { value: 'regular', label: 'Regular', ru: 'Постоянный' },
 ]
 
 // подсказки источников (можно вписать своё)
@@ -67,6 +68,7 @@ export default function ClientForm({
   requests?: ClientRequest[]
   returnTo?: string
 }) {
+  const t = useT()
   const router = useRouter()
   const [travellerList, setTravellerList] = useState<Traveller[]>(travellers)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -127,7 +129,7 @@ export default function ClientForm({
         }
       }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+      setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
       setSaveState('error')
     }
   }
@@ -156,11 +158,11 @@ export default function ClientForm({
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● {t('Saving...', 'Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
   }
 
   return (
@@ -171,35 +173,35 @@ export default function ClientForm({
 
       {/* ОСНОВНОЕ */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Client details</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Client details', 'Данные клиента')}</h2>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <div style={{ flex: 1, minWidth: '240px' }}>
-            <label style={labelStyle}>Name</label>
+            <label style={labelStyle}>{t('Name', 'Имя')}</label>
             <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} style={inputStyle} placeholder="The Pertsev Family" />
           </div>
           <div style={{ width: '140px' }}>
-            <label style={labelStyle}>Client code</label>
+            <label style={labelStyle}>{t('Client code', 'Код клиента')}</label>
             <input type="text" value={form.client_code} onChange={(e) => set('client_code', e.target.value)} style={inputStyle} placeholder="CL-001" />
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={labelStyle}>Type</label>
+            <label style={labelStyle}>{t('Type', 'Тип')}</label>
             <select value={form.client_type} onChange={(e) => set('client_type', e.target.value)} style={inputStyle}>
-              {CLIENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {CLIENT_TYPES.map((tx) => <option key={tx.value} value={tx.value}>{t(tx.label, tx.ru)}</option>)}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={labelStyle}>Status</label>
+            <label style={labelStyle}>{t('Status', 'Статус')}</label>
             <select value={form.client_status} onChange={(e) => set('client_status', e.target.value)} style={inputStyle}>
-              {CLIENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {CLIENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{t(s.label, s.ru)}</option>)}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: '180px' }}>
-            <label style={labelStyle}>Lead source</label>
-            <input type="text" list="lead-source-options" value={form.lead_source} onChange={(e) => set('lead_source', e.target.value)} style={inputStyle} placeholder="Select or type..." />
+            <label style={labelStyle}>{t('Lead source', 'Источник')}</label>
+            <input type="text" list="lead-source-options" value={form.lead_source} onChange={(e) => set('lead_source', e.target.value)} style={inputStyle} placeholder={t('Select or type...', 'Выберите или введите...')} />
             <datalist id="lead-source-options">
               {LEAD_SOURCES.map((s) => <option key={s} value={s} />)}
             </datalist>
@@ -209,39 +211,39 @@ export default function ClientForm({
 
       {/* КОНТАКТЫ */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Contacts</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Contacts', 'Контакты')}</h2>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <div style={{ flex: 1, minWidth: '200px' }}>
-            <label style={labelStyle}>Phone</label>
+            <label style={labelStyle}>{t('Phone', 'Телефон')}</label>
             <input type="text" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inputStyle} placeholder="+971 50 123 4567" />
           </div>
           <div style={{ flex: 1, minWidth: '200px' }}>
-            <label style={labelStyle}>Email</label>
+            <label style={labelStyle}>{t('Email', 'Email')}</label>
             <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} style={inputStyle} placeholder="client@example.com" />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>Countries</label>
+          <label style={labelStyle}>{t('Countries', 'Страны')}</label>
           <input type="text" value={form.countries} onChange={(e) => set('countries', e.target.value)} style={inputStyle} placeholder="UAE, Austria" />
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-            Separate multiple countries with commas.
+            {t('Separate multiple countries with commas.', 'Разделяйте страны запятыми.')}
           </p>
         </div>
       </section>
 
       {/* ФИНАНСЫ */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>Balance</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Balance', 'Баланс')}</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-          Manual for now. Will be linked to bookings later.
+          {t('Manual for now. Will be linked to bookings later.', 'Пока вручную. Позже будет связан с бронированиями.')}
         </p>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={labelStyle}>Balance USD</label>
+            <label style={labelStyle}>{t('Balance USD', 'Баланс USD')}</label>
             <input type="number" step="0.01" value={form.balance_usd} onChange={(e) => set('balance_usd', e.target.value)} style={inputStyle} placeholder="0" />
           </div>
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={labelStyle}>Balance EUR</label>
+            <label style={labelStyle}>{t('Balance EUR', 'Баланс EUR')}</label>
             <input type="number" step="0.01" value={form.balance_eur} onChange={(e) => set('balance_eur', e.target.value)} style={inputStyle} placeholder="0" />
           </div>
         </div>
@@ -252,11 +254,11 @@ export default function ClientForm({
         <details className="cl-collapse">
           <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span className="cl-arrow" style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transition: 'transform 0.15s' }}>▶</span>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>Travellers</h2>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>{t('Travellers', 'Путешественники')}</h2>
             <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>· {travellerList.length}</span>
           </summary>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '10px 0 16px' }}>
-            People who actually travel. Drag to reorder. These will be pulled into vouchers automatically.
+            {t('People who actually travel. Drag to reorder. These will be pulled into vouchers automatically.', 'Те, кто действительно путешествует. Перетаскивайте для изменения порядка. Они будут автоматически добавлены в ваучеры.')}
           </p>
           <ClientTravellers clientId={client.id} initialTravellers={travellerList} key={travellerList.length} />
         </details>
@@ -269,10 +271,10 @@ export default function ClientForm({
         <details open className="cl-collapse">
           <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span className="cl-arrow" style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transition: 'transform 0.15s' }}>▶</span>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>History</h2>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: 0, color: 'var(--admin-text)' }}>{t('History', 'История')}</h2>
           </summary>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '10px 0 16px' }}>
-            Everything linked to this client.
+            {t('Everything linked to this client.', 'Всё, что связано с этим клиентом.')}
           </p>
           <ClientHistory requests={requests} />
         </details>
@@ -280,8 +282,8 @@ export default function ClientForm({
 
       {/* ЗАМЕТКИ */}
       <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 12px', color: 'var(--admin-text)' }}>Notes</h2>
-        <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Any additional notes about this client..." />
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 12px', color: 'var(--admin-text)' }}>{t('Notes', 'Заметки')}</h2>
+        <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={t('Any additional notes about this client...', 'Любые дополнительные заметки об этом клиенте...')} />
       </section>
 
       {/* DONE */}
@@ -298,7 +300,7 @@ export default function ClientForm({
             opacity: saveState === 'saving' ? 0.6 : 1,
           }}
         >
-          {saveState === 'saving' ? 'Saving…' : (returnTo ? 'Done & back' : 'Done')}
+          {saveState === 'saving' ? t('Saving…', 'Сохранение…') : (returnTo ? t('Done & back', 'Готово и назад') : t('Done', 'Готово'))}
         </button>
       </section>
     </div>

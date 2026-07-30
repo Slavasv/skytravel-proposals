@@ -2,6 +2,8 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { createBlock } from './actions'
 import BlockRow from './block-row'
 import LibrarySearch from './library-search'
+import { getUiLang } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 
 type SearchParams = {
   q?: string
@@ -11,15 +13,16 @@ type SearchParams = {
   city?: string
 }
 
-const TYPE_FILTERS = [
-  { value: null, label: 'All' },
-  { value: 'hotel', label: 'Hotel' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'transfer', label: 'Transfer' },
-  { value: 'city', label: 'City' },
+const TYPE_FILTERS: { value: string | null; en: string; ru: string }[] = [
+  { value: null, en: 'All', ru: 'Все' },
+  { value: 'hotel', en: 'Hotel', ru: 'Отель' },
+  { value: 'activity', en: 'Activity', ru: 'Активность' },
+  { value: 'transfer', en: 'Transfer', ru: 'Трансфер' },
+  { value: 'city', en: 'City', ru: 'Город' },
 ]
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const lang = await getUiLang()
   const { q, type, archived, country, city } = await searchParams
   const query = q?.trim() ?? ''
   const activeType = type ?? null
@@ -86,7 +89,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const { data: blocks, error } = await blocksQuery
 
   if (error) {
-    return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
+    return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>
   }
 
   const { data: scopeBlocks } = await supabase
@@ -108,12 +111,12 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-            Library{showArchived && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · Archive</span>}
+            {tr(lang, 'Library', 'Библиотека')}{showArchived && <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {tr(lang, 'Archive', 'Архив')}</span>}
           </h1>
           <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-            {blocks?.length ?? 0} of {totalInScope} {totalInScope === 1 ? 'block' : 'blocks'}
-            {query && ` matching "${query}"`}
-            {activeType && ` · type: ${activeType}`}
+            {blocks?.length ?? 0} {tr(lang, 'of', 'из')} {totalInScope} {totalInScope === 1 ? tr(lang, 'block', 'блок') : tr(lang, 'blocks', 'блоков')}
+            {query && ` ${tr(lang, 'matching', 'по запросу')} "${query}"`}
+            {activeType && ` · ${tr(lang, 'type', 'тип')}: ${activeType}`}
           </p>
         </div>
         <form action={createBlock}>
@@ -132,7 +135,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
               fontFamily: 'inherit',
             }}
           >
-            + New block
+            {tr(lang, '+ New block', '+ Новый блок')}
           </button>
         </form>
       </div>
@@ -143,7 +146,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         showArchived={showArchived}
         activeCountry={activeCountry}
         activeCity={activeCity}
-        typeFilters={TYPE_FILTERS}
+        typeFilters={TYPE_FILTERS.map((f) => ({ value: f.value, label: tr(lang, f.en, f.ru) }))}
         typeCounts={typeCounts}
         totalCount={totalInScope}
         archivedTotal={allArchived.length}
@@ -152,10 +155,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       {(!blocks || blocks.length === 0) ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
           {query || activeType
-            ? 'No blocks match your search.'
+            ? tr(lang, 'No blocks match your search.', 'Нет блоков по вашему запросу.')
             : showArchived
-              ? 'No archived blocks. Archived blocks appear here when you archive them.'
-              : 'No blocks yet. Click + New block to create one.'}
+              ? tr(lang, 'No archived blocks. Archived blocks appear here when you archive them.', 'Нет архивных блоков. Заархивированные блоки появятся здесь.')
+              : tr(lang, 'No blocks yet. Click + New block to create one.', 'Блоков пока нет. Нажмите «+ Новый блок», чтобы создать.')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

@@ -19,6 +19,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
 
 type CapKey = 'caption_ru' | 'caption_en'
 
@@ -50,6 +51,7 @@ function SortablePhoto({
   onCaption: (index: number, value: string) => void
   onRemove: (index: number) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -70,14 +72,14 @@ function SortablePhoto({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Drag to reorder"
+          aria-label={t('Drag to reorder', 'Перетащите для сортировки')}
           style={{
             background: 'transparent', border: 'none', padding: '2px 6px',
             cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px',
             fontFamily: 'inherit', touchAction: 'none',
           }}
         >
-          ⋮⋮ <span style={{ fontSize: '11px' }}>Photo {index + 1}</span>
+          ⋮⋮ <span style={{ fontSize: '11px' }}>{t('Photo', 'Фото')} {index + 1}</span>
         </button>
         <button
           type="button"
@@ -88,7 +90,7 @@ function SortablePhoto({
             borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          ✕ Remove
+          ✕ {t('Remove', 'Удалить')}
         </button>
       </div>
       <ImageUploader
@@ -101,7 +103,7 @@ function SortablePhoto({
         type="text"
         value={photo[capKey]}
         onChange={(e) => onCaption(index, e.target.value)}
-        placeholder={`Caption · ${capKey === 'caption_ru' ? 'RU' : 'EN'}`}
+        placeholder={`${t('Caption', 'Подпись')} · ${capKey === 'caption_ru' ? 'RU' : 'EN'}`}
         style={{
           marginTop: '8px', width: '100%', padding: '7px 9px', fontSize: '12px',
           color: 'var(--admin-text)', background: 'var(--admin-input)',
@@ -114,6 +116,7 @@ function SortablePhoto({
 }
 
 export default function GalleryUploader({ images, onChange, lang = 'ru' }: Props) {
+  const t = useT()
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const [uploading, setUploading] = useState(false)
   const fileInput = useRef<HTMLInputElement | null>(null)
@@ -209,7 +212,7 @@ export default function GalleryUploader({ images, onChange, lang = 'ru' }: Props
             borderRadius: '8px', cursor: uploading ? 'wait' : 'pointer', fontFamily: 'inherit',
           }}
         >
-          {uploading ? 'Uploading…' : '＋ Upload photos'}
+          {uploading ? t('Uploading…', 'Загрузка…') : t('＋ Upload photos', '＋ Загрузить фото')}
         </button>
         <button
           type="button"
@@ -220,7 +223,7 @@ export default function GalleryUploader({ images, onChange, lang = 'ru' }: Props
             borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          + Empty slot
+          {t('+ Empty slot', '+ Пустой слот')}
         </button>
       </div>
     </div>
