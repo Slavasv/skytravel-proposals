@@ -29,12 +29,25 @@ export default async function EditProposalPage({
   }
 
   // варианты предложения
+  const VARIANT_COLS = 'id, sort_order, name_ru, name_en, subtitle_ru, subtitle_en, is_selected, total_price'
   const { data: variantsData } = await supabase
     .from('proposal_variants')
-    .select('id, sort_order, name_ru, name_en, subtitle_ru, subtitle_en, is_selected, total_price')
+    .select(VARIANT_COLS)
     .eq('proposal_id', proposal.id)
     .order('sort_order', { ascending: true })
-  const variants = variantsData ?? []
+  let variants = variantsData ?? []
+
+  // У каждого предложения всегда есть хотя бы один маршрут — чтобы блоки
+  // (Впечатления, Стоимость, Условия) были доступны сразу, без ручного
+  // «Добавить вариант». Дополнительные маршруты агент добавляет сам при желании.
+  if (variants.length === 0) {
+    const { data: created } = await supabase
+      .from('proposal_variants')
+      .insert({ proposal_id: proposal.id, sort_order: 0, name_ru: 'Маршрут 1', name_en: 'Route 1' })
+      .select(VARIANT_COLS)
+      .single()
+    if (created) variants = [created]
+  }
 
   // активный вариант: из URL, иначе первый
   const activeVariantId = (variantParam && variants.some((v) => v.id === variantParam))

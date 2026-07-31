@@ -21,6 +21,7 @@ export type DSection =
   | { kind: 'activities'; id: string; title_ru: string; title_en: string; items: { id: string; title_ru: string; title_en: string; description_ru: string; description_en: string; duration_hours: number | null; photo: string | null }[] }
   | { kind: 'hotel'; id: string; title_ru: string; title_en: string; name_ru: string; name_en: string; description_ru: string; description_en: string; activities_ru: string; activities_en: string; photos: DPhoto[]; rooms: DRoom[] }
   | { kind: 'gallery'; id: string; title_ru: string; title_en: string; images: DPhoto[] }
+  | { kind: 'inspiration'; id: string; title_ru: string; title_en: string; images: DPhoto[]; overview_ru: string; overview_en: string; impressions_ru: string; impressions_en: string; divider_image: string | null }
   | { kind: 'sample_day'; id: string; title_ru: string; title_en: string; imageLeft: string | null; imageRight: string | null; items: { time: string; text_ru: string; text_en: string }[] }
 
 export type DCostLine = { id: string; category: 'hotel' | 'transfer' | 'activity'; label_ru: string; label_en: string; details_ru: string; details_en: string; price: string }

@@ -89,7 +89,7 @@ export default function VariantSwitcher({
 
         <button type="button" onClick={handleCreate} disabled={isPending}
           style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: isPending ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-          {t('+ Add variant', '+ Добавить вариант')}
+          {only ? t('+ Add alternative route', '+ Добавить альтернативный маршрут') : t('+ Add variant', '+ Добавить вариант')}
         </button>
       </div>
 

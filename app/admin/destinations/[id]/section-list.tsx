@@ -30,6 +30,7 @@ import SectionRoute from './section-route'
 import SectionCity from './section-city'
 import SectionActivities from './section-activities'
 import SectionHotel from './section-hotel'
+import SectionInspiration from './section-inspiration'
 
 type Lang = 'ru' | 'en'
 
@@ -40,6 +41,7 @@ const SECTION_TYPES: { type: SectionType; label: string; label_ru: string; desc:
   { type: 'hotel', label: 'Hotel', label_ru: 'Отель', desc: 'Hotel with rooms', desc_ru: 'Отель с номерами' },
   { type: 'gallery', label: 'Gallery', label_ru: 'Галерея', desc: 'Photo gallery', desc_ru: 'Фотогалерея' },
   { type: 'sample_day', label: 'Sample day', label_ru: 'Типичный день', desc: 'A typical day timeline', desc_ru: 'Хронология типичного дня' },
+  { type: 'inspiration', label: 'Inspiration', label_ru: 'Вдохновение', desc: 'Photos + text + a full-width divider', desc_ru: 'Фото + текст + фото-разделитель' },
 ]
 
 function typeLabel(type: SectionType, t: (en: string, ru: string) => string): string {
@@ -141,6 +143,8 @@ function SortableSection({
             <SectionActivities section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
           ) : section.type === 'hotel' ? (
             <SectionHotel section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
+          ) : section.type === 'inspiration' ? (
+            <SectionInspiration section={section} lang={lang} onLocalChange={(patch) => onLocalChange(section.id, patch)} />
           ) : (
             <div style={{ paddingTop: '12px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
               {t(`Editing for "${typeLabel(section.type, t)}" is coming in the next step.`, `Редактирование «${typeLabel(section.type, t)}» появится на следующем этапе.`)}

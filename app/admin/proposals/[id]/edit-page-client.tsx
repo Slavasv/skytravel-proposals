@@ -114,6 +114,7 @@ export default function EditPageClient({
         onLangChange={setLang}
         clients={clients}
         activeVariant={activeVariant}
+        variantCount={variants.length}
         actions={<ProposalActions slug={proposal.slug} />}
         variantSwitcher={
           <VariantSwitcher

@@ -52,6 +52,7 @@ export default function DestinationView({ data, lang }: { data: DestinationData;
         case 'activities': return t('Активности', 'Experiences')
         case 'hotel': return t('Отели', 'Hotels')
         case 'gallery': return t('Галерея', 'Gallery')
+        case 'inspiration': return pick(s.title_ru, s.title_en) || t('Вдохновение', 'Inspiration')
         case 'sample_day': return t('День', 'A day')
       }
     }
@@ -374,6 +375,45 @@ function renderSection(
             </div>
           ))}
         </div>
+      </>
+    )
+  }
+
+  if (s.kind === 'inspiration') {
+    const overview = pick(s.overview_ru, s.overview_en)
+    const impressions = pick(s.impressions_ru, s.impressions_en)
+    const pattern = ['dp-gal__cell--big', '', 'dp-gal__cell--tall', '', 'dp-gal__cell--wide', '']
+    return (
+      <>
+        <Eyebrow text={t('Вдохновение', 'Inspiration')} />
+        {title && <h2 className="tp-h2">{title}</h2>}
+
+        {/* Обзор — абзац с буквицей, НАД галереей */}
+        {overview && (
+          <div className="tp-overview" style={{ marginTop: title ? 8 : 0 }}>
+            <p className="tp-overview__text">{overview}</p>
+          </div>
+        )}
+
+        {/* Галерея */}
+        {s.images.length > 0 && (
+          <div className="dp-gal" style={{ marginTop: overview ? 44 : title ? 24 : 0 }}>
+            {s.images.map((img, i) => (
+              <div key={i} className={`dp-gal__cell ${pattern[i % pattern.length]}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt={(lang === 'ru' ? img.caption_ru : img.caption_en) || ''} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Текст впечатлений — обычный, ПОД галереей */}
+        {impressions && <p className="tp-impressions__text" style={{ marginTop: 30 }}>{impressions}</p>}
+
+        {/* Фото-разделитель — на всю ширину */}
+        {s.divider_image && (
+          <div className="tp-divider" style={{ backgroundImage: `url(${s.divider_image})` }} />
+        )}
       </>
     )
   }

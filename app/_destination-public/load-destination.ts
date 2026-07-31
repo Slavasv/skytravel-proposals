@@ -89,6 +89,14 @@ export async function loadDestination(slug: string): Promise<DestinationData | n
     } else if (s.type === 'gallery') {
       const images = normalizePhotos(data.images)
       if (images.length) sections.push({ kind: 'gallery', id: s.id, title_ru: str(s.title_ru), title_en: str(s.title_en), images })
+    } else if (s.type === 'inspiration') {
+      const images = normalizePhotos(data.images)
+      const overview_ru = str(data.overview_ru), overview_en = str(data.overview_en)
+      const impressions_ru = str(data.impressions_ru), impressions_en = str(data.impressions_en)
+      const divider_image = str(data.divider_image) || null
+      if (images.length || overview_ru || overview_en || impressions_ru || impressions_en || divider_image) {
+        sections.push({ kind: 'inspiration', id: s.id, title_ru: str(s.title_ru), title_en: str(s.title_en), images, overview_ru, overview_en, impressions_ru, impressions_en, divider_image })
+      }
     } else if (s.type === 'sample_day') {
       const items = arr(data.items).map((x) => { const it = obj(x); return { time: str(it.time), text_ru: str(it.text_ru), text_en: str(it.text_en) } }).filter((i) => i.time || i.text_ru || i.text_en)
       if (items.length) sections.push({ kind: 'sample_day', id: s.id, title_ru: str(s.title_ru), title_en: str(s.title_en), imageLeft: str(data.image_left) || null, imageRight: str(data.image_right) || null, items })

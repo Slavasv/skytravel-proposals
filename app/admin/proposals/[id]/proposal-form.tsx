@@ -89,10 +89,11 @@ type Props = {
   itinerary?: React.ReactNode
   variantSwitcher?: React.ReactNode
   activeVariant?: VariantFull | null
+  variantCount?: number
   clients?: ProposalClientOption[]
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, activeVariant, clients = [] }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, activeVariant, variantCount = 0, clients = [] }: Props) {
   const t = useT()
   const statusLabels: Record<string, string> = {
     draft: t('Draft', 'Черновик'),
@@ -479,14 +480,23 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         </div>
       </section>
 
+      {/* Несколько маршрутов: показываем полноценную секцию с заголовком.
+          Один маршрут: прячем «вариантную» шапку — остаётся только скромная
+          кнопка «+ Добавить альтернативный маршрут» из самого переключателя. */}
       {variantSwitcher && (
-        <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Route variants', 'Варианты маршрута')}</h2>
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-            {t('Offer the client several full scenarios. Each variant has its own days, costs and terms.', 'Предложите клиенту несколько полных сценариев. У каждого варианта свои дни, стоимость и условия.')}
-          </p>
-          {variantSwitcher}
-        </section>
+        variantCount > 1 ? (
+          <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Route variants', 'Варианты маршрута')}</h2>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+              {t('Offer the client several full scenarios. Each variant has its own days, costs and terms.', 'Предложите клиенту несколько полных сценариев. У каждого варианта свои дни, стоимость и условия.')}
+            </p>
+            {variantSwitcher}
+          </section>
+        ) : (
+          <section style={{ paddingTop: '8px' }}>
+            {variantSwitcher}
+          </section>
+        )
       )}
 
       {activeVariant && form.layout !== 'hotel' && (

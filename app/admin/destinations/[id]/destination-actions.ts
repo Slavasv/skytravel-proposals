@@ -3,7 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
-export type SectionType = 'route' | 'city' | 'activities' | 'hotel' | 'gallery' | 'sample_day'
+export type SectionType = 'route' | 'city' | 'activities' | 'hotel' | 'gallery' | 'sample_day' | 'inspiration'
 
 export type DestinationSection = {
   id: string
