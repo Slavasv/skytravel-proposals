@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { addInvoice, updateInvoice, deleteInvoice, type SupplierInvoice } from '../invoice-actions'
-import type { PartnerOption } from '../actions'
+import { getBookingServices, type PartnerOption, type BookingService } from '../actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
 import { useT } from '@/lib/i18n-client'
 
@@ -23,14 +23,16 @@ function money(n: number): string {
 }
 
 function InvoiceCard({
-  invoice, partners, onRemove, onChange,
+  invoice, partners, services, onRemove, onChange,
 }: {
   invoice: SupplierInvoice
   partners: PartnerOption[]
+  services: BookingService[]
   onRemove: (id: string) => void
   onChange: (id: string, patch: Partial<SupplierInvoice>) => void
 }) {
   const t = useT()
+  const [pullOpen, setPullOpen] = useState(false)
   const [form, setForm] = useState({
     partner_id: invoice.partner_id || '',
     invoice_number: invoice.invoice_number || '',
@@ -46,6 +48,19 @@ function InvoiceCard({
 
   function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((p) => ({ ...p, [key]: value }))
+    setSaved(false)
+  }
+
+  // подтянуть услугу брони в счёт: сумма += нетто (стоимость поставщика), описание → в заметку
+  function pullService(s: BookingService) {
+    setPullOpen(false)
+    const cost = s.net ?? s.gross ?? 0
+    setForm((p) => ({
+      ...p,
+      amount: (p.amount === '' ? 0 : Number(p.amount)) + cost,
+      currency: s.currency || p.currency,
+      notes: [p.notes, s.description].filter(Boolean).join('; '),
+    }))
     setSaved(false)
   }
 
@@ -117,6 +132,39 @@ function InvoiceCard({
         <input type="text" value={form.notes} onChange={(e) => set('notes', e.target.value)} style={inputSt} placeholder={t('What this invoice covers…', 'За что этот счёт…')} />
       </div>
 
+      {/* подтянуть услуги брони (можно несколько — один поставщик, оба отеля) */}
+      {services.length > 0 && (
+        <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <button type="button" onClick={() => setPullOpen((v) => !v)}
+            style={{ padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {t('+ Add from booking services ▾', '+ Добавить из услуг брони ▾')}
+          </button>
+          {pullOpen && (
+            <>
+              <div onClick={() => setPullOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 20, minWidth: '300px', maxWidth: '440px', maxHeight: '300px', overflowY: 'auto', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '10px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                {services.map((s) => {
+                  const cost = s.net ?? s.gross ?? 0
+                  return (
+                    <button key={s.id} type="button" onClick={() => pullService(s)}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', background: 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                      <span style={{ fontSize: '13px' }}>{s.description || s.service_type || '—'}</span>
+                      <span style={{ color: 'var(--admin-text-muted)' }}> · {money(cost)} {s.currency || 'EUR'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+          <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
+            {t('Adds the service cost (net) to the amount and its name to the note. Pull several if one supplier covers multiple services.',
+               'Добавляет стоимость услуги (нетто) к сумме, а название — в заметку. Можно подтянуть несколько, если один поставщик закрывает сразу несколько услуг.')}
+          </p>
+        </div>
+      )}
+
       {/* действия */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: '11px', color: saved ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
@@ -140,6 +188,13 @@ export default function BookingInvoices({
 }) {
   const t = useT()
   const [invoices, setInvoices] = useState<SupplierInvoice[]>(initial)
+  const [services, setServices] = useState<BookingService[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    getBookingServices(bookingId).then((rows) => { if (!cancelled) setServices(rows) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [bookingId])
 
   async function handleAdd() {
     const created = await addInvoice(bookingId)
@@ -175,7 +230,7 @@ export default function BookingInvoices({
           </div>
         ) : (
           invoices.map((i) => (
-            <InvoiceCard key={i.id} invoice={i} partners={partners}
+            <InvoiceCard key={i.id} invoice={i} partners={partners} services={services}
               onRemove={handleRemove} onChange={handleChange} />
           ))
         )}

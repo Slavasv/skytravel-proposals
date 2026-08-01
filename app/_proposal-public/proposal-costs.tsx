@@ -90,12 +90,22 @@ export default function ProposalCosts({
           </div>
 
           {cats.map((cat) => (
-            <div className="tp-costrow" key={cat.label}>
-              <div className="tp-costrow__main">
-                <div className="tp-costrow__name">{cat.label}</div>
-                {cat.c.desc && <div className="tp-costrow__desc">{cat.c.desc}</div>}
+            <div className="tp-costgroup" key={cat.label}>
+              <div className="tp-costrow tp-costrow--cat">
+                <div className="tp-costrow__main">
+                  <div className="tp-costrow__name">{cat.label}</div>
+                </div>
+                <div className="tp-costrow__price">{fmtPrice(cat.c.total, currency)}</div>
               </div>
-              <div className="tp-costrow__price">{fmtPrice(cat.c.total, currency)}</div>
+              {cat.c.items.map((it, i) => (
+                <div className="tp-costline" key={i}>
+                  <div className="tp-costline__main">
+                    <span className="tp-costline__name">{it.label}</span>
+                    {it.sub && <span className="tp-costline__sub"> · {it.sub}</span>}
+                  </div>
+                  {it.price != null && <div className="tp-costline__price">{fmtPrice(it.price, currency)}</div>}
+                </div>
+              ))}
             </div>
           ))}
 

@@ -5,6 +5,7 @@ import {
   addService, updateService, deleteService, duplicateService,
   type BookingService, type PartnerOption,
 } from '../actions'
+import { getRouteServices, addServiceFromRoute, type RouteServiceCandidate } from '../booking-route-actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
 import { useT } from '@/lib/i18n-client'
 
@@ -58,6 +59,9 @@ function ServiceCard({
     check_in: service.check_in || '',
     check_out: service.check_out || '',
     alternatives: service.alternatives || '',
+    room_type: service.room_type || '',
+    meal_plan: service.meal_plan || '',
+    nights: service.nights || '',
   })
   const [saved, setSaved] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,6 +89,9 @@ function ServiceCard({
         check_in: form.check_in || null,
         check_out: form.check_out || null,
         alternatives: form.alternatives || null,
+        room_type: form.room_type || null,
+        meal_plan: form.meal_plan || null,
+        nights: form.nights || null,
       })
       onChange(service.id, { gross: grossNum, net: netNum, currency: form.currency })
       setSaved(true)
@@ -153,7 +160,7 @@ function ServiceCard({
         </div>
       </div>
 
-      {/* строка 3: даты для проживания */}
+      {/* строка 3: даты + номер/питание/ночи для проживания */}
       {isHotel && (
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
           <div style={{ width: '150px' }}>
@@ -163,6 +170,18 @@ function ServiceCard({
           <div style={{ width: '150px' }}>
             <label style={labelSt}>{t('Check-out', 'Выезд')}</label>
             <input type="date" value={form.check_out} onChange={(e) => set('check_out', e.target.value)} style={inputSt} />
+          </div>
+          <div style={{ width: '80px' }}>
+            <label style={labelSt}>{t('Nights', 'Ночей')}</label>
+            <input type="text" value={form.nights} onChange={(e) => set('nights', e.target.value)} style={inputSt} placeholder="—" />
+          </div>
+          <div style={{ width: '180px' }}>
+            <label style={labelSt}>{t('Room type', 'Тип номера')}</label>
+            <input type="text" value={form.room_type} onChange={(e) => set('room_type', e.target.value)} style={inputSt} placeholder={t('Superior, King', 'Superior, кинг')} />
+          </div>
+          <div style={{ width: '150px' }}>
+            <label style={labelSt}>{t('Meal plan', 'Питание')}</label>
+            <input type="text" value={form.meal_plan} onChange={(e) => set('meal_plan', e.target.value)} style={inputSt} placeholder={t('Half Board', 'Полупансион')} />
           </div>
         </div>
       )}
@@ -202,9 +221,27 @@ export default function BookingServices({
 }) {
   const t = useT()
   const [services, setServices] = useState<BookingService[]>(initial)
+  const [route, setRoute] = useState<RouteServiceCandidate[]>([])
+  const [routeOpen, setRouteOpen] = useState(false)
+  const [pulling, setPulling] = useState(false)
+
+  // подтягиваем услуги из маршрута предложения (для дропдауна)
+  useEffect(() => {
+    let cancelled = false
+    getRouteServices(bookingId).then((rows) => { if (!cancelled) setRoute(rows) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [bookingId])
 
   async function handleAdd() {
     const created = await addService(bookingId)
+    if (created) setServices((p) => [...p, created])
+  }
+
+  async function handleAddFromRoute(c: RouteServiceCandidate) {
+    setRouteOpen(false)
+    setPulling(true)
+    const created = await addServiceFromRoute(bookingId, c)
+    setPulling(false)
     if (created) setServices((p) => [...p, created])
   }
 
@@ -261,10 +298,45 @@ export default function BookingServices({
         )}
       </div>
 
-      <button type="button" onClick={handleAdd}
-        style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-        {t('+ Add service', '+ Добавить услугу')}
-      </button>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button type="button" onClick={handleAdd}
+          style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          {t('+ Add service', '+ Добавить услугу')}
+        </button>
+
+        {route.length > 0 && (
+          <div style={{ position: 'relative' }}>
+            <button type="button" onClick={() => setRouteOpen((v) => !v)} disabled={pulling}
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: pulling ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Add from route ▾', '+ Добавить из маршрута ▾')}
+            </button>
+            {routeOpen && (
+              <>
+                <div onClick={() => setRouteOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 20, minWidth: '320px', maxWidth: '440px', maxHeight: '320px', overflowY: 'auto', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '10px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                  {route.map((c) => (
+                    <button key={c.key} type="button" onClick={() => handleAddFromRoute(c)}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', background: 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                      <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)' }}>{c.service_type}</span>
+                      <span style={{ display: 'block', fontSize: '13px', color: 'var(--admin-text)' }}>
+                        {c.description || '—'}
+                        {c.gross != null && <span style={{ color: 'var(--admin-text-muted)' }}> · {money(c.gross)} {c.currency}</span>}
+                      </span>
+                      {(c.room_type || c.meal_plan || c.nights) && (
+                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--admin-text-faint)' }}>
+                          {[c.nights && `${c.nights} ${t('n.', 'ноч.')}`, c.room_type, c.meal_plan].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ИТОГИ */}
       {currencies.length > 0 && (

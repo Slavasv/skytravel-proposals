@@ -89,11 +89,17 @@ export default function ProposalItinerary({
                     const bt = pick(lang, b.content_blocks?.title_ru ?? null, b.content_blocks?.title_en ?? null)
                     const bd = pick(lang, b.content_blocks?.description_ru ?? null, b.content_blocks?.description_en ?? null)
                     const note = pick(lang, b.custom_note_ru, b.custom_note_en)
+                    // трансфер: показываем «откуда → куда»
+                    const isTransfer = b.content_blocks?.type === 'transfer'
+                    const route = isTransfer
+                      ? [pick(lang, b.from_ru, b.from_en), pick(lang, b.to_ru, b.to_en)].filter(Boolean).join(' → ')
+                      : ''
                     return (
                       <div className="tp-block" key={b.id}>
                         <div className="tp-block__time">{b.time || ''}</div>
                         <div className="tp-block__body">
                           {bt && <div className="tp-block__title">{bt}</div>}
+                          {route && <div className="tp-block__route">{route}</div>}
                           {bd && <p className="tp-block__desc">{bd}</p>}
                           {note && <p className="tp-block__note">{note}</p>}
                         </div>

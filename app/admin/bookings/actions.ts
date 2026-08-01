@@ -26,6 +26,9 @@ export type BookingService = {
   check_in: string | null
   check_out: string | null
   alternatives: string | null
+  room_type: string | null
+  meal_plan: string | null
+  nights: string | null
   sort_order: number
 }
 
@@ -40,6 +43,9 @@ export type ServiceUpdate = {
   check_in?: string | null
   check_out?: string | null
   alternatives?: string | null
+  room_type?: string | null
+  meal_plan?: string | null
+  nights?: string | null
 }
 
 // ============ Бронирование ============
@@ -90,12 +96,26 @@ export async function createBookingFromRequest(requestId: string) {
     p_company_id: request.company_id,
   })
 
+  // Тянем даты и направление из утверждённого предложения этой заявки
+  // (не destination). Если нет confirmed — берём самое свежее.
+  const { data: proposals } = await supabase
+    .from('proposals')
+    .select('id, status, start_date, end_date, country_ru, country_en')
+    .eq('request_id', requestId)
+    .neq('kind', 'destination')
+    .order('updated_at', { ascending: false })
+  const approved = (proposals ?? []).find((p) => p.status === 'confirmed') ?? (proposals ?? [])[0]
+
   const { data, error } = await supabase
     .from('bookings')
     .insert({
       booking_code: code ?? null,
       request_id: requestId,
       client_id: request.client_id,
+      proposal_id: approved?.id ?? null,
+      start_date: approved?.start_date ?? null,
+      end_date: approved?.end_date ?? null,
+      destination: approved?.country_ru || approved?.country_en || null,
       status: 'draft',
       company_id: request.company_id,
       owner_id: user?.id ?? null,
@@ -214,6 +234,9 @@ export async function duplicateService(id: string): Promise<BookingService | nul
       check_in: original.check_in,
       check_out: original.check_out,
       alternatives: original.alternatives,
+      room_type: original.room_type,
+      meal_plan: original.meal_plan,
+      nights: original.nights,
       sort_order: original.sort_order + 1,
     })
     .select().single()

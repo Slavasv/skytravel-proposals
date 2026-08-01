@@ -60,7 +60,10 @@ export default function CostBreakdown({
         activities.push({ key: b.id, blockId: b.id, label: title, sub: g, price: b.price })
       } else if (cb.type === 'transfer') {
         const g = b.guests ? `${b.guests} ${b.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}` : ''
-        transfers.push({ key: b.id, blockId: b.id, label: title, sub: g, price: b.price })
+        const from = (lang === 'ru' ? b.from_ru : b.from_en) || b.from_ru || b.from_en || ''
+        const to = (lang === 'ru' ? b.to_ru : b.to_en) || b.to_ru || b.to_en || ''
+        const route = [from, to].filter(Boolean).join(' → ')
+        transfers.push({ key: b.id, blockId: b.id, label: title, sub: [route, g].filter(Boolean).join(' · '), price: b.price })
       }
     }
   }

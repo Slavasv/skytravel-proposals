@@ -539,7 +539,11 @@
 }
 .tp-block__title { font-size: 15px; font-weight: 500; color: var(--tp-text); margin-bottom: 5px; }
 .tp-block__desc { font-size: 14px; line-height: 1.7; color: var(--tp-text-soft); margin: 0; }
+/* маршрут трансфера: откуда → куда */
+.tp-block__route { font-size: 13px; color: var(--tp-accent); letter-spacing: 0.01em; margin: 2px 0 4px; }
 .tp-block__note {
+  display: inline-block; /* фон/обводка по тексту, а не на весь блок */
+  max-width: 100%;
   font-size: 13px; line-height: 1.6; color: var(--tp-text-soft);
   background: rgba(92, 54, 38, 0.06); border-radius: 4px;
   padding: 8px 12px; margin: 10px 0 0;
@@ -709,6 +713,22 @@
 .tp-costrow__name { font-size: 16px; color: var(--tp-text); margin-bottom: 4px; }
 .tp-costrow__desc { font-size: 13px; color: var(--tp-text-muted); line-height: 1.5; }
 .tp-costrow__price { font-family: var(--tp-font-display); font-size: 20px; color: var(--tp-text); white-space: nowrap; }
+
+/* группа: категория (жирная строка с подытогом) + позиции внутри */
+.tp-costgroup { border-bottom: 1px solid var(--tp-line-soft); }
+.tp-costrow--cat { border-bottom: none; padding: 20px 0 8px; }
+.tp-costline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  padding: 7px 0 7px 18px;
+}
+.tp-costline:last-child { padding-bottom: 18px; }
+.tp-costline__main { min-width: 0; }
+.tp-costline__name { font-size: 14px; color: var(--tp-text-soft); }
+.tp-costline__sub { font-size: 13px; color: var(--tp-text-muted); }
+.tp-costline__price { font-size: 15px; color: var(--tp-text-soft); white-space: nowrap; }
 
 .tp-costtotal {
   display: flex;

@@ -60,12 +60,28 @@ export function getNights(
 
 // Разбивка стоимости по категориям маршрута (Проживание / Активности / Трансферы).
 // Цены живут в блоках: selected_rooms[].price у отелей, day_blocks.price у активностей/трансферов.
-export type CostCategory = { total: number; desc: string }
+export type CostItem = { label: string; sub: string; price: number | null }
+export type CostCategory = { total: number; desc: string; items: CostItem[] }
 export type CostBreakdown = {
   accommodation: CostCategory
   activities: CostCategory
   transfers: CostCategory
   total: number
+}
+
+// Название номера по его id из jsonb content_blocks.rooms
+function roomTitle(rooms: unknown, roomId: string, lang: Lang): string {
+  if (!Array.isArray(rooms)) return ''
+  const r = (rooms as Record<string, unknown>[]).find((x) => x && typeof x === 'object' && x.id === roomId)
+  if (!r) return ''
+  return pickText(lang, (r.title_ru as string) ?? null, (r.title_en as string) ?? null)
+}
+
+function guestsShort(n: number, lang: Lang): string {
+  if (lang !== 'ru') return `${n} ${n === 1 ? 'guest' : 'guests'}`
+  const d = n % 10, dd = n % 100
+  const w = dd > 10 && dd < 20 ? 'гостей' : d === 1 ? 'гость' : d >= 2 && d <= 4 ? 'гостя' : 'гостей'
+  return `${n} ${w}`
 }
 
 export function computeCosts(
@@ -77,9 +93,9 @@ export function computeCosts(
   const ordered = [...days].sort((a, b) => a.day_number - b.day_number)
 
   let accTotal = 0, actTotal = 0, trTotal = 0
-  const accItems: string[] = []
-  const actItems: string[] = []
-  const trItems: string[] = []
+  const accItems: CostItem[] = []
+  const actItems: CostItem[] = []
+  const trItems: CostItem[] = []
 
   for (const d of ordered) {
     for (const b of d.day_blocks ?? []) {
@@ -88,24 +104,37 @@ export function computeCosts(
       const title = pickText(lang, cb.title_ru, cb.title_en)
 
       if (cb.type === 'hotel') {
-        const sum = (b.selected_rooms ?? []).reduce((s, r) => s + (r.price || 0), 0)
+        const rooms = b.selected_rooms ?? []
+        const sum = rooms.reduce((s, r) => s + (r.price || 0), 0)
         accTotal += sum
         const nights = getNights(days, tripStart, tripEnd, b.id)
-        if (title) accItems.push(nights ? `${title} (${nights} ${lang === 'ru' ? 'н.' : 'n.'})` : title)
+        const roomNames = [...new Set(rooms.map((r) => roomTitle(cb.rooms, r.room_id, lang)).filter(Boolean))]
+        const meals = [...new Set(rooms.map((r) => (r.meal || '').trim()).filter(Boolean))]
+        const subParts: string[] = []
+        if (nights) subParts.push(`${nights} ${lang === 'ru' ? 'ноч.' : 'n.'}`)
+        if (roomNames.length) subParts.push(roomNames.join(', '))
+        if (meals.length) subParts.push(meals.join(', '))
+        accItems.push({ label: title || (lang === 'ru' ? 'Отель' : 'Hotel'), sub: subParts.join(' · '), price: sum })
       } else if (cb.type === 'activity') {
         actTotal += b.price || 0
-        if (title) actItems.push(title)
+        const g = b.guests ? guestsShort(b.guests, lang) : ''
+        actItems.push({ label: title || (lang === 'ru' ? 'Активность' : 'Activity'), sub: g, price: b.price ?? null })
       } else if (cb.type === 'transfer') {
         trTotal += b.price || 0
-        if (title) trItems.push(title)
+        const from = pickText(lang, b.from_ru, b.from_en)
+        const to = pickText(lang, b.to_ru, b.to_en)
+        const route = [from, to].filter(Boolean).join(' → ')
+        const g = b.guests ? guestsShort(b.guests, lang) : ''
+        const sub = [route, g].filter(Boolean).join(' · ')
+        trItems.push({ label: title || (lang === 'ru' ? 'Трансфер' : 'Transfer'), sub, price: b.price ?? null })
       }
     }
   }
 
   return {
-    accommodation: { total: accTotal, desc: accItems.join(' + ') },
-    activities: { total: actTotal, desc: actItems.join(', ') },
-    transfers: { total: trTotal, desc: trItems.join(', ') },
+    accommodation: { total: accTotal, desc: accItems.map((i) => i.label).join(' + '), items: accItems },
+    activities: { total: actTotal, desc: actItems.map((i) => i.label).join(', '), items: actItems },
+    transfers: { total: trTotal, desc: trItems.map((i) => i.label).join(', '), items: trItems },
     total: accTotal + actTotal + trTotal,
   }
 }
