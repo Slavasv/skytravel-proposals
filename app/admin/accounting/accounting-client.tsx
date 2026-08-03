@@ -252,7 +252,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
   }
   const exportParams = new URLSearchParams()
   if (from) exportParams.set('from', from)
-  if (to) exportParams.set('to', to)
+  exportParams.set('tab', tab)
   const exportUrl = `/admin/accounting/export${exportParams.toString() ? `?${exportParams.toString()}` : ''}`
 
   async function handleDelete(id: string) {
