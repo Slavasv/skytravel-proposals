@@ -306,6 +306,7 @@ export async function duplicateHotel(hotelId: string) {
       room_type: original.room_type,
       meal_plan: original.meal_plan,
       extras: original.extras,
+      guests: original.guests,
     })
     .select()
     .single()

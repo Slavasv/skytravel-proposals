@@ -17,6 +17,7 @@ export type RouteServiceCandidate = {
   room_type: string | null
   meal_plan: string | null
   nights: string | null
+  block_id: string | null
 }
 
 function str(v: unknown): string { return typeof v === 'string' ? v : '' }
@@ -78,7 +79,7 @@ export async function getRouteServices(bookingId: string): Promise<RouteServiceC
 
   const { data: daysRaw } = await supabase
     .from('days')
-    .select(`day_number, date, day_blocks ( sort_order, price, guests, selected_rooms, from_ru, from_en, to_ru, to_en, content_blocks ( type, title_ru, title_en, rooms ) )`)
+    .select(`day_number, date, day_blocks ( sort_order, price, guests, selected_rooms, from_ru, from_en, to_ru, to_en, content_blocks ( id, type, title_ru, title_en, rooms ) )`)
     .eq('variant_id', variant.id)
     .order('day_number', { ascending: true })
 
@@ -129,12 +130,14 @@ export async function getRouteServices(bookingId: string): Promise<RouteServiceC
           room_type: roomNames.join(', ') || null,
           meal_plan: meals.join(', ') || null,
           nights: nights || null,
+          block_id: str(cb.id) || null,
         })
       } else if (type === 'activity') {
         out.push({
           key: `act:${out.length}`, service_type: 'Excursion',
           description: title, gross: (b.price as number) ?? null, currency,
           check_in: ci, check_out: null, room_type: null, meal_plan: null, nights: null,
+          block_id: str(cb.id) || null,
         })
       } else if (type === 'transfer') {
         const from = pick(lang, b.from_ru, b.from_en)
@@ -144,6 +147,7 @@ export async function getRouteServices(bookingId: string): Promise<RouteServiceC
           key: `tr:${out.length}`, service_type: 'Transfer',
           description: [title, route].filter(Boolean).join(' · '), gross: (b.price as number) ?? null, currency,
           check_in: ci, check_out: null, room_type: null, meal_plan: null, nights: null,
+          block_id: str(cb.id) || null,
         })
       }
     }
@@ -175,6 +179,7 @@ export async function addServiceFromRoute(
       room_type: c.room_type,
       meal_plan: c.meal_plan,
       nights: c.nights,
+      source_block_id: c.block_id,
       sort_order: nextOrder,
     })
     .select().single()

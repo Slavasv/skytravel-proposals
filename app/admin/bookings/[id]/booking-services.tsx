@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   addService, updateService, deleteService, duplicateService,
-  type BookingService, type PartnerOption,
+  type BookingService, type PartnerOption, type BookingTraveller,
 } from '../actions'
 import { getRouteServices, addServiceFromRoute, type RouteServiceCandidate } from '../booking-route-actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
@@ -39,10 +39,11 @@ function money(n: number): string {
 }
 
 function ServiceCard({
-  service, partners, onRemove, onDuplicate, onChange,
+  service, partners, travellers, onRemove, onDuplicate, onChange,
 }: {
   service: BookingService
   partners: PartnerOption[]
+  travellers: BookingTraveller[]
   onRemove: (id: string) => void
   onDuplicate: (id: string) => void
   onChange: (id: string, patch: Partial<BookingService>) => void
@@ -62,6 +63,7 @@ function ServiceCard({
     room_type: service.room_type || '',
     meal_plan: service.meal_plan || '',
     nights: service.nights || '',
+    guest_ids: (service.guest_ids || []) as string[],
   })
   const [saved, setSaved] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -92,6 +94,7 @@ function ServiceCard({
         room_type: form.room_type || null,
         meal_plan: form.meal_plan || null,
         nights: form.nights || null,
+        guest_ids: form.guest_ids,
       })
       onChange(service.id, { gross: grossNum, net: netNum, currency: form.currency })
       setSaved(true)
@@ -186,6 +189,39 @@ function ServiceCard({
         </div>
       )}
 
+      {/* гости в номере — если путешественников несколько и они по разным номерам */}
+      {isHotel && travellers.length > 0 && (
+        <div style={{ marginBottom: '10px' }}>
+          <label style={labelSt}>{t('Guests in this room', 'Гости в этом номере')}</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {travellers.map((g) => {
+              const on = form.guest_ids.includes(g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() =>
+                    set('guest_ids', on ? form.guest_ids.filter((x) => x !== g.id) : [...form.guest_ids, g.id])
+                  }
+                  style={{
+                    fontSize: '12px', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    border: `1px solid ${on ? 'var(--admin-accent)' : 'var(--admin-border-card)'}`,
+                    background: on ? 'var(--admin-accent)' : 'transparent',
+                    color: on ? '#fff' : 'var(--admin-text)',
+                  }}
+                >
+                  {[g.title, g.name].filter(Boolean).join(' ') || t('Guest', 'Гость')}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+            {t('Leave empty if the whole party shares one booking.', 'Оставьте пустым, если все едут по одной брони.')}
+          </p>
+        </div>
+      )}
+
       {/* альтернативы */}
       <div style={{ marginBottom: '10px' }}>
         <label style={labelSt}>{t('Alternatives checked (optional)', 'Проверенные альтернативы (необязательно)')}</label>
@@ -200,7 +236,7 @@ function ServiceCard({
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" onClick={() => onDuplicate(service.id)}
             style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-accent)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '5px 9px', fontFamily: 'inherit' }}>
-            {t('Duplicate', 'Дублировать')}
+            {isHotel ? t('+ Add room', '+ Добавить номер') : t('Duplicate', 'Дублировать')}
           </button>
           <button type="button" onClick={() => onRemove(service.id)}
             style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '5px 9px', fontFamily: 'inherit' }}>
@@ -213,11 +249,12 @@ function ServiceCard({
 }
 
 export default function BookingServices({
-  bookingId, initial, partners,
+  bookingId, initial, partners, travellers = [],
 }: {
   bookingId: string
   initial: BookingService[]
   partners: PartnerOption[]
+  travellers?: BookingTraveller[]
 }) {
   const t = useT()
   const [services, setServices] = useState<BookingService[]>(initial)
@@ -292,7 +329,7 @@ export default function BookingServices({
           </div>
         ) : (
           services.map((s) => (
-            <ServiceCard key={s.id} service={s} partners={partners}
+            <ServiceCard key={s.id} service={s} partners={partners} travellers={travellers}
               onRemove={handleRemove} onDuplicate={handleDuplicate} onChange={handleChange} />
           ))
         )}

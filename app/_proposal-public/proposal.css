@@ -139,6 +139,7 @@
   background: none; border: none; cursor: pointer;
   padding: 8px; color: var(--tp-text);
   display: flex; align-items: center; justify-content: center;
+  margin-left: auto; /* всегда прижат вправо, даже когда вариантов нет */
 }
 
 /* строка навигации по секциям */
@@ -287,6 +288,25 @@
 .tp-header[data-solid="false"] .tp-variant-current__eyebrow b { color: #fff; }
 .tp-header[data-solid="false"] .tp-nav { border-top-color: rgba(243, 236, 226, 0.2); }
 .tp-header[data-solid="false"] .tp-nav__link[data-active="true"] { color: #fff; }
+
+/* =====================  ХЕДЕР ПОСЛЕ HERO: ЦВЕТ БРЕНДА  ===================== */
+.tp-header[data-solid="true"] {
+  background: var(--tp-accent);
+  backdrop-filter: none;
+  border-bottom-color: color-mix(in srgb, var(--tp-accent) 60%, black);
+}
+.tp-header[data-solid="true"] .tp-logo,
+.tp-header[data-solid="true"] .tp-variant-current,
+.tp-header[data-solid="true"] .tp-variant-current__name,
+.tp-header[data-solid="true"] .tp-nav__link,
+.tp-header[data-solid="true"] .tp-burger-btn,
+.tp-header[data-solid="true"] .tp-chevron { color: var(--tp-accent-text); }
+.tp-header[data-solid="true"] .tp-nav { border-top-color: color-mix(in srgb, var(--tp-accent-text) 22%, transparent); }
+.tp-header[data-solid="true"] .tp-nav__link[data-active="true"] { color: #fff; font-weight: 500; }
+.tp-header[data-solid="true"] .tp-variant-current { border-left-color: color-mix(in srgb, var(--tp-accent-text) 30%, transparent); }
+.tp-header[data-solid="true"] .tp-variant-current__eyebrow,
+.tp-header[data-solid="true"] .tp-variant-current__sub { color: color-mix(in srgb, var(--tp-accent-text) 80%, transparent); }
+.tp-header[data-solid="true"] .tp-variant-current__eyebrow b { color: #fff; }
 
 /* =====================  HERO (ОБЗОР)  ===================== */
 .tp-hero {
@@ -796,6 +816,100 @@
 }
 .tp-btn:hover { opacity: 0.9; }
 .tp-terms__cta-note { font-size: 13px; color: var(--tp-text-muted); line-height: 1.6; margin: 16px 0 0; max-width: 560px; }
+
+/* ===================== PDF / ПЕЧАТЬ ===================== */
+@media print {
+  /* акцентные фоны обязательно печатаем */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  @page { margin: 0; }
+
+  /* лишний хром прячем */
+  .no-print,
+  .tp-burger-btn,
+  .tp-drawer,
+  .tp-overlay,
+  .dp-cta,
+  .tp-nav,
+  .tp-variant-current,
+  .tp-variant-menu,
+  .tp-carousel__nav,
+  .tp-carousel__dots,
+  .tp-carousel__counter { display: none !important; }
+
+  /* бренд-плашка сверху (как шапка ваучера): статично, один раз, цвет бренда */
+  .tp-header {
+    position: static !important;
+    background: var(--tp-accent) !important;
+    backdrop-filter: none !important;
+    border: none !important;
+  }
+  .tp-header__top { padding: 12px var(--tp-gutter) !important; }
+  .tp-logo { color: var(--tp-accent-text) !important; }
+  .tp-main { padding-top: 0 !important; }
+
+  /* герой — компактный баннер, а не на всю страницу */
+  .tp-hero { min-height: 0 !important; height: 300px !important; }
+  .tp-hero__inner { padding-top: 0 !important; }
+  .tp-hero__title { font-size: 42px !important; margin-bottom: 10px !important; }
+
+  /* меньше воздуха у секций и блоков */
+  .tp-section { padding: 20px 0 !important; }
+  .tp-section--flush { padding-top: 0 !important; }
+  .tp-overview { padding: 20px 0 6px !important; }
+  .tp-impressions { padding: 24px 0 6px !important; }
+  .tp-hotels { gap: 32px !important; }
+
+  /* декоративный фото-дивайдер в печати не нужен — рвётся и ест страницу */
+  .tp-divider { display: none !important; }
+
+  /* картинки: не выше страницы, с фиксированной высотой (без разрывов) */
+  .tp-carousel__frame {
+    aspect-ratio: auto !important;
+    height: 300px !important;
+    max-height: 300px !important;
+    break-inside: avoid;
+  }
+  .tp-gallery__img { max-height: 320px !important; object-fit: cover !important; }
+
+  /* переносы: отель/группа/карточка целиком; заголовки не отрываются; дни перетекают */
+  .tp-hotel, .tp-costgroup, .tp-costcards, .tp-costcard,
+  .tp-block, .tp-costrow, .tp-room, .tp-meta__item,
+  .tp-pay__item, .tp-cancel__row, .tp-footer, .tp-carousel { break-inside: avoid; }
+  .tp-itin__head, .tp-costs__title, .tp-hotels__title,
+  .tp-impressions__title, .tp-terms__collabel, .tp-h2 { break-after: avoid; }
+  .tp-day__row { break-inside: avoid; break-after: avoid; }
+  .tp-hotel__head { break-inside: avoid; break-after: avoid; }
+  /* итог цены не отрывается от последней группы */
+  .tp-costtotal { break-inside: avoid; break-before: avoid; }
+
+  /* футер прижимается к низу последней страницы распоркой из PDF-роута */
+  .tp-footer { break-inside: avoid; margin-top: 0 !important; }
+}
+
+/* ===================== ФУТЕР (как в ваучере, цвет бренда) ===================== */
+.tp-footer {
+  margin-top: 8px;
+  background: var(--tp-accent);
+  color: var(--tp-accent-text);
+  padding: 40px 24px 46px;
+  text-align: center;
+}
+.tp-footer__line {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.9;
+  opacity: 0.95;
+}
+.tp-footer__star { opacity: 0.75; }
+.tp-footer__addr {
+  margin-top: 6px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.85;
+}
 
 @media (max-width: 720px) {
   .tp-terms__cols { grid-template-columns: 1fr; gap: 32px; }

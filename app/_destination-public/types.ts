@@ -49,5 +49,5 @@ export type DestinationData = {
   price_from: boolean
   proposalId: string
   sections: DSection[]
-  company: { name: string | null; logo_url: string | null; accent_color: string | null; contact_email: string | null } | null
+  company: { name: string | null; logo_url: string | null; accent_color: string | null; contact_email: string | null; contact_phone: string | null; website_url: string | null; footer_note: string | null; office_address: string | null } | null
 }

@@ -118,6 +118,11 @@ export default function Design1({ voucher, company, hotelsData, isPrint }: {
               const addr = [h.address, h.phone].filter(Boolean).join('  ·  ')
               const dates = prettyRange(h.check_in, h.check_out)
               const nights = h.nights ? `${h.nights} ${h.nights === '1' ? 'Night' : 'Nights'}` : ''
+              const hGuests: Guest[] = Array.isArray(h.guests) && h.guests.length ? h.guests : guests
+              const roomGuestNames = (Array.isArray(h.guests) && h.guests.length ? h.guests : [])
+                .map((g) => `${TITLE_BEFORE.has(g.title || '') ? `${g.title} ` : ''}${g.name || ''}`.trim())
+                .filter(Boolean)
+                .join(', ')
               return (
                 <div key={h.id} className="pdf-keep" style={{ background: 'var(--voucher-card-bg)', border: '1px solid var(--voucher-card-border)', borderRadius: '12px', padding: '26px 30px', marginBottom: '18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -151,8 +156,14 @@ export default function Design1({ voucher, company, hotelsData, isPrint }: {
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px', alignItems: 'baseline' }}>
                       <span style={metaLabel}>Occupancy</span>
-                      <span style={valueSerif}>{occupancy(guests)}</span>
+                      <span style={valueSerif}>{occupancy(hGuests)}</span>
                     </div>
+                    {roomGuestNames && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px', alignItems: 'baseline' }}>
+                        <span style={metaLabel}>Guests</span>
+                        <span style={valueSerif}>{roomGuestNames}</span>
+                      </div>
+                    )}
                     {h.meal_plan && (
                       <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px', alignItems: 'baseline' }}>
                         <span style={metaLabel}>Meal plan</span>

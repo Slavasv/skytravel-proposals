@@ -7,6 +7,7 @@ import ProposalItinerary from './proposal-itinerary'
 import ProposalAccommodation from './proposal-accommodation'
 import ProposalCosts from './proposal-costs'
 import ProposalTerms from './proposal-terms'
+import SavePdfButton from './save-pdf-button'
 import type { LoadedProposal, Lang, PublicVariant } from './types'
 
 /* Секции страницы (без «Авиаперелёт» — добавим отдельным этапом). */
@@ -32,7 +33,7 @@ function pick(lang: Lang, ru: string | null, en: string | null): string {
   return (lang === 'ru' ? ru : en) || ''
 }
 
-export default function ProposalView({ data, lang }: { data: LoadedProposal; lang: Lang }) {
+export default function ProposalView({ data, lang, print = false }: { data: LoadedProposal; lang: Lang; print?: boolean }) {
   const { proposal, company, variants, travellers } = data
   const currency = proposal.cost_currency || proposal.currency || 'EUR'
   const accent = company?.accent_color || '' // акцент бренда переопределяет --tp-accent
@@ -137,6 +138,8 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
       className="tp-root"
       style={accent ? ({ ['--tp-accent' as string]: accent } as React.CSSProperties) : undefined}
     >
+      {!print && <SavePdfButton slug={proposal.slug} kind="p" lang={lang} />}
+
       {/* ===================== ФИКС-ХЕДЕР ===================== */}
       <header className="tp-header" data-solid={solidHeader}>
         <div className="tp-header__top">
@@ -251,6 +254,7 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
                 days={active.days}
                 variantLabel={variantLabel}
                 lang={lang}
+                forceOpen={print}
               />
             ) : s.id === 'prozhivanie' ? (
               <ProposalAccommodation
@@ -287,6 +291,23 @@ export default function ProposalView({ data, lang }: { data: LoadedProposal; lan
           </section>
         ))}
       </main>
+
+      {/* ===================== ФУТЕР (цвет бренда, как в ваучере) ===================== */}
+      <footer className="tp-footer">
+        <div className="tp-footer__line">
+          <span className="tp-footer__star">✦</span>{'  '}
+          {[
+            company?.footer_note || brandName,
+            company?.contact_email,
+            company?.contact_phone,
+            company?.website_url?.replace(/^https?:\/\//, ''),
+          ].filter(Boolean).join('  ·  ')}
+          {'  '}<span className="tp-footer__star">✦</span>
+        </div>
+        {company?.office_address && (
+          <div className="tp-footer__addr">{company.office_address}</div>
+        )}
+      </footer>
 
       {/* ===================== БУРГЕР (СОДЕРЖАНИЕ) ===================== */}
       <div className="tp-overlay" data-open={burgerOpen} onClick={() => setBurgerOpen(false)} />

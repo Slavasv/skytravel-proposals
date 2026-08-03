@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { normalizePhotos, photoUrls } from '@/lib/photos'
 import type { DestinationData, DSection, DRoom, DPhoto, DCostLine } from './types'
 
@@ -32,8 +33,25 @@ export async function loadDestination(slug: string): Promise<DestinationData | n
     .from('proposals').select('*').eq('slug', slug).eq('kind', 'destination').single()
   if (error || !proposal) return null
 
-  const { data: company } = proposal.company_id
-    ? await supabase.from('companies').select('name, logo_url, accent_color, contact_email').eq('id', proposal.company_id).single()
+  // company_id из предложения; если пусто — резолвим бренд через владельца/заявку
+  // service-role'ом (как ваучер берёт company_id из профиля).
+  let companyId: string | null = proposal.company_id ?? null
+  if (!companyId) {
+    const admin = createSupabaseAdmin()
+    if (proposal.owner_id) {
+      const { data: owner } = await admin
+        .from('profiles').select('company_id').eq('id', proposal.owner_id).single()
+      companyId = owner?.company_id ?? null
+    }
+    if (!companyId && proposal.request_id) {
+      const { data: reqRow } = await admin
+        .from('requests').select('company_id').eq('id', proposal.request_id).single()
+      companyId = reqRow?.company_id ?? null
+    }
+  }
+
+  const { data: company } = companyId
+    ? await supabase.from('companies').select('name, logo_url, accent_color, contact_email, contact_phone, website_url, footer_note, office_address').eq('id', companyId).single()
     : { data: null }
 
   const { data: sectionsRaw } = await supabase

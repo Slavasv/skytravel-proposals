@@ -195,7 +195,7 @@ export default function BookingForm({
           {t('Everything booked for this trip. Commission is calculated as Gross − Net.',
              'Всё, что забронировано для этой поездки. Комиссия рассчитывается как Брутто − Нетто.')}
         </p>
-        <BookingServices bookingId={booking.id} initial={services} partners={partners} />
+        <BookingServices bookingId={booking.id} initial={services} partners={partners} travellers={travellers.all.filter((tr) => travellers.selected.includes(tr.id))} />
       </section>
 
       {/* ИНВОЙСЫ ПОСТАВЩИКОВ */}

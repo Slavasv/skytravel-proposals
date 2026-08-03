@@ -29,6 +29,7 @@ export type BookingService = {
   room_type: string | null
   meal_plan: string | null
   nights: string | null
+  guest_ids: string[] | null
   sort_order: number
 }
 
@@ -46,6 +47,7 @@ export type ServiceUpdate = {
   room_type?: string | null
   meal_plan?: string | null
   nights?: string | null
+  guest_ids?: string[] | null
 }
 
 // ============ Бронирование ============
@@ -230,13 +232,17 @@ export async function duplicateService(id: string): Promise<BookingService | nul
       gross: original.gross,
       net: original.net,
       currency: original.currency,
-      confirmation_no: original.confirmation_no,
+      // дубль отеля = второй НОМЕР того же отеля: связь с отелем сохраняем,
+      // но booking-ref и гостей обнуляем (у каждого номера свои)
+      confirmation_no: original.service_type === 'Accomodation' ? null : original.confirmation_no,
       check_in: original.check_in,
       check_out: original.check_out,
       alternatives: original.alternatives,
       room_type: original.room_type,
       meal_plan: original.meal_plan,
       nights: original.nights,
+      source_block_id: original.source_block_id ?? null,
+      guest_ids: original.service_type === 'Accomodation' ? [] : (original.guest_ids ?? null),
       sort_order: original.sort_order + 1,
     })
     .select().single()
@@ -361,6 +367,39 @@ export async function setBookingTravellers(
   revalidatePath(`/admin/requests/${requestId}`)
 }
 
+// Детали отеля из библиотеки (адрес/телефон/город/страна) по id блоков-источников.
+type HotelBlockInfo = { address: string | null; phone: string | null; city: string | null; country: string | null }
+async function resolveHotelBlocks(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  ids: (string | null | undefined)[]
+): Promise<Map<string, HotelBlockInfo>> {
+  const map = new Map<string, HotelBlockInfo>()
+  const clean = [...new Set(ids.filter((x): x is string => !!x))]
+  if (clean.length === 0) return map
+  const { data } = await supabase
+    .from('content_blocks')
+    .select('id, address, phone, city:city_id ( name_en, name_ru, country:country_id ( name_en, name_ru ) ), country_direct:country_id ( name_en, name_ru )')
+    .in('id', clean)
+  const nm = (o: unknown): string | null => {
+    const r = o as { name_en?: string | null; name_ru?: string | null } | null
+    return r ? (r.name_en || r.name_ru || null) : null
+  }
+  const first = <T,>(v: T | T[] | null | undefined): T | null =>
+    v == null ? null : Array.isArray(v) ? (v[0] ?? null) : v
+  for (const b of (data ?? []) as Record<string, unknown>[]) {
+    const city = first(b.city)
+    const countryFromCity = city ? first((city as { country?: unknown }).country) : null
+    const country = countryFromCity ?? first(b.country_direct)
+    map.set(String(b.id), {
+      address: (b.address as string) ?? null,
+      phone: (b.phone as string) ?? null,
+      city: city ? nm(city) : null,
+      country: nm(country),
+    })
+  }
+  return map
+}
+
 // ============ Ваучер из брони ============
 
 export type BookingVoucher = {
@@ -403,6 +442,7 @@ export async function createAccommodationVoucher(bookingId: string) {
     travellerIds = Array.isArray(req?.traveller_ids) ? req.traveller_ids : []
   }
 
+  const guestById = new Map<string, { title: string; name: string; birth_date: string }>()
   let guests: { title: string; name: string; birth_date: string }[] = []
   if (travellerIds.length > 0) {
     const { data: trav } = await supabase
@@ -410,11 +450,11 @@ export async function createAccommodationVoucher(bookingId: string) {
       .select('id, name, title, date_of_birth, sort_order')
       .in('id', travellerIds)
       .order('sort_order', { ascending: true })
-    guests = (trav ?? []).map((t) => ({
-      title: t.title || 'Mr',
-      name: t.name || '',
-      birth_date: t.date_of_birth || '',
-    }))
+    guests = (trav ?? []).map((t) => {
+      const g = { title: t.title || 'Mr', name: t.name || '', birth_date: t.date_of_birth || '' }
+      guestById.set(t.id, g)
+      return g
+    })
   }
 
   const slug = `voucher-${Math.random().toString(36).slice(2, 10)}`
@@ -443,7 +483,7 @@ export async function createAccommodationVoucher(bookingId: string) {
   // отели — из услуг типа Accomodation
   const { data: services } = await supabase
     .from('booking_services')
-    .select('description, confirmation_no, check_in, check_out, sort_order')
+    .select('description, confirmation_no, check_in, check_out, room_type, meal_plan, nights, source_block_id, guest_ids, sort_order')
     .eq('booking_id', bookingId)
     .eq('service_type', 'Accomodation')
     .order('sort_order', { ascending: true })
@@ -455,7 +495,7 @@ export async function createAccommodationVoucher(bookingId: string) {
       if (parts.length !== 3) return d
       return `${parts[2]}.${parts[1]}.${parts[0]}`
     }
-    const nights = (a: string | null, b: string | null) => {
+    const nightsCalc = (a: string | null, b: string | null) => {
       if (!a || !b) return null
       const d1 = new Date(a), d2 = new Date(b)
       if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
@@ -463,16 +503,34 @@ export async function createAccommodationVoucher(bookingId: string) {
       return n > 0 ? String(n) : null
     }
 
+    // адрес/телефон/город/страна из библиотеки по блокам-источникам
+    const blocks = await resolveHotelBlocks(
+      supabase,
+      services.map((s) => (s as { source_block_id?: string | null }).source_block_id)
+    )
+
     await supabase.from('voucher_hotels').insert(
-      services.map((s, i) => ({
-        voucher_id: voucher.id,
-        sort_order: i,
-        name: s.description || null,
-        booking_ref: s.confirmation_no || null,
-        check_in: toDMY(s.check_in),
-        check_out: toDMY(s.check_out),
-        nights: nights(s.check_in, s.check_out),
-      }))
+      services.map((s, i) => {
+        const info = blocks.get(String((s as { source_block_id?: string | null }).source_block_id ?? '')) ?? null
+        return {
+          voucher_id: voucher.id,
+          sort_order: i,
+          name: s.description || null,
+          booking_ref: s.confirmation_no || null,
+          check_in: toDMY(s.check_in),
+          check_out: toDMY(s.check_out),
+          nights: (s as { nights?: string | null }).nights || nightsCalc(s.check_in, s.check_out),
+          room_type: (s as { room_type?: string | null }).room_type || null,
+          meal_plan: (s as { meal_plan?: string | null }).meal_plan || null,
+          address: info?.address ?? null,
+          phone: info?.phone ?? null,
+          city: info?.city ?? null,
+          country: info?.country ?? null,
+          guests: ((s as { guest_ids?: string[] | null }).guest_ids ?? [])
+            .map((id) => guestById.get(id))
+            .filter(Boolean),
+        }
+      })
     )
   }
 
@@ -502,6 +560,7 @@ export async function syncVoucherFromBooking(voucherId: string) {
     .eq('id', voucher.booking_id)
     .single()
 
+  const guestById = new Map<string, { title: string; name: string; birth_date: string }>()
   if (booking?.request_id) {
     const { data: req } = await supabase
       .from('requests').select('traveller_ids').eq('id', booking.request_id).single()
@@ -509,14 +568,14 @@ export async function syncVoucherFromBooking(voucherId: string) {
     if (ids.length > 0) {
       const { data: trav } = await supabase
         .from('travellers')
-        .select('name, title, date_of_birth, sort_order')
+        .select('id, name, title, date_of_birth, sort_order')
         .in('id', ids)
         .order('sort_order', { ascending: true })
-      const guests = (trav ?? []).map((t) => ({
-        title: t.title || 'Mr',
-        name: t.name || '',
-        birth_date: t.date_of_birth || '',
-      }))
+      const guests = (trav ?? []).map((t) => {
+        const g = { title: t.title || 'Mr', name: t.name || '', birth_date: t.date_of_birth || '' }
+        guestById.set(t.id, g)
+        return g
+      })
       await supabase.from('vouchers').update({ guests }).eq('id', voucherId)
     }
   }
@@ -524,7 +583,7 @@ export async function syncVoucherFromBooking(voucherId: string) {
   // отели — из услуг Accomodation
   const { data: services } = await supabase
     .from('booking_services')
-    .select('description, confirmation_no, check_in, check_out, sort_order')
+    .select('description, confirmation_no, check_in, check_out, room_type, meal_plan, nights, source_block_id, guest_ids, sort_order')
     .eq('booking_id', voucher.booking_id)
     .eq('service_type', 'Accomodation')
     .order('sort_order', { ascending: true })
@@ -552,18 +611,34 @@ export async function syncVoucherFromBooking(voucherId: string) {
   const svc = services ?? []
   const existing = hotels ?? []
 
+  // адрес/телефон/город/страна из библиотеки по блокам-источникам
+  const blocks = await resolveHotelBlocks(
+    supabase,
+    svc.map((s) => (s as { source_block_id?: string | null }).source_block_id)
+  )
+  const rowFrom = (s: typeof svc[number]) => {
+    const info = blocks.get(String((s as { source_block_id?: string | null }).source_block_id ?? '')) ?? null
+    return {
+      name: s.description || null,
+      booking_ref: s.confirmation_no || null,
+      check_in: toDMY(s.check_in),
+      check_out: toDMY(s.check_out),
+      nights: (s as { nights?: string | null }).nights || nightsBetween(s.check_in, s.check_out),
+      room_type: (s as { room_type?: string | null }).room_type || null,
+      meal_plan: (s as { meal_plan?: string | null }).meal_plan || null,
+      address: info?.address ?? null,
+      phone: info?.phone ?? null,
+      city: info?.city ?? null,
+      country: info?.country ?? null,
+      guests: ((s as { guest_ids?: string[] | null }).guest_ids ?? [])
+        .map((id) => guestById.get(id))
+        .filter(Boolean),
+    }
+  }
+
   // обновляем существующие карточки
   for (let i = 0; i < Math.min(svc.length, existing.length); i++) {
-    await supabase
-      .from('voucher_hotels')
-      .update({
-        name: svc[i].description || null,
-        booking_ref: svc[i].confirmation_no || null,
-        check_in: toDMY(svc[i].check_in),
-        check_out: toDMY(svc[i].check_out),
-        nights: nightsBetween(svc[i].check_in, svc[i].check_out),
-      })
-      .eq('id', existing[i].id)
+    await supabase.from('voucher_hotels').update(rowFrom(svc[i])).eq('id', existing[i].id)
   }
 
   // если в брони услуг больше — добавляем недостающие карточки
@@ -572,11 +647,7 @@ export async function syncVoucherFromBooking(voucherId: string) {
       svc.slice(existing.length).map((s, idx) => ({
         voucher_id: voucherId,
         sort_order: existing.length + idx,
-        name: s.description || null,
-        booking_ref: s.confirmation_no || null,
-        check_in: toDMY(s.check_in),
-        check_out: toDMY(s.check_out),
-        nights: nightsBetween(s.check_in, s.check_out),
+        ...rowFrom(s),
       }))
     )
   }

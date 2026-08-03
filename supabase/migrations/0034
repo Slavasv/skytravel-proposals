@@ -1,0 +1,5 @@
+alter table public.booking_services
+  add column if not exists source_block_id uuid references public.content_blocks(id) on delete set null;
+
+  alter table public.booking_services add column if not exists guest_ids uuid[] default '{}';
+alter table public.voucher_hotels add column if not exists guests jsonb default '[]';

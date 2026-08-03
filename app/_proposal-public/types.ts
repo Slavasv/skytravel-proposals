@@ -127,6 +127,7 @@ export type PublicCompany = {
   contact_phone: string | null
   website_url: string | null
   footer_note: string | null
+  office_address: string | null
 }
 
 // Сводка по путешественникам (считается на сервере — travellers это ПДн, анону не отдаём)

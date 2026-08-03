@@ -29,6 +29,8 @@ type Block = {
   images: string[] | null
   location: string | null
   link_url: string | null
+  address: string | null
+  phone: string | null
   tags: string[] | null
   notable_amenities_ru: string | null
   notable_amenities_en: string | null
@@ -108,6 +110,8 @@ export default function BlockForm({ block }: { block: Block }) {
     images: normalizePhotos(block.images),
     location: block.location || '',
     link_url: block.link_url || '',
+    address: block.address || '',
+    phone: block.phone || '',
     tags: block.tags || [],
     // hotel
     notable_amenities_ru: block.notable_amenities_ru || '',
@@ -160,6 +164,8 @@ export default function BlockForm({ block }: { block: Block }) {
           images: currentForm.images,
           location: currentForm.location || null,
           link_url: currentForm.link_url || null,
+          address: currentForm.type === 'hotel' ? (currentForm.address || null) : null,
+          phone: currentForm.type === 'hotel' ? (currentForm.phone || null) : null,
           tags: currentForm.tags,
           notable_amenities_ru: currentForm.type === 'hotel' ? (currentForm.notable_amenities_ru || null) : null,
           notable_amenities_en: currentForm.type === 'hotel' ? (currentForm.notable_amenities_en || null) : null,
@@ -468,6 +474,31 @@ export default function BlockForm({ block }: { block: Block }) {
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
             {t('Hotel details', 'Детали отеля')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={labelStyle}>{t('Address', 'Адрес')}</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={(e) => set('address', e.target.value)}
+                style={inputStyle}
+                placeholder={lang === 'ru' ? '40 Av. Princesse Grace, Monaco' : '40 Av. Princesse Grace, Monaco'}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>{t('Phone', 'Телефон')}</label>
+              <input
+                type="text"
+                value={form.phone}
+                onChange={(e) => set('phone', e.target.value)}
+                style={inputStyle}
+                placeholder="+377 98 06 02 00"
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '-14px 0 20px' }}>
+            {t('Address and phone are pulled into the voucher automatically.', 'Адрес и телефон автоматически подтягиваются в ваучер.')}
+          </p>
           <div>
             <label style={labelStyle}>{t('Notable amenities', 'Ключевые удобства')}</label>
             <textarea

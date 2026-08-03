@@ -29,13 +29,21 @@ export default function ProposalItinerary({
   days,
   variantLabel,
   lang,
+  forceOpen = false,
 }: {
   days: PublicDay[]
   variantLabel: string | null
   lang: Lang
+  forceOpen?: boolean
 }) {
   const ordered = [...days].sort((a, b) => a.day_number - b.day_number)
-  const [open, setOpen] = useState<Set<string>>(() => (ordered[0] ? new Set([ordered[0].id]) : new Set()))
+  const [open, setOpen] = useState<Set<string>>(() =>
+    forceOpen
+      ? new Set(ordered.map((d) => d.id))
+      : ordered[0]
+        ? new Set([ordered[0].id])
+        : new Set()
+  )
 
   if (ordered.length === 0) return null
 

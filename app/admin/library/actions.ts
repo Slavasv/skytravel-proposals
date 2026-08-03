@@ -23,6 +23,8 @@ export type BlockUpdate = {
   images?: Photo[]
   location?: string | null
   link_url?: string | null
+  address?: string | null
+  phone?: string | null
   tags?: string[]
   notable_amenities_ru?: string | null
   notable_amenities_en?: string | null

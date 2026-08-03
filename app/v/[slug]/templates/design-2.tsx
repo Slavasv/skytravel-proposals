@@ -2,7 +2,7 @@ import SavePdfButton from '../save-pdf-button'
 import {
   type Guest, type Hotel,
   TITLE_BEFORE, CHILD_TITLES,
-  renderMarkdown, parseDMY, fullYears,
+  renderMarkdown, parseDMY, fullYears, groupHotels,
 } from './shared'
 
 // ДИЗАЙН 2 — «Hotel Voucher» (макет Sky Travel).
@@ -44,8 +44,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
     if (co && (!lastCheckoutDate || co > lastCheckoutDate)) lastCheckoutDate = co
   }
 
-  const touristNames = guests.map((g) => {
-    const t = g.title || ''
+const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
     // обращение выводим для всех, у кого оно есть (взрослые И дети)
     const base = t ? `${t} ${g.name || ''}`.trim() : (g.name || '')
     if (!base) return ''
@@ -61,6 +60,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
     }
     return base
   }).filter(Boolean)
+  const touristNames = namesOf(guests)
 
   const FS_TITLE = 40, FS_LABEL = 22, FS_CONFIRM = 48, FS_GREET = 15, FS_FOOTER = 20
 
@@ -143,32 +143,50 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
           <tfoot><tr><td><div style={{ height: (FOOTER_H + (voucher.show_greeting && company?.greeting_message ? 200 : 90)) + 'px' }} /></td></tr></tfoot>
           <tbody><tr><td>
             <div style={{ padding: '0 50px 20px' }}>
-              {hotels.map((h, i) => {
-                const cityCountry = [h.city, h.country].filter(Boolean).join(' / ')
+              {groupHotels(hotels).map((group, gi, arr) => {
+                const head = group.head
+                const cityCountry = [head.city, head.country].filter(Boolean).join(' / ')
+                const anyRoomGuests = group.rooms.some((r) => Array.isArray(r.guests) && r.guests.length)
+                const multiRoom = group.rooms.length > 1
                 return (
-                  <div key={h.id} className="pdf-keep" style={{ marginBottom: i < hotels.length - 1 ? '34px' : '10px' }}>
+                  <div key={head.id} className="pdf-keep" style={{ marginBottom: gi < arr.length - 1 ? '34px' : '10px' }}>
                     <Row label="City/Country:" value={cityCountry} />
-                    <Row label="Hotel:" value={h.name || ''} />
-                    <Row label="Address:" value={h.address || ''} />
-                    <Row label="Phone:" value={h.phone || ''} />
-                    <Row label="Check-in:" value={h.check_in || ''} />
-                    <Row label="Check-out:" value={h.check_out || ''} />
-                    <Row label="Total nights:" value={h.nights || ''} />
-                    <Row label="Booking No.:" value={h.booking_ref || ''} />
-                    <Row label="Room type:" value={h.room_type || ''} />
-                    <Row label="Meal type:" value={h.meal_plan || ''} />
-                    <Row label="Tourist Name(s):" last={!h.extras} value={
-                      touristNames.length > 0 ? (
-                        <div className="pdf-keep" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-                          {touristNames.map((n, idx) => <span key={idx}>{n}</span>)}
+                    <Row label="Hotel:" value={head.name || ''} />
+                    <Row label="Address:" value={head.address || ''} />
+                    <Row label="Phone:" value={head.phone || ''} />
+                    <Row label="Check-in:" value={head.check_in || ''} />
+                    <Row label="Check-out:" value={head.check_out || ''} />
+                    <Row label="Total nights:" value={head.nights || ''} />
+                    {group.rooms.map((room, ri) => {
+                      const rNames = Array.isArray(room.guests) && room.guests.length
+                        ? namesOf(room.guests)
+                        : (anyRoomGuests ? [] : touristNames)
+                      const lastRow = ri === group.rooms.length - 1 && !room.extras
+                      return (
+                        <div key={room.id} className="pdf-keep" style={{ marginTop: multiRoom ? '16px' : '0' }}>
+                          {multiRoom && (
+                            <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: accent, margin: '2px 0 6px' }}>
+                              {`Room ${String(ri + 1).padStart(2, '0')}`}
+                            </div>
+                          )}
+                          <Row label="Booking No.:" value={room.booking_ref || ''} />
+                          <Row label="Room type:" value={room.room_type || ''} />
+                          <Row label="Meal type:" value={room.meal_plan || ''} />
+                          <Row label="Tourist Name(s):" last={lastRow} value={
+                            rNames.length > 0 ? (
+                              <div className="pdf-keep" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                                {rNames.map((n, idx) => <span key={idx}>{n}</span>)}
+                              </div>
+                            ) : '—'
+                          } />
+                          {room.extras && (
+                            <Row label="Notes:" last value={
+                              <span style={{ whiteSpace: 'pre-wrap' }}>{room.extras}</span>
+                            } />
+                          )}
                         </div>
-                      ) : '—'
-                    } />
-                    {h.extras && (
-                      <Row label="Notes:" last value={
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{h.extras}</span>
-                      } />
-                    )}
+                      )
+                    })}
                   </div>
                 )
               })}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import '../_proposal-public/proposal.css'
 import './destination.css'
 import Carousel from '../_proposal-public/carousel'
+import SavePdfButton from '../_proposal-public/save-pdf-button'
 import { notifyDestinationInterest } from './destination-lead-actions'
 import type { DestinationData, DSection, DPhoto, Lang } from './types'
 
@@ -25,7 +26,7 @@ function bullets(text: string | null): string[] {
   return (text || '').split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
-export default function DestinationView({ data, lang }: { data: DestinationData; lang: Lang }) {
+export default function DestinationView({ data, lang, print = false }: { data: DestinationData; lang: Lang; print?: boolean }) {
   const t = <T,>(ru: T, en: T): T => (lang === 'ru' ? ru : en)
   const pick = (ru: string | null, en: string | null) => (lang === 'ru' ? ru : en) || ''
 
@@ -106,6 +107,8 @@ export default function DestinationView({ data, lang }: { data: DestinationData;
 
   return (
     <div className="tp-root" style={accent ? ({ ['--tp-accent' as string]: accent } as React.CSSProperties) : undefined}>
+      {!print && <SavePdfButton slug={data.slug} kind="d" lang={lang} />}
+
       {/* ===== ХЕДЕР ===== */}
       <header className="tp-header" data-solid={solidHeader}>
         <div className="tp-header__top">
@@ -229,9 +232,22 @@ export default function DestinationView({ data, lang }: { data: DestinationData;
       {/* ===== CTA ===== */}
       <CtaBlock proposalId={data.proposalId} slug={data.slug} t={t} />
 
-      <div className="dp-footer">
-        {brandName}{data.company?.contact_email ? ` · ${data.company.contact_email}` : ''}
-      </div>
+      {/* ===== ФУТЕР (цвет бренда, как в ваучере) ===== */}
+      <footer className="tp-footer">
+        <div className="tp-footer__line">
+          <span className="tp-footer__star">✦</span>{'  '}
+          {[
+            data.company?.footer_note || brandName,
+            data.company?.contact_email,
+            data.company?.contact_phone,
+            data.company?.website_url?.replace(/^https?:\/\//, ''),
+          ].filter(Boolean).join('  ·  ')}
+          {'  '}<span className="tp-footer__star">✦</span>
+        </div>
+        {data.company?.office_address && (
+          <div className="tp-footer__addr">{data.company.office_address}</div>
+        )}
+      </footer>
 
       {/* ===== БУРГЕР ===== */}
       <div className="tp-overlay" data-open={burgerOpen} onClick={() => setBurgerOpen(false)} />
