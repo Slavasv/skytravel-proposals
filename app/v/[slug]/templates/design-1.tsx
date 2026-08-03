@@ -42,7 +42,7 @@ export default function Design1({ voucher, company, hotelsData, isPrint }: {
   }
 
   const accent = company?.accent_color || '#C9A227'
-  const brandName = company?.name || 'Sky Travel'
+  const brandName = company?.name || 'Travel System'
 
   const metaLabel: React.CSSProperties = { fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--voucher-text-muted)', fontWeight: 500 }
   const sectionLabel: React.CSSProperties = { fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--voucher-text-soft)', fontWeight: 600, whiteSpace: 'nowrap' }

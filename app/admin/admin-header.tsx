@@ -79,7 +79,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
       >
-        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
+        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Travel System').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
       {isMobile ? (

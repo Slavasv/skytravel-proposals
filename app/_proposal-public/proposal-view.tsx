@@ -60,7 +60,7 @@ export default function ProposalView({ data, lang, print = false }: { data: Load
   const active: PublicVariant | undefined =
     variants.find((v) => v.id === activeId) ?? variants[0]
   const activeIndex = variants.findIndex((v) => v.id === active?.id)
-  const brandName = company?.name || 'Sky Travel'
+  const brandName = company?.name || 'Travel System'
 
   // скролл-спай: подсветка активной секции в навигации
   useEffect(() => {

@@ -30,7 +30,7 @@ export default function DestinationView({ data, lang, print = false }: { data: D
   const t = <T,>(ru: T, en: T): T => (lang === 'ru' ? ru : en)
   const pick = (ru: string | null, en: string | null) => (lang === 'ru' ? ru : en) || ''
 
-  const brandName = data.company?.name || 'Sky Travel'
+  const brandName = data.company?.name || 'Travel System'
   const accent = data.company?.accent_color || ''
   const currency = data.currency || ''
 

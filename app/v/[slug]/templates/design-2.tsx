@@ -34,7 +34,7 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
   const hotels = hotelsData
   const guests: Guest[] = Array.isArray(voucher.guests) ? voucher.guests : []
   const accent = company?.accent_color || '#2E2A4A'
-  const brandName = company?.name || 'Sky Travel'
+  const brandName = company?.name || 'Travel System'
   const bgUrl = company?.voucher_bg_url || ''
 
  // Последний check-out — на эту дату считаем возраст детей
