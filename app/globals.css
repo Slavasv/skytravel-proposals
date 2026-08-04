@@ -128,3 +128,11 @@ body {
     max-width: 100%;
   }
 }
+
+/* Навигация админки: строка пунктов на десктопе, бургер на мобилке/планшете.
+   Переключение чисто через CSS (не зависит от JS), сворачиваем ниже 1024px. */
+.admin-nav-mobile { display: none !important; }
+@media (max-width: 1023px) {
+  .admin-nav-desktop { display: none !important; }
+  .admin-nav-mobile { display: flex !important; }
+}

@@ -44,7 +44,8 @@ export default function Design2({ voucher, company, hotelsData, isPrint }: {
     if (co && (!lastCheckoutDate || co > lastCheckoutDate)) lastCheckoutDate = co
   }
 
-const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
+  const namesOf = (gs: Guest[]) => gs.map((g) => {
+    const t = g.title || ''
     // обращение выводим для всех, у кого оно есть (взрослые И дети)
     const base = t ? `${t} ${g.name || ''}`.trim() : (g.name || '')
     if (!base) return ''
@@ -62,7 +63,13 @@ const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
   }).filter(Boolean)
   const touristNames = namesOf(guests)
 
-  const FS_TITLE = 40, FS_LABEL = 22, FS_CONFIRM = 48, FS_GREET = 15, FS_FOOTER = 20
+  // Текучие размеры (clamp) — крупные на десктопе, мелкие на телефоне, без медиа-запросов.
+  const FS_TITLE = 'clamp(22px, 5.5vw, 40px)'
+  const FS_LABEL = 'clamp(13px, 3.4vw, 22px)'
+  const FS_CONFIRM = 'clamp(24px, 7vw, 48px)'
+  const FS_GREET = 'clamp(13px, 2.6vw, 15px)'
+  const FS_FOOTER = 'clamp(12px, 3vw, 20px)'
+  const FS_ADDR = 'clamp(11px, 2.4vw, 14px)'
 
   function Row({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
     return (
@@ -70,32 +77,32 @@ const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '20px',
         padding: '11px 0', borderBottom: last ? 'none' : '1px dashed ' + accent,
       }}>
-        <span style={{ fontSize: FS_LABEL + 'px', fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ fontSize: FS_LABEL + 'px', fontWeight: 600, color: '#4A4A48', textAlign: 'right' }}>{value || '—'}</span>
+        <span style={{ fontSize: FS_LABEL, fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: FS_LABEL, fontWeight: 600, color: '#4A4A48', textAlign: 'right' }}>{value || '—'}</span>
       </div>
     )
   }
 
   const Header = (
-    <div style={{ background: accent, padding: '18px 40px', marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+    <div className="d2-bar" style={{ background: accent, padding: '18px 40px', marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
       {company?.logo_url ? (
         <img src={company.logo_url} alt={brandName} style={{ maxHeight: '50px', maxWidth: '190px', objectFit: 'contain' }} />
       ) : (
-        <span style={{ fontFamily: script, fontStyle: 'italic', fontSize: (FS_TITLE - 4) + 'px', color: '#FFFFFF' }}>{brandName}</span>
+        <span style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_TITLE, color: '#FFFFFF' }}>{brandName}</span>
       )}
-      <span style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_TITLE + 'px', color: '#FFFFFF' }}>Hotel Voucher</span>
+      <span style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_TITLE, color: '#FFFFFF' }}>Hotel Voucher</span>
     </div>
   )
 
   const FooterInner = (
-    <div style={{ background: accent, padding: '14px 50px', textAlign: 'center', color: '#FFFFFF', minHeight: FOOTER_H + 'px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', fontSize: FS_FOOTER + 'px', fontWeight: 500 }}>
+    <div className="d2-bar" style={{ background: accent, padding: '14px 50px', textAlign: 'center', color: '#FFFFFF', minHeight: FOOTER_H + 'px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', fontSize: FS_FOOTER, fontWeight: 500 }}>
         {company?.contact_phone && <span>{company.contact_phone}</span>}
         {company?.contact_email && <span>{company.contact_email}</span>}
         {company?.website_url && <span>{company.website_url.replace(/^https?:\/\//, '')}</span>}
       </div>
       {company?.office_address && (
-        <div style={{ marginTop: '5px', fontSize: (FS_FOOTER - 6) + 'px', opacity: 0.85 }}>{company.office_address}</div>
+        <div style={{ marginTop: '5px', fontSize: FS_ADDR, opacity: 0.85 }}>{company.office_address}</div>
       )}
     </div>
   )
@@ -136,13 +143,20 @@ const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
             .d2-foot-real { position: fixed; bottom: 0; left: 0; right: 0; z-index: 5; }
             .d2-watermark { position: fixed !important; top: 100px !important; }
           }
+          /* мобилка: футер не абсолютный (не налезает), уже отступы */
+          @media (max-width: 640px) {
+            .d2-foot-real { position: static !important; }
+            .d2-foot-spacer { display: none !important; }
+            .d2-bar { padding-left: 16px !important; padding-right: 16px !important; }
+            .d2-inner { padding-left: 16px !important; padding-right: 16px !important; }
+          }
         `}</style>
 
         <table className="d2-table" style={{ position: 'relative', zIndex: 1 }}>
           <thead><tr><td style={{ padding: 0 }}>{Header}</td></tr></thead>
-          <tfoot><tr><td><div style={{ height: (FOOTER_H + (voucher.show_greeting && company?.greeting_message ? 200 : 90)) + 'px' }} /></td></tr></tfoot>
+          <tfoot><tr><td><div className="d2-foot-spacer" style={{ height: (FOOTER_H + (voucher.show_greeting && company?.greeting_message ? 200 : 90)) + 'px' }} /></td></tr></tfoot>
           <tbody><tr><td>
-            <div style={{ padding: '0 50px 20px' }}>
+            <div className="d2-inner" style={{ padding: '0 50px 20px' }}>
               {groupHotels(hotels).map((group, gi, arr) => {
                 const head = group.head
                 const cityCountry = [head.city, head.country].filter(Boolean).join(' / ')
@@ -197,11 +211,11 @@ const namesOf = (gs: Guest[]) => gs.map((g) => {    const t = g.title || ''
 
         <div className="d2-foot-real">
           <div className="pdf-keep" style={{ textAlign: 'center', padding: '0 40px 18px' }}>
-            <div style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_CONFIRM + 'px', color: accent, lineHeight: 1.1 }}>
+            <div style={{ fontFamily: script, fontStyle: 'italic', fontSize: FS_CONFIRM, color: accent, lineHeight: 1.1 }}>
               Booking confirmed and paid
             </div>
             {voucher.show_greeting && company?.greeting_message && (
-              <div style={{ fontSize: FS_GREET + 'px', fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '620px', margin: '10px auto 0', textAlign: 'center' }}
+              <div style={{ fontSize: FS_GREET, fontWeight: 400, lineHeight: 1.7, color: '#4A4A48', maxWidth: '620px', margin: '10px auto 0', textAlign: 'center' }}
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(company.greeting_message) }} />
             )}
           </div>
