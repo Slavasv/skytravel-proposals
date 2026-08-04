@@ -12,6 +12,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const lang = profile?.ui_language ?? 'en'
 
   if (profile?.role === 'superadmin') redirect('/admin/companies')
+  if (profile?.role === 'accountant') redirect('/admin/accounting')
 
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'

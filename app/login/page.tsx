@@ -7,8 +7,7 @@ import { createSupabaseBrowser } from '@/lib/supabase-client'
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const from = searchParams.get('from') || '/admin'
-
+const from = searchParams.get('from') || '/admin/requests'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
