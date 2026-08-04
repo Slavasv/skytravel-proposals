@@ -294,6 +294,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '12px',
+        flexWrap: 'wrap',
         paddingBottom: '16px',
         borderBottom: '1px solid var(--admin-border-card)',
       }}>
@@ -336,7 +337,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
             </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
               {t('Layout', 'Макет')}

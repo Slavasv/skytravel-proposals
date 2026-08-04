@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
@@ -19,17 +19,8 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const t = useT()
-const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  // Навигацию сворачиваем в бургер раньше, чем общий mobile (768):
-  // пунктов много, на планшетах/узких окнах строка разъезжается.
-  const [navCollapsed, setNavCollapsed] = useState(false)
-  useEffect(() => {
-    const check = () => setNavCollapsed(window.innerWidth < 1024)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
   const navItems = isSuperadmin
     ? [
         { href: '/admin/companies', label: t('Companies', 'Компании'), matchPrefix: '/admin/companies' },
@@ -91,9 +82,8 @@ const [menuOpen, setMenuOpen] = useState(false)
         {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Travel System').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
-      {navCollapsed ? (
-        /* Mobile/tablet: burger + dropdown */
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Мобайл/планшет: бургер со всеми пунктами. Видимость — через CSS (.admin-nav-*) */}
+      <div className="admin-nav-mobile" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             type="button"
             aria-label="Menu"
@@ -149,9 +139,8 @@ const [menuOpen, setMenuOpen] = useState(false)
             </>
           )}
         </div>
-      ) : (
-        /* Desktop: inline nav */
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+      {/* Десктоп: строка пунктов */}
+      <div className="admin-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           {navItems.map((item) => {
             const active = isActive(item)
             return (
@@ -178,7 +167,6 @@ const [menuOpen, setMenuOpen] = useState(false)
 
           <GearMenu isAdmin={isAdmin} email={email} />
         </div>
-      )}
     </nav>
   )
 }
