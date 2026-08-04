@@ -4,8 +4,10 @@ import { useState } from 'react'
 import ProposalForm from './proposal-form'
 import ProposalActions from './proposal-actions'
 import DaysSection from './days-section'
-import type { CostLine } from './cost-lines'
+import { DaysProvider } from './days-context'
 import type { ProposalClientOption } from '../../actions'
+import VariantSwitcher, { type VariantBrief } from './variant-switcher'
+import type { VariantFull } from './variant-actions'
 
 type Proposal = {
   id: string
@@ -34,8 +36,8 @@ type Proposal = {
   cost_excludes_en: string | null
   cost_notes_ru: string | null
   cost_notes_en: string | null
-  cost_lines: CostLine[] | null
   client_id: string | null
+  layout: string | null
 }
 
 export type ContentBlock = {
@@ -54,6 +56,7 @@ export type ContentBlock = {
 export type DayBlock = {
   id: string
   sort_order: number
+  time: string | null
   custom_note_ru: string | null
   custom_note_en: string | null
   room_type_ru: string | null
@@ -62,6 +65,12 @@ export type DayBlock = {
   from_en: string | null
   to_ru: string | null
   to_en: string | null
+  room_ids: string[] | null
+  activities_ru: string | null
+  activities_en: string | null
+  selected_rooms: { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }[] | null
+  price: number | null
+  guests: number | null
   content_blocks: ContentBlock
 }
 
@@ -79,23 +88,44 @@ export type Day = {
 export type Lang = 'ru' | 'en'
 
 export default function EditPageClient({
-  proposal, days, clients = [],
+  proposal, days, clients = [], variants = [], activeVariantId = null, activeVariant = null,
 }: {
   proposal: Proposal
   days: Day[]
   clients?: ProposalClientOption[]
+  variants?: VariantBrief[]
+  activeVariantId?: string | null
+  activeVariant?: VariantFull | null
 }) {
   const [lang, setLang] = useState<Lang>('ru')
 
   return (
-    <ProposalForm
-      proposal={proposal}
-      lang={lang}
-      onLangChange={setLang}
-      days={days}
-      clients={clients}
-      actions={<ProposalActions slug={proposal.slug} />}
-      itinerary={<DaysSection proposalId={proposal.id} days={days} lang={lang} />}
-    />
+    <DaysProvider
+      key={activeVariantId ?? 'no-variant'}
+      proposalId={proposal.id}
+      variantId={activeVariantId}
+      initialDays={days}
+      tripStart={proposal.start_date ?? null}
+      tripEnd={proposal.end_date ?? null}
+    >
+      <ProposalForm
+        proposal={proposal}
+        lang={lang}
+        onLangChange={setLang}
+        clients={clients}
+        activeVariant={activeVariant}
+        variantCount={variants.length}
+        actions={<ProposalActions slug={proposal.slug} />}
+        variantSwitcher={
+          <VariantSwitcher
+            proposalId={proposal.id}
+            variants={variants}
+            activeVariantId={activeVariantId}
+            lang={lang}
+          />
+        }
+        itinerary={<DaysSection proposalId={proposal.id} lang={lang} />}
+      />
+    </DaysProvider>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useT } from '@/lib/i18n-client'
 
 // мини-парсер Markdown: **жирный** и *курсив* → безопасный HTML
 function renderMarkdown(text: string): string {
@@ -27,26 +28,27 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function GreetingField({ defaultValue }: { defaultValue: string }) {
+  const t = useT()
   const [text, setText] = useState(defaultValue)
 
   return (
     <div>
-      <label style={labelStyle}>Greeting message</label>
+      <label style={labelStyle}>{t('Greeting message', 'Приветственное сообщение')}</label>
       <textarea
         name="greeting_message"
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={3}
         style={inputStyle}
-        placeholder="**Everything has been arranged** — the rest is simply yours to enjoy."
+        placeholder={t('**Everything has been arranged** — the rest is simply yours to enjoy.', '**Всё уже устроено** — остаётся лишь наслаждаться.')}
       />
       <div style={{ fontSize: '11px', color: 'var(--admin-text-faint)', marginTop: '6px' }}>
-        Use <code style={{ color: 'var(--admin-accent)' }}>**bold**</code> for bold and <code style={{ color: 'var(--admin-accent)' }}>*italic*</code> for italic.
+        {t('Use', 'Используйте')} <code style={{ color: 'var(--admin-accent)' }}>**bold**</code> {t('for bold and', 'для жирного и')} <code style={{ color: 'var(--admin-accent)' }}>*italic*</code> {t('for italic.', 'для курсива.')}
       </div>
 
       {text.trim() && (
         <div style={{ marginTop: '10px' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-faint)', marginBottom: '6px' }}>Preview</div>
+          <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-faint)', marginBottom: '6px' }}>{t('Preview', 'Предпросмотр')}</div>
           <div
             style={{ padding: '12px 14px', background: 'var(--admin-input)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', fontSize: '14px', lineHeight: 1.6, color: 'var(--admin-text)' }}
             dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}

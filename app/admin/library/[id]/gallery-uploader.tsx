@@ -1,6 +1,9 @@
 'use client'
 
 import ImageUploader from '@/app/admin/_components/image-uploader'
+import { useState, useRef } from 'react'
+import { uploadImage } from '@/lib/upload-image'
+import { type Photo } from '@/lib/photos'
 import {
   DndContext,
   closestCenter,
@@ -16,30 +19,39 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
+
+type CapKey = 'caption_ru' | 'caption_en'
 
 type Props = {
-  images: string[]
-  onChange: (images: string[]) => void
+  images: Photo[]
+  onChange: (images: Photo[]) => void
+  lang?: 'ru' | 'en'
 }
 
-// Стабильный ключ для каждого слота: используем сам url + индекс
+// Стабильный ключ для каждого слота
 function slotId(url: string, i: number) {
   return `${i}::${url || 'empty'}`
 }
 
 function SortablePhoto({
   id,
-  url,
+  photo,
   index,
+  capKey,
   onReplace,
+  onCaption,
   onRemove,
 }: {
   id: string
-  url: string
+  photo: Photo
   index: number
+  capKey: CapKey
   onReplace: (index: number, url: string) => void
+  onCaption: (index: number, value: string) => void
   onRemove: (index: number) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -60,14 +72,14 @@ function SortablePhoto({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Drag to reorder"
+          aria-label={t('Drag to reorder', 'Перетащите для сортировки')}
           style={{
             background: 'transparent', border: 'none', padding: '2px 6px',
             cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px',
             fontFamily: 'inherit', touchAction: 'none',
           }}
         >
-          ⋮⋮ <span style={{ fontSize: '11px' }}>Photo {index + 1}</span>
+          ⋮⋮ <span style={{ fontSize: '11px' }}>{t('Photo', 'Фото')} {index + 1}</span>
         </button>
         <button
           type="button"
@@ -78,31 +90,67 @@ function SortablePhoto({
             borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          ✕ Remove
+          ✕ {t('Remove', 'Удалить')}
         </button>
       </div>
       <ImageUploader
-        value={url}
+        value={photo.url}
         onChange={(newUrl) => onReplace(index, newUrl)}
         label=""
         height={140}
+      />
+      <input
+        type="text"
+        value={photo[capKey]}
+        onChange={(e) => onCaption(index, e.target.value)}
+        placeholder={`${t('Caption', 'Подпись')} · ${capKey === 'caption_ru' ? 'RU' : 'EN'}`}
+        style={{
+          marginTop: '8px', width: '100%', padding: '7px 9px', fontSize: '12px',
+          color: 'var(--admin-text)', background: 'var(--admin-input)',
+          border: '1px solid var(--admin-border)', borderRadius: '4px',
+          fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+        }}
       />
     </div>
   )
 }
 
-export default function GalleryUploader({ images, onChange }: Props) {
+export default function GalleryUploader({ images, onChange, lang = 'ru' }: Props) {
+  const t = useT()
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const [uploading, setUploading] = useState(false)
+  const fileInput = useRef<HTMLInputElement | null>(null)
+  const capKey: CapKey = lang === 'ru' ? 'caption_ru' : 'caption_en'
+
+  // мультизагрузка: выбрать несколько файлов сразу
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    const added: Photo[] = []
+    for (const file of Array.from(files)) {
+      try {
+        const result = await uploadImage(file)
+        if (result?.url) added.push({ url: result.url, caption_ru: '', caption_en: '' })
+      } catch { /* пропускаем битый файл */ }
+    }
+    if (added.length > 0) onChange([...images, ...added])
+    setUploading(false)
+    if (fileInput.current) fileInput.current.value = ''
+  }
 
   function addPhoto() {
-    onChange([...images, ''])
+    onChange([...images, { url: '', caption_ru: '', caption_en: '' }])
   }
 
   function replacePhoto(index: number, url: string) {
-    // Если фото удалили внутри аплоадера (url пустой) — оставляем пустой слот,
-    // его можно убрать кнопкой Remove. Если загрузили — ставим url.
     const next = [...images]
-    next[index] = url
+    next[index] = { ...next[index], url }
+    onChange(next)
+  }
+
+  function setCaption(index: number, value: string) {
+    const next = [...images]
+    next[index] = { ...next[index], [capKey]: value }
     onChange(next)
   }
 
@@ -113,14 +161,14 @@ export default function GalleryUploader({ images, onChange }: Props) {
   function handleDragEnd(e: DragEndEvent) {
     const { active, over } = e
     if (!over || active.id === over.id) return
-    const ids = images.map((url, i) => slotId(url, i))
+    const ids = images.map((p, i) => slotId(p.url, i))
     const oldIndex = ids.indexOf(active.id as string)
     const newIndex = ids.indexOf(over.id as string)
     if (oldIndex === -1 || newIndex === -1) return
     onChange(arrayMove(images, oldIndex, newIndex))
   }
 
-  const ids = images.map((url, i) => slotId(url, i))
+  const ids = images.map((p, i) => slotId(p.url, i))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -128,13 +176,15 @@ export default function GalleryUploader({ images, onChange }: Props) {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={rectSortingStrategy}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
-              {images.map((url, i) => (
+              {images.map((photo, i) => (
                 <SortablePhoto
                   key={ids[i]}
                   id={ids[i]}
-                  url={url}
+                  photo={photo}
                   index={i}
+                  capKey={capKey}
                   onReplace={replacePhoto}
+                  onCaption={setCaption}
                   onRemove={removePhoto}
                 />
               ))}
@@ -143,17 +193,39 @@ export default function GalleryUploader({ images, onChange }: Props) {
         </DndContext>
       )}
 
-      <button
-        type="button"
-        onClick={addPhoto}
-        style={{
-          padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)',
-          background: 'transparent', border: '1px dashed var(--admin-border-card)',
-          borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start',
-        }}
-      >
-        + Add photo
-      </button>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={uploading}
+          style={{
+            padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)',
+            background: 'transparent', border: '1px dashed var(--admin-border-card)',
+            borderRadius: '8px', cursor: uploading ? 'wait' : 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          {uploading ? t('Uploading…', 'Загрузка…') : t('＋ Upload photos', '＋ Загрузить фото')}
+        </button>
+        <button
+          type="button"
+          onClick={addPhoto}
+          style={{
+            padding: '10px 16px', fontSize: '13px', color: 'var(--admin-text-muted)',
+            background: 'transparent', border: '1px solid var(--admin-border-card)',
+            borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          {t('+ Empty slot', '+ Пустой слот')}
+        </button>
+      </div>
     </div>
   )
 }

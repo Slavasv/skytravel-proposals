@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase-client'
+import { useLang, useT } from '@/lib/i18n-client'
+import { setUiLanguage } from './settings/language-actions'
+import type { UiLang } from '@/lib/i18n'
 
 type Props = {
   email: string
@@ -24,15 +28,34 @@ const menuItemStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 
+const LANGS: { value: UiLang; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'ru', label: 'Русский' },
+]
+
 export default function GearMenu({ email, isAdmin }: Props) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
+  const t = useT()
+  const currentLang = useLang()
+  const [lang, setLang] = useState<UiLang>(currentLang)
+  const [savingLang, setSavingLang] = useState(false)
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowser()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  async function chooseLang(next: UiLang) {
+    if (next === lang || savingLang) return
+    setLang(next)
+    setSavingLang(true)
+    const res = await setUiLanguage(next)
+    if (!res.ok) setLang(currentLang)
+    router.refresh() // перерисовать layout на новом языке
+    setSavingLang(false)
   }
 
   function onHover(e: React.MouseEvent<HTMLElement>) {
@@ -85,26 +108,62 @@ export default function GearMenu({ email, isAdmin }: Props) {
 
             <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
 
-            <a
+            {/* Переключатель языка интерфейса */}
+            <div style={{ padding: '8px 12px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-faint)', marginBottom: '8px' }}>
+                {t('Language', 'Язык')}
+              </div>
+              <div style={{ display: 'flex', border: '1px solid var(--admin-border)', borderRadius: '8px', overflow: 'hidden' }}>
+                {LANGS.map((opt) => {
+                  const active = opt.value === lang
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => chooseLang(opt.value)}
+                      disabled={savingLang}
+                      style={{
+                        flex: 1,
+                        padding: '7px 10px',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                        cursor: savingLang ? 'wait' : 'pointer',
+                        border: 'none',
+                        background: active ? 'var(--admin-text-on-dark)' : 'transparent',
+                        color: active ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+                        fontWeight: active ? 600 : 400,
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
+
+            <Link
               href="/admin/settings"
               onClick={() => setOpen(false)}
               style={menuItemStyle}
               onMouseEnter={onHover}
               onMouseLeave={onLeave}
             >
-              Settings
-            </a>
+              {t('Settings', 'Настройки')}
+            </Link>
 
             {isAdmin && (
-              <a
+              <Link
                 href="/admin/users"
                 onClick={() => setOpen(false)}
                 style={menuItemStyle}
                 onMouseEnter={onHover}
                 onMouseLeave={onLeave}
               >
-                Users
-              </a>
+                {t('Users', 'Пользователи')}
+              </Link>
             )}
 
             <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
@@ -115,7 +174,7 @@ export default function GearMenu({ email, isAdmin }: Props) {
               onMouseEnter={onHover}
               onMouseLeave={onLeave}
             >
-              Sign out
+              {t('Sign out', 'Выйти')}
             </button>
           </div>
         </>

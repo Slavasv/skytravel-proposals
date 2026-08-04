@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { uploadImage, deleteImageIfOurs, type UploadProgress } from '@/lib/upload-image'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   value: string
@@ -12,7 +13,8 @@ type Props = {
 
 type Stage = 'idle' | 'compressing' | 'uploading' | 'done' | 'error'
 
-export default function ImageUploader({ value, onChange, label = 'Image', height = 180 }: Props) {
+export default function ImageUploader({ value, onChange, label, height = 180 }: Props) {
+  const t = useT()
   const [stage, setStage] = useState<Stage>('idle')
   const [percent, setPercent] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -60,7 +62,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
     // Базовая валидация
     if (!file.type.startsWith('image/')) {
       setStage('error')
-      setErrorMsg('Please select an image file')
+      setErrorMsg(t('Please select an image file', 'Пожалуйста, выберите файл изображения'))
       return
     }
 
@@ -90,7 +92,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
       }, 1200)
     } catch (err) {
       setStage('error')
-      setErrorMsg(err instanceof Error ? err.message : 'Upload failed')
+      setErrorMsg(err instanceof Error ? err.message : t('Upload failed', 'Не удалось загрузить'))
     }
   }
 
@@ -161,7 +163,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
         marginBottom: '6px',
         fontWeight: 500,
       }}>
-        {label}
+        {label ?? t('Image', 'Изображение')}
       </label>
 
       {/* Drop zone */}
@@ -215,7 +217,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
             padding: '20px',
           }}>
             <div style={{ fontSize: '13px', color: 'var(--admin-text)' }}>
-              {stage === 'compressing' ? 'Compressing...' : 'Uploading...'}
+              {stage === 'compressing' ? t('Compressing...', 'Сжатие...') : t('Uploading...', 'Загрузка...')}
             </div>
             <div style={{
               width: '60%',
@@ -240,10 +242,10 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
           <>
             <div style={{ fontSize: '24px', color: 'var(--admin-text-faint)', lineHeight: 1 }}>↑</div>
             <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>
-              {isDragOver ? 'Drop image here' : 'Drop image here, or click to browse'}
+              {isDragOver ? t('Drop image here', 'Перетащите изображение сюда') : t('Drop image here, or click to browse', 'Перетащите изображение сюда или нажмите для выбора')}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
-              JPG, PNG, WebP, HEIC · also paste from clipboard
+              {t('JPG, PNG, WebP, HEIC · also paste from clipboard', 'JPG, PNG, WebP, HEIC · или вставьте из буфера обмена')}
             </div>
           </>
         )}
@@ -281,7 +283,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
               }}
             >
-              Replace
+              {t('Replace', 'Заменить')}
             </button>
             <button
               type="button"
@@ -308,7 +310,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
                 e.currentTarget.style.borderColor = 'var(--admin-border-hover)'
               }}
             >
-              Remove
+              {t('Remove', 'Удалить')}
             </button>
           </div>
         )}
@@ -351,7 +353,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)' }}
           >
-            Or paste URL (Unsplash, etc.)
+            {t('Or paste URL (Unsplash, etc.)', 'Или вставьте ссылку (Unsplash и т. п.)')}
           </button>
         ) : (
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -391,7 +393,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
               onMouseEnter={(e) => { e.currentTarget.style.background = '#FFFFFF' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--admin-text-on-dark)' }}
             >
-              Apply
+              {t('Apply', 'Применить')}
             </button>
             <button
               type="button"
@@ -409,7 +411,7 @@ export default function ImageUploader({ value, onChange, label = 'Image', height
               onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)' }}
             >
-              Cancel
+              {t('Cancel', 'Отмена')}
             </button>
           </div>
         )}

@@ -13,6 +13,14 @@ export type RequestUpdate = {
   details?: string | null
   status?: string
   priority?: string | null
+  cancel_reason?: string | null
+  cancel_note?: string | null
+  client_notes?: string | null
+  agent_notes?: string | null
+  trip_rating?: number | null
+  trip_feedback?: string | null
+  trip_start?: string | null
+  trip_end?: string | null
 }
 
 export async function createRequest() {
@@ -143,4 +151,281 @@ export async function getClientsForRequest(): Promise<RequestClientOption[]> {
     .order('name', { ascending: true })
   if (error || !data) return []
   return data as RequestClientOption[]
+}
+
+// ============ Создание предложения / дестинейшена из запроса ============
+
+export type LinkedProposal = {
+  id: string
+  kind: string | null
+  slug: string
+  trip_title_ru: string | null
+  trip_title_en: string | null
+  status: string | null
+  updated_at: string
+  last_viewed_at: string | null
+  is_selected?: boolean
+}
+
+// Что уже создано из этого запроса
+export async function getRequestProposals(requestId: string): Promise<LinkedProposal[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('id, kind, slug, trip_title_ru, trip_title_en, status, updated_at, last_viewed_at')
+    .eq('request_id', requestId)
+    .order('updated_at', { ascending: false })
+  if (error || !data) return []
+  return data as LinkedProposal[]
+}
+
+// Создать предложение или дестинейшн из запроса.
+// Клиент и запрос переносятся сразу; направление агент дозаполнит сам.
+async function createFromRequest(requestId: string, kind: 'individual' | 'destination') {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: request } = await supabase
+    .from('requests')
+    .select('client_id, company_id, traveller_ids')
+    .eq('id', requestId)
+    .single()
+
+  if (!request) throw new Error('Request not found')
+
+  // число гостей — из отмеченных travellers запроса
+  const guestCount = Array.isArray(request.traveller_ids) && request.traveller_ids.length > 0
+    ? request.traveller_ids.length
+    : 1
+
+  // имя клиента подставляем ТОЛЬКО в предложение.
+  // Дестинейшн переиспользуемый — он не привязан к конкретному клиенту.
+  let clientName = ''
+  if (kind === 'individual' && request.client_id) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('name')
+      .eq('id', request.client_id)
+      .single()
+    clientName = client?.name || ''
+  }
+
+  const slug = `untitled-${Date.now().toString(36)}`
+
+  const { data, error } = await supabase
+    .from('proposals')
+    .insert({
+      slug,
+      kind,
+      client_id: kind === 'individual' ? request.client_id : null,
+      request_id: requestId,
+      client_name_ru: clientName || null,
+      client_name_en: clientName || null,
+      trip_title_ru: null,
+      trip_title_en: null,
+      guest_count: guestCount,
+      status: 'draft',
+      currency: 'USD',
+      owner_id: user?.id ?? null,
+    })
+    .select()
+    .single()
+
+  if (error || !data) throw new Error(error?.message || 'Failed to create')
+
+  // создали предложение — двигаем запрос в "Preparing proposal",
+  // если он ещё в начале воронки (агент может поменять вручную)
+  if (kind === 'individual') {
+    const { data: req } = await supabase
+      .from('requests')
+      .select('status')
+      .eq('id', requestId)
+      .single()
+    if (req && ['new', 'clients_review'].includes(req.status || '')) {
+      await supabase
+        .from('requests')
+        .update({ status: 'preparing', updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+    }
+  }
+
+  revalidatePath(`/admin/requests/${requestId}`)
+  redirect(kind === 'destination' ? `/admin/destinations/${data.id}` : `/admin/proposals/${data.id}`)
+}
+
+export async function createProposalFromRequest(requestId: string) {
+  return createFromRequest(requestId, 'individual')
+}
+
+export async function createDestinationFromRequest(requestId: string) {
+  return createFromRequest(requestId, 'destination')
+}
+
+// ============ Прикрепление существующих (many-to-many) ============
+
+// Всё, что прикреплено к запросу (созданное из него + прикреплённое вручную)
+export async function getLinkedProposals(requestId: string): Promise<LinkedProposal[]> {
+  const supabase = await createSupabaseServer()
+
+  // созданные из этого запроса
+  const { data: created } = await supabase
+    .from('proposals')
+    .select('id, kind, slug, trip_title_ru, trip_title_en, status, updated_at, last_viewed_at')
+    .eq('request_id', requestId)
+
+  // прикреплённые через таблицу связей
+  const { data: links } = await supabase
+    .from('request_proposal_links')
+    .select('proposal_id, sort_order, is_selected')
+    .eq('request_id', requestId)
+    .order('sort_order', { ascending: true })
+
+  const linkedIds = (links ?? []).map((l) => l.proposal_id)
+  const selectedMap = new Map((links ?? []).map((l) => [l.proposal_id, l.is_selected]))
+  let attached: LinkedProposal[] = []
+  if (linkedIds.length > 0) {
+    const { data } = await supabase
+      .from('proposals')
+      .select('id, kind, slug, trip_title_ru, trip_title_en, status, updated_at, last_viewed_at')
+      .in('id', linkedIds)
+    attached = (data ?? []) as LinkedProposal[]
+  }
+
+  // объединяем без дублей, проставляем флаг выбора
+  const map = new Map<string, LinkedProposal>()
+  ;(created ?? []).forEach((p) => map.set(p.id, { ...(p as LinkedProposal), is_selected: selectedMap.get(p.id) ?? false }))
+  attached.forEach((p) => map.set(p.id, { ...p, is_selected: selectedMap.get(p.id) ?? false }))
+  return Array.from(map.values())
+}
+
+// Дестинейшены, доступные для прикрепления (все в компании)
+export type DestinationOption = {
+  id: string
+  trip_title_ru: string | null
+  trip_title_en: string | null
+}
+
+export async function getAvailableDestinations(): Promise<DestinationOption[]> {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('id, trip_title_ru, trip_title_en')
+    .eq('kind', 'destination')
+    .order('updated_at', { ascending: false })
+  if (error || !data) return []
+  return data as DestinationOption[]
+}
+
+export async function attachProposalToRequest(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  const { data: existing } = await supabase
+    .from('request_proposal_links')
+    .select('sort_order')
+    .eq('request_id', requestId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+
+  const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0
+
+  const { error } = await supabase
+    .from('request_proposal_links')
+    .insert({ request_id: requestId, proposal_id: proposalId, sort_order: nextOrder })
+
+  // unique нарушен = уже прикреплён, это не ошибка
+  if (error && !error.message.includes('duplicate')) throw new Error(error.message)
+
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+export async function detachProposalFromRequest(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  // убираем связь
+  await supabase
+    .from('request_proposal_links')
+    .delete()
+    .eq('request_id', requestId)
+    .eq('proposal_id', proposalId)
+
+  // если был создан из этого запроса — снимаем и request_id
+  await supabase
+    .from('proposals')
+    .update({ request_id: null })
+    .eq('id', proposalId)
+    .eq('request_id', requestId)
+
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Отметить дестинейшн как выбранный клиентом.
+// Выбранный может быть только один — с остальных отметка снимается.
+export async function selectDestination(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: false })
+    .eq('request_id', requestId)
+
+  const { error } = await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: true })
+    .eq('request_id', requestId)
+    .eq('proposal_id', proposalId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Снять отметку (клиент передумал)
+export async function unselectDestination(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('request_proposal_links')
+    .update({ is_selected: false })
+    .eq('request_id', requestId)
+    .eq('proposal_id', proposalId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Утвердить предложение из карточки запроса.
+// Источник правды — статус самого предложения; запрос двигается следом.
+export async function approveProposal(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+
+  const { error } = await supabase
+    .from('proposals')
+    .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+    .eq('id', proposalId)
+
+  if (error) throw new Error(error.message)
+
+  const { data: req } = await supabase
+    .from('requests')
+    .select('status')
+    .eq('id', requestId)
+    .single()
+
+  const earlyStages = ['new', 'clients_review', 'preparing', 'proposal_sent', 'revising']
+  if (req && earlyStages.includes(req.status || '')) {
+    await supabase
+      .from('requests')
+      .update({ status: 'booking', updated_at: new Date().toISOString() })
+      .eq('id', requestId)
+  }
+
+  revalidatePath(`/admin/requests/${requestId}`)
+}
+
+// Снять утверждение
+export async function unapproveProposal(requestId: string, proposalId: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase
+    .from('proposals')
+    .update({ status: 'sent', updated_at: new Date().toISOString() })
+    .eq('id', proposalId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/admin/requests/${requestId}`)
 }

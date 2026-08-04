@@ -10,20 +10,33 @@ import {
 } from './block-actions'
 import type { DayBlock, Lang } from './edit-page-client'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
+import { useDays } from './days-context'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   dayBlock: DayBlock
   lang: Lang
   isDayPending: boolean
+  proposalId?: string
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
-export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
+// Маска времени: агент вводит цифры, «:» ставится сам → 11:00
+function formatTime(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`
+}
+
+export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId }: Props) {
+  const t = useT()
+  const { updateBlockRooms, refresh } = useDays()
   const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const blockedByOuter = isDayPending
 
@@ -37,6 +50,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   } = useSortable({ id: dayBlock.id, disabled: isPending || blockedByOuter })
 
   const [noteForm, setNoteForm] = useState({
+    time: dayBlock.time || '',
     custom_note_ru: dayBlock.custom_note_ru || '',
     custom_note_en: dayBlock.custom_note_en || '',
     room_type_ru: dayBlock.room_type_ru || '',
@@ -45,6 +59,11 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     from_en: dayBlock.from_en || '',
     to_ru: dayBlock.to_ru || '',
     to_en: dayBlock.to_en || '',
+    room_ids: (dayBlock.room_ids ?? []) as string[],
+    activities_ru: dayBlock.activities_ru || '',
+    activities_en: dayBlock.activities_en || '',
+    selected_rooms: (dayBlock.selected_rooms ?? []) as { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }[],
+    guests: dayBlock.guests ?? null,
   })
 
   const hasExistingNote = (lang === 'ru' ? noteForm.custom_note_ru : noteForm.custom_note_en).length > 0
@@ -63,7 +82,6 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
   const description = lang === 'ru' ? block.description_ru : block.description_en
 
   const noteKey = lang === 'ru' ? 'custom_note_ru' : 'custom_note_en'
-  const roomTypeKey = lang === 'ru' ? 'room_type_ru' : 'room_type_en'
   const fromKey = lang === 'ru' ? 'from_ru' : 'from_en'
   const toKey = lang === 'ru' ? 'to_ru' : 'to_en'
 
@@ -72,7 +90,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     setSaveState('editing')
   }
 
-  function setField(key: keyof typeof noteForm, value: string) {
+  function setField(key: keyof typeof noteForm, value: string | number | null) {
     setNoteForm((prev) => ({ ...prev, [key]: value }))
     setSaveState('editing')
   }
@@ -84,10 +102,16 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     const promise = (async () => {
       try {
         await updateDayBlock(dayBlock.id, {
+          time: currentForm.time || null,
           custom_note_ru: currentForm.custom_note_ru || null,
           custom_note_en: currentForm.custom_note_en || null,
           room_type_ru: currentForm.room_type_ru || null,
           room_type_en: currentForm.room_type_en || null,
+          room_ids: currentForm.room_ids,
+          activities_ru: currentForm.activities_ru || null,
+          activities_en: currentForm.activities_en || null,
+          selected_rooms: currentForm.selected_rooms,
+          guests: currentForm.guests,
           from_ru: currentForm.from_ru || null,
           from_en: currentForm.from_en || null,
           to_ru: currentForm.to_ru || null,
@@ -96,7 +120,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -136,24 +160,26 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
     setMenuOpen(false)
     startTransition(async () => {
       await duplicateDayBlock(dayBlock.id)
+      await refresh()
     })
   }
 
   function handleRemove() {
     setMenuOpen(false)
-    if (!confirm(`Remove "${title || 'this block'}" from this day?\n\nThe block stays in the library and can be added again later.`)) {
+    if (!confirm(`${t('Remove', 'Удалить')} "${title || t('this block', 'этот блок')}" ${t('from this day?', 'из этого дня?')}\n\n${t('The block stays in the library and can be added again later.', 'Блок останется в библиотеке, его можно добавить снова позже.')}`)) {
       return
     }
     startTransition(async () => {
       await removeBlockFromDay(dayBlock.id)
+      await refresh()
     })
   }
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>{t('● Error', '● Ошибка')}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>{t('● Saved', '● Сохранено')}</span>
     return null
   }
 
@@ -196,7 +222,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
         {...attributes}
         {...listeners}
         disabled={isPending || blockedByOuter}
-        aria-label="Drag to reorder"
+        aria-label={t('Drag to reorder', 'Перетащите для изменения порядка')}
         style={{
           background: isMobile ? 'rgba(20, 20, 20, 0.85)' : 'transparent',
           border: isMobile ? '1px solid var(--admin-border-hover)' : 'none',
@@ -242,25 +268,46 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
 
       {/* Content */}
       <div style={{ minWidth: 0 }}>
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--admin-text-muted)',
-          marginBottom: '4px',
-          fontWeight: 500,
-        }}>
-          {block.type}
-          {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
-        </div>
-        <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
-          {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
-        </div>
+        <button type="button" onClick={() => setExpanded((v) => !v)}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0 }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '3px', transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ display: 'block', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', marginBottom: '4px', fontWeight: 500 }}>
+              {block.type}
+              {block.location && <span style={{ color: 'var(--admin-text-faint)', fontWeight: 400 }}> · {block.location}</span>}
+            </span>
+            <span style={{ display: 'block', fontSize: '14px', fontWeight: 500 }}>
+              {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
+              {!expanded && block.type === 'hotel' && noteForm.selected_rooms.length > 0 && (
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.selected_rooms.length} {noteForm.selected_rooms.length === 1 ? t('room', 'номер') : t('rooms', 'номеров')}</span>
+              )}
+              {!expanded && (block.type === 'activity' || block.type === 'transfer') && noteForm.guests && (
+                <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {noteForm.guests} {noteForm.guests === 1 ? t('guest', 'гость') : t('guests', 'гостей')}</span>
+              )}
+            </span>
+          </span>
+        </button>
+
+        <div style={{ display: expanded ? 'block' : 'none', marginTop: '10px' }}>
         {description && (
           <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
             {description}
           </p>
         )}
+
+        {/* Время — общее для всех типов блоков (отель / активность / трансфер) */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('Time', 'Время')}</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={noteForm.time}
+            onChange={(e) => setField('time', formatTime(e.target.value))}
+            placeholder="11:00"
+            maxLength={5}
+            style={{ width: '120px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+        </div>
 
         {block.type === 'hotel' && (() => {
           const hotelRooms = normalizeRooms(block.rooms)
@@ -269,100 +316,171 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
             color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
             borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
           }
-          const currentValue = noteForm[roomTypeKey]
-          const norm = (s: string) => s.trim().toLowerCase()
-          // ищем номер, чьё название совпадает с сохранённым значением (без чувствительности к пробелам/регистру)
-          const matchedRoom = hotelRooms.find((r) => {
-            const rt = lang === 'ru' ? r.title_ru : r.title_en
-            return rt && norm(rt) === norm(currentValue)
-          })
-          const selectValue = currentValue.trim() === ''
-            ? ''
-            : (matchedRoom ? (lang === 'ru' ? matchedRoom.title_ru : matchedRoom.title_en) : '__custom__')
+          const labelSt: React.CSSProperties = {
+            fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
+          }
+          const selected = noteForm.room_ids
+          const isChecked = (id: string) => selected.length === 0 || selected.includes(id)
 
-          
+          function toggleRoom(id: string) {
+            setNoteForm((prev) => {
+              const cur = prev.room_ids
+              const next = cur.length === 0
+                ? hotelRooms.filter((r) => r.id !== id).map((r) => r.id)
+                : cur.includes(id)
+                  ? cur.filter((x) => x !== id)
+                  : [...cur, id]
+              return { ...prev, room_ids: next }
+            })
+            setSaveState('editing')
+          }
+
+          const actKey = lang === 'ru' ? 'activities_ru' : 'activities_en'
+          const libHref = `/admin/library/${block.id}?returnTo=${encodeURIComponent('/admin/proposals/' + (proposalId || ''))}`
+
           return (
-            <div style={{ marginBottom: '10px' }}>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                Room type · {lang.toUpperCase()}
-              </label>
-              {hotelRooms.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <select
-                    value={selectValue}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (v === '__custom__') setField(roomTypeKey, ' ')
-                      else setField(roomTypeKey, v)
-                    }}
-                    style={inputStyle}
-                  >
-                    <option value="">— not specified —</option>
-                    {hotelRooms.map((r) => {
-                      const rt = lang === 'ru' ? r.title_ru : r.title_en
-                      const rs = lang === 'ru' ? r.subtitle_ru : r.subtitle_en
-                      return <option key={r.id} value={rt}>{rt}{rs ? ` · ${rs}` : ''}</option>
-                    })}
-                    <option value="__custom__">Custom…</option>
-                  </select>
-                  {selectValue === '__custom__' && (
-                    <input
-                      type="text"
-                      value={currentValue}
-                      onChange={(e) => setField(roomTypeKey, e.target.value)}
-                      placeholder="e.g.: Deluxe City View, All Inclusive"
-                      style={inputStyle}
-                      autoFocus
-                    />
-                  )}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  value={currentValue}
-                  onChange={(e) => setField(roomTypeKey, e.target.value)}
-                  placeholder="e.g.: Deluxe City View, All Inclusive"
-                  style={inputStyle}
+            <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {hotelRooms.length > 0 && (() => {
+                const picked = noteForm.selected_rooms
+                function addRoom() {
+                  const uid = Math.random().toString(36).slice(2, 10)
+                  const firstRoom = hotelRooms[0]
+                  const next = [...picked, { uid, room_id: firstRoom.id, guests: 2, price: null }]
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number; meal: string }>) {
+                  const next = picked.map((r) => r.uid === uid ? { ...r, ...patch } : r)
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                function removeRoom(uid: string) {
+                  const next = picked.filter((r) => r.uid !== uid)
+                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                  updateBlockRooms(dayBlock.id, next)
+                }
+                return (
+                  <div>
+                    <label style={labelSt}>{t('Rooms', 'Номера')}</label>
+                    <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
+                      {t('Pick room types and how many guests in each. Prices are set later in Costs.', 'Выберите типы номеров и число гостей в каждом. Цены задаются позже в разделе «Стоимость».')}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {picked.map((row) => (
+                        <div key={row.uid} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <select value={row.room_id} onChange={(e) => changeRoom(row.uid, { room_id: e.target.value })}
+                            style={{ ...inputStyle, flex: 1 }}>
+                            {hotelRooms.map((r) => {
+                              const rt = lang === 'ru' ? r.title_ru : r.title_en
+                              return <option key={r.id} value={r.id}>{rt || t('Room', 'Номер')}</option>
+                            })}
+                          </select>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('guests', 'гостей')}</span>
+                            <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
+                              style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
+                          </div>
+                          <input type="text" list="meal-plans" value={row.meal ?? ''} onChange={(e) => changeRoom(row.uid, { meal: e.target.value })}
+                            placeholder={t('Meal', 'Питание')} style={{ ...inputStyle, width: '130px' }} />
+                          <button type="button" onClick={() => removeRoom(row.uid)}
+                            style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={addRoom}
+                      style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {t('+ Add room', '+ Добавить номер')}
+                    </button>
+                    <datalist id="meal-plans">
+                      <option value="Room Only" />
+                      <option value="Breakfast" />
+                      <option value="Half Board" />
+                      <option value="Full Board" />
+                      <option value="All Inclusive" />
+                    </datalist>
+                  </div>
+                )
+              })()}
+
+              <div>
+                <label style={labelSt}>{t('Hotel activities (optional)', 'Активности отеля (необязательно)')} · {lang.toUpperCase()}</label>
+                <textarea
+                  value={noteForm[actKey]}
+                  onChange={(e) => setField(actKey, e.target.value)}
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  placeholder={lang === 'ru' ? 'Утренние выезды на сафари\nПешее сафари' : 'Morning game drives\nWalking safari'}
                 />
-              )}
+                <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '4px 0 0' }}>
+                  {t('One activity per line.', 'По одной активности в строке.')}
+                </p>
+              </div>
+
+              {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>{t('Edit hotel →', 'Редактировать отель →')}</button> : null}
             </div>
           )
         })()}
 
         {block.type === 'transfer' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-            <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                From · {lang.toUpperCase()}
-              </label>
+          <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                  {t('From', 'Откуда')} · {lang.toUpperCase()}
+                </label>
+                <input
+                  type="text"
+                  value={noteForm[fromKey]}
+                  onChange={(e) => setField(fromKey, e.target.value)}
+                  placeholder={t('Marseille Airport', 'Аэропорт Марселя')}
+                  style={{
+                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                  {t('To', 'Куда')} · {lang.toUpperCase()}
+                </label>
+                <input
+                  type="text"
+                  value={noteForm[toKey]}
+                  onChange={(e) => setField(toKey, e.target.value)}
+                  placeholder={t('Hotel in Gordes', 'Отель в Горде')}
+                  style={{
+                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
               <input
-                type="text"
-                value={noteForm[fromKey]}
-                onChange={(e) => setField(fromKey, e.target.value)}
-                placeholder="Marseille Airport"
-                style={{
-                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
+                type="number" min={1}
+                value={noteForm.guests ?? ''}
+                onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
+                placeholder="—"
+                style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
               />
             </div>
-            <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                To · {lang.toUpperCase()}
-              </label>
-              <input
-                type="text"
-                value={noteForm[toKey]}
-                onChange={(e) => setField(toKey, e.target.value)}
-                placeholder="Hotel in Gordes"
-                style={{
-                  width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                  color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                  borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-            </div>
+          </div>
+        )}
+
+        {block.type === 'activity' && (
+          <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
+            <input
+              type="number" min={1}
+              value={noteForm.guests ?? ''}
+              onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
+              placeholder="—"
+              style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
+            />
           </div>
         )}
 
@@ -383,7 +501,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               textDecorationColor: 'var(--admin-border-hover)',
             }}
           >
-            + Add note for this trip
+            {t('+ Add note for this trip', '+ Добавить заметку для этой поездки')}
           </button>
         ) : (
           <div style={{ marginTop: '4px' }}>
@@ -400,7 +518,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
                 color: 'var(--admin-text-muted)',
                 fontWeight: 500,
               }}>
-                Note for this trip · {lang.toUpperCase()}
+                {t('Note for this trip', 'Заметка для этой поездки')} · {lang.toUpperCase()}
               </label>
               <span style={{ fontSize: '11px' }}>
                 {renderSaveIndicator()}
@@ -410,7 +528,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               value={currentNote}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              placeholder="e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby."
+              placeholder={t('e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.', 'напр.: Выезд из отеля в 6:30. Гид встретит вас в лобби.')}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -427,15 +545,16 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               }}
             />
             <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
-              Visible to client on this trip only. The library block stays unchanged.
+              {t('Visible to client on this trip only. The library block stays unchanged.', 'Видно клиенту только в этой поездке. Блок в библиотеке остаётся без изменений.')}
             </p>
             {errorMsg && (
               <p style={{ fontSize: '11px', color: 'var(--admin-danger)', margin: '4px 0 0' }}>
-                Error: {errorMsg}
+                {t('Error', 'Ошибка')}: {errorMsg}
               </p>
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Actions menu trigger */}
@@ -447,7 +566,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
           setMenuOpen(!menuOpen)
         }}
         disabled={isPending || blockedByOuter}
-        aria-label="Block actions"
+        aria-label={t('Block actions', 'Действия с блоком')}
         style={{
           position: 'absolute',
           top: '8px',
@@ -512,7 +631,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Duplicate
+              {t('Duplicate', 'Дублировать')}
             </button>
             <button
               onClick={handleRemove}
@@ -533,7 +652,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending }: Props) {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Remove from day
+              {t('Remove from day', 'Удалить из дня')}
             </button>
           </div>
         </>

@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition } from 'react'
 import Link from 'next/link'
 import { deleteVoucher, duplicateVoucher } from '../actions'
+import { useT } from '@/lib/i18n-client'
 
 type Guest = { name?: string; title?: string }
 type Hotel = { name?: string | null; city?: string | null; country?: string | null; check_in?: string | null; check_out?: string | null; sort_order?: number }
@@ -31,7 +32,7 @@ function guestNames(guests: unknown): string[] {
 // первый гость (по порядку в массиве)
 function firstGuestName(guests: unknown): string {
   const names = guestNames(guests)
-  return names[0] || 'Untitled voucher'
+  return names[0] || ''
 }
 
 // первый отель (по sort_order) + даты
@@ -49,12 +50,13 @@ function firstHotelLine(hotels: Hotel[] | null | undefined): string {
 }
 
 function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
+  const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
 
   const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
-  const mainName = firstGuestName(v.guests)
+  const mainName = firstGuestName(v.guests) || t('Untitled voucher', 'Ваучер без названия')
   const hotelLine = firstHotelLine(v.voucher_hotels)
   const guestCount = guestNames(v.guests).length
 
@@ -68,7 +70,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
     e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
-    if (!v.slug) { alert('This voucher has no link yet.'); return }
+    if (!v.slug) { alert(t('This voucher has no link yet.', 'У этого ваучера пока нет ссылки.')); return }
     if (pdfBusy) return
 
     setPdfBusy(true)
@@ -95,7 +97,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('PDF download failed:', err)
-      alert('Could not generate PDF. Please try again.')
+      alert(t('Could not generate PDF. Please try again.', 'Не удалось сформировать PDF. Пожалуйста, попробуйте ещё раз.'))
     } finally {
       setPdfBusy(false)
     }
@@ -112,7 +114,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
     e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
-    if (!confirm(`Delete voucher for "${mainName}"?\n\nThis cannot be undone.`)) return
+    if (!confirm(t(`Delete voucher for "${mainName}"?\n\nThis cannot be undone.`, `Удалить ваучер для «${mainName}»?\n\nЭто действие необратимо.`))) return
     startTransition(async () => { await deleteVoucher(v.id) })
   }
 
@@ -129,7 +131,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
             {guestCount > 1 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> +{guestCount - 1}</span>}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--admin-text)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>No hotel yet</span>}
+            {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>{t('No hotel yet', 'Отель ещё не указан')}</span>}
           </div>
           {showOwner && ownerEmail && (
             <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
@@ -142,7 +144,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
       <button
         onClick={toggleMenu}
         disabled={isPending}
-        aria-label="Actions"
+        aria-label={t('Actions', 'Действия')}
         style={{
           position: 'absolute', top: '50%', right: '14px', transform: 'translateY(-50%)',
           background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer',
@@ -168,7 +170,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
               onMouseEnter={(e) => { if (!pdfBusy) e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              {pdfBusy ? 'Generating…' : 'Download PDF'}
+              {pdfBusy ? t('Generating…', 'Формирование…') : t('Download PDF', 'Скачать PDF')}
             </button>
             <button
               onClick={handleDuplicate}
@@ -176,7 +178,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Duplicate
+              {t('Duplicate', 'Дублировать')}
             </button>
             <button
               onClick={handleDelete}
@@ -184,7 +186,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              Delete
+              {t('Delete', 'Удалить')}
             </button>
           </div>
         </>
@@ -194,6 +196,7 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
 }
 
 export default function VouchersList({ vouchers, showOwner }: { vouchers: VoucherRow[]; showOwner: boolean }) {
+  const t = useT()
   const safeVouchers = Array.isArray(vouchers) ? vouchers : []
   const [search, setSearch] = useState('')
 
@@ -219,13 +222,13 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by guest name…"
+        placeholder={t('Search by guest name…', 'Поиск по имени гостя…')}
         style={inputStyle}
       />
 
       {filtered.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          {safeVouchers.length === 0 ? 'No vouchers yet. Click + New voucher to create one.' : 'Nothing matches your search.'}
+          {safeVouchers.length === 0 ? t('No vouchers yet. Click + New voucher to create one.', 'Ваучеров пока нет. Нажмите «+ Новый ваучер», чтобы создать.') : t('Nothing matches your search.', 'Ничего не найдено по вашему запросу.')}
         </div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>

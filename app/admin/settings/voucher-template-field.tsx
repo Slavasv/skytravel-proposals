@@ -3,10 +3,12 @@
 // Выбор дизайна ваучера для бренда (owner-only). Хранится номером: 1, 2, 3...
 // Добавляешь новый дизайн — просто дописываешь пункт в OPTIONS.
 
+import { useT } from '@/lib/i18n-client'
+
 const OPTIONS = [
-  { value: 1, label: 'Дизайн 1' },
-  { value: 2, label: 'Дизайн 2' },
-  // { value: 3, label: 'Дизайн 3' },  // раскомментируй, когда добавим Дизайн 3
+  { value: 1, label: 'Design 1', ru: 'Дизайн 1' },
+  { value: 2, label: 'Design 2', ru: 'Дизайн 2' },
+  // { value: 3, label: 'Design 3', ru: 'Дизайн 3' },  // раскомментируй, когда добавим Дизайн 3
 ]
 
 const labelStyle: React.CSSProperties = {
@@ -19,16 +21,17 @@ const selectStyle: React.CSSProperties = {
 }
 
 export default function VoucherTemplateField({ defaultValue }: { defaultValue: number }) {
+  const t = useT()
   return (
     <div>
-      <label style={labelStyle}>Voucher design</label>
+      <label style={labelStyle}>{t('Voucher design', 'Дизайн ваучера')}</label>
       <select name="voucher_template" defaultValue={defaultValue} style={selectStyle}>
         {OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>{t(o.label, o.ru)}</option>
         ))}
       </select>
       <div style={{ fontSize: '11px', color: 'var(--admin-text-faint)', marginTop: '6px' }}>
-        Дизайн клиентского ваучера для этого бренда.
+        {t('The client voucher design for this brand.', 'Дизайн клиентского ваучера для этого бренда.')}
       </div>
     </div>
   )

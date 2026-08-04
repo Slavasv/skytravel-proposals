@@ -8,6 +8,7 @@ import {
   SortableContext, useSortable, arrayMove, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
 import {
   addTraveller, updateTraveller, deleteTraveller, reorderTravellers, type Traveller,
 } from '../actions'
@@ -71,6 +72,7 @@ function TravellerCard({
   index: number
   onRemove: (id: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: traveller.id })
 
   const [form, setForm] = useState({
@@ -85,6 +87,7 @@ function TravellerCard({
     notes: traveller.notes || '',
   })
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [open, setOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInitial = useRef(true)
 
@@ -127,44 +130,49 @@ function TravellerCard({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-        <button type="button" {...attributes} {...listeners} aria-label="Drag"
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: open ? '14px' : '0' }}>
+        <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>⋮⋮</button>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', flex: 1 }}>
-          {form.name ? `${form.title} ${form.name}` : `Traveller ${index + 1}`}
+        <button type="button" onClick={() => setOpen((v) => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, minWidth: 0 }}>
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
+            {form.name ? `${form.title} ${form.name}` : `${t('Traveller', 'Путешественник')} ${index + 1}`}
+          </span>
           {form.traveller_code && (
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400, marginLeft: '8px' }}>
-              {form.traveller_code}
-            </span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400 }}>{form.traveller_code}</span>
           )}
-        </span>
+          {!open && age && (
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400 }}>· {age}</span>
+          )}
+        </button>
         <span style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-          {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+          {saveState === 'saving' ? `● ${t('Saving...', 'Сохранение...')}` : saveState === 'saved' ? `● ${t('Saved', 'Сохранено')}` : ''}
         </span>
         <button type="button" onClick={() => onRemove(traveller.id)}
-          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ Remove</button>
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>{t('✕ Remove', '✕ Удалить')}</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: open ? 'flex' : 'none', flexDirection: 'column', gap: '12px' }}>
         {/* Обращение + имя */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
           <div style={{ width: '110px', flexShrink: 0 }}>
-            <label style={labelStyle}>Title</label>
+            <label style={labelStyle}>{t('Title', 'Обращение')}</label>
             <select value={form.title} onChange={(e) => set('title', e.target.value)} style={inputStyle}>
-              <optgroup label="Adult">
-                {ADULT_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+              <optgroup label={t('Adult', 'Взрослый')}>
+                {ADULT_TITLES.map((tx) => <option key={tx} value={tx}>{tx}</option>)}
               </optgroup>
-              <optgroup label="Child">
-                {CHILD_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+              <optgroup label={t('Child', 'Ребёнок')}>
+                {CHILD_TITLES.map((tx) => <option key={tx} value={tx}>{tx}</option>)}
               </optgroup>
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Full name</label>
+            <label style={labelStyle}>{t('Full name', 'Полное имя')}</label>
             <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} style={inputStyle} placeholder="Pertsev Yurii" />
           </div>
           <div style={{ width: '130px', flexShrink: 0 }}>
-            <label style={labelStyle}>Code</label>
+            <label style={labelStyle}>{t('Code', 'Код')}</label>
             <input type="text" value={form.traveller_code} onChange={(e) => set('traveller_code', e.target.value)} style={inputStyle} placeholder="TRVLR-001" />
           </div>
         </div>
@@ -172,20 +180,20 @@ function TravellerCard({
         {/* Отношение + дата рождения + национальность */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Relation</label>
-            <input type="text" list="relation-options" value={form.relation} onChange={(e) => set('relation', e.target.value)} style={inputStyle} placeholder="Select or type..." />
+            <label style={labelStyle}>{t('Relation', 'Отношение')}</label>
+            <input type="text" list="relation-options" value={form.relation} onChange={(e) => set('relation', e.target.value)} style={inputStyle} placeholder={t('Select or type...', 'Выберите или введите...')} />
             <datalist id="relation-options">
               {RELATIONS.map((r) => <option key={r} value={r} />)}
             </datalist>
           </div>
           <div>
             <label style={labelStyle}>
-              Date of birth {age && <span style={{ color: 'var(--admin-accent)', textTransform: 'none', letterSpacing: 0 }}>· {age}</span>}
+              {t('Date of birth', 'Дата рождения')} {age && <span style={{ color: 'var(--admin-accent)', textTransform: 'none', letterSpacing: 0 }}>· {age}</span>}
             </label>
             <DateInput value={form.date_of_birth} onChange={(v) => set('date_of_birth', v)} placeholder="dd/mm/yyyy" />
           </div>
           <div>
-            <label style={labelStyle}>Nationality</label>
+            <label style={labelStyle}>{t('Nationality', 'Гражданство')}</label>
             <input type="text" value={form.nationality} onChange={(e) => set('nationality', e.target.value)} style={inputStyle} placeholder="Ukraine" />
           </div>
         </div>
@@ -193,18 +201,18 @@ function TravellerCard({
         {/* Пожелания */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Special requirements</label>
-            <textarea value={form.special_requirements} onChange={(e) => set('special_requirements', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Allergies, accessibility..." />
+            <label style={labelStyle}>{t('Special requirements', 'Особые требования')}</label>
+            <textarea value={form.special_requirements} onChange={(e) => set('special_requirements', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={t('Allergies, accessibility...', 'Аллергии, доступность...')} />
           </div>
           <div>
-            <label style={labelStyle}>Travel preferences</label>
-            <textarea value={form.travel_preferences} onChange={(e) => set('travel_preferences', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder="Window seat, vegetarian meals..." />
+            <label style={labelStyle}>{t('Travel preferences', 'Предпочтения в поездке')}</label>
+            <textarea value={form.travel_preferences} onChange={(e) => set('travel_preferences', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} placeholder={t('Window seat, vegetarian meals...', 'Место у окна, вегетарианское питание...')} />
           </div>
         </div>
 
         {isChild && (
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: 0 }}>
-            Child traveller — date of birth is used to calculate age at check-out.
+            {t('Child traveller — date of birth is used to calculate age at check-out.', 'Ребёнок-путешественник — дата рождения используется для расчёта возраста на дату выезда.')}
           </p>
         )}
       </div>
@@ -218,6 +226,7 @@ export default function ClientTravellers({
   clientId: string
   initialTravellers: Traveller[]
 }) {
+  const t = useT()
   const [travellers, setTravellers] = useState<Traveller[]>(initialTravellers)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -227,30 +236,30 @@ export default function ClientTravellers({
   }
 
   async function handleRemove(id: string) {
-    if (!confirm('Remove this traveller?')) return
-    setTravellers((prev) => prev.filter((t) => t.id !== id))
+    if (!confirm(t('Remove this traveller?', 'Удалить этого путешественника?'))) return
+    setTravellers((prev) => prev.filter((tv) => tv.id !== id))
     await deleteTraveller(id)
   }
 
   async function onDragEnd(e: DragEndEvent) {
     const { active, over } = e
     if (!over || active.id === over.id) return
-    const oldIndex = travellers.findIndex((t) => t.id === active.id)
-    const newIndex = travellers.findIndex((t) => t.id === over.id)
+    const oldIndex = travellers.findIndex((tv) => tv.id === active.id)
+    const newIndex = travellers.findIndex((tv) => tv.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
     const next = arrayMove(travellers, oldIndex, newIndex)
     setTravellers(next)
-    await reorderTravellers(next.map((t) => t.id))
+    await reorderTravellers(next.map((tv) => tv.id))
   }
 
   return (
     <div>
       {travellers.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={travellers.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={travellers.map((tv) => tv.id)} strategy={verticalListSortingStrategy}>
             <div>
-              {travellers.map((t, i) => (
-                <TravellerCard key={t.id} traveller={t} index={i} onRemove={handleRemove} />
+              {travellers.map((tv, i) => (
+                <TravellerCard key={tv.id} traveller={tv} index={i} onRemove={handleRemove} />
               ))}
             </div>
           </SortableContext>
@@ -258,7 +267,7 @@ export default function ClientTravellers({
       )}
       <button type="button" onClick={handleAdd}
         style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: travellers.length > 0 ? '4px' : '0' }}>
-        + Add traveller
+        {t('+ Add traveller', '+ Добавить путешественника')}
       </button>
     </div>
   )

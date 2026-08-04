@@ -2,6 +2,7 @@
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getProfile } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { revalidatePath } from 'next/cache'
 
 export async function createBrand(
@@ -12,16 +13,17 @@ export async function createBrand(
 ) {
   // Только superadmin может создавать бренды
   const profile = await getProfile()
+  const lang = profile?.ui_language ?? 'en'
   if (profile?.role !== 'superadmin') {
-    throw new Error('Недостаточно прав')
+    throw new Error(tr(lang, 'Insufficient permissions', 'Недостаточно прав'))
   }
 
   const cleanName = name.trim()
   const cleanSlug = slug.trim().toLowerCase()
 
-  if (!cleanName || !cleanSlug) throw new Error('Имя и slug обязательны')
+  if (!cleanName || !cleanSlug) throw new Error(tr(lang, 'Name and slug are required', 'Имя и slug обязательны'))
   if (!ownerEmail.trim() || ownerPassword.length < 6) {
-    throw new Error('Email и пароль владельца обязательны (пароль от 6 символов)')
+    throw new Error(tr(lang, 'Owner email and password are required (password at least 6 characters)', 'Email и пароль владельца обязательны (пароль от 6 символов)'))
   }
 
   const admin = createSupabaseAdmin()
@@ -36,7 +38,7 @@ export async function createBrand(
   if (companyError) {
     // Скорее всего slug занят (unique)
     if (companyError.message.includes('duplicate') || companyError.code === '23505') {
-      throw new Error(`Slug "${cleanSlug}" уже занят`)
+      throw new Error(tr(lang, `Slug "${cleanSlug}" is already taken`, `Slug "${cleanSlug}" уже занят`))
     }
     throw new Error(companyError.message)
   }
@@ -51,7 +53,8 @@ export async function createBrand(
 
   if (userError || !userData.user) {
     // Бренд уже создан, но owner не создался — сообщаем явно
-    throw new Error(`Бренд создан, но владелец не создан: ${userError?.message ?? 'неизвестная ошибка'}. Удалите бренд и попробуйте снова.`)
+    const reason = userError?.message ?? tr(lang, 'unknown error', 'неизвестная ошибка')
+    throw new Error(tr(lang, `Brand created, but owner was not: ${reason}. Delete the brand and try again.`, `Бренд создан, но владелец не создан: ${reason}. Удалите бренд и попробуйте снова.`))
   }
 
   // 3. Прописываем владельцу роль owner + привязку к новой компании

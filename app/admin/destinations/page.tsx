@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { createDestination } from '../actions'
 import ProposalCard from '../proposal-card'
 
@@ -10,6 +11,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
   const { view } = await searchParams
 
   const profile = await getProfile()
+  const lang = profile?.ui_language ?? 'en'
 
   if (profile?.role === 'superadmin') {
     redirect('/admin/companies')
@@ -33,7 +35,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
   const { data: allDestinations, error } = await query
 
   if (error) {
-    return <div style={{ padding: '40px', color: 'red' }}>Error: {error.message}</div>
+    return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>
   }
 
   const destinations = allDestinations ?? []
@@ -65,18 +67,18 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-            Destinations
+            {tr(lang, 'Destinations', 'Направления')}
           </h1>
           <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-            {destinations.length} {destinations.length === 1 ? 'destination' : 'destinations'}
+            {destinations.length} {destinations.length === 1 ? tr(lang, 'destination', 'направление') : tr(lang, 'destinations', 'направлений')}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAdmin && (
             <div style={{ display: 'flex', gap: '2px', background: 'var(--admin-border-card)', borderRadius: '8px', padding: '3px' }}>
-              <a href="/admin/destinations" style={myLinkStyle}>My</a>
-              <a href="/admin/destinations?view=all" style={allLinkStyle}>All</a>
+              <a href="/admin/destinations" style={myLinkStyle}>{tr(lang, 'My', 'Мои')}</a>
+              <a href="/admin/destinations?view=all" style={allLinkStyle}>{tr(lang, 'All', 'Все')}</a>
             </div>
           )}
 
@@ -96,7 +98,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
                 fontFamily: 'inherit',
               }}
             >
-              + New destination
+              + {tr(lang, 'New destination', 'Новое направление')}
             </button>
           </form>
         </div>
@@ -104,7 +106,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
 
       {destinations.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          No destinations yet. Click + New destination to create one.
+          {tr(lang, 'No destinations yet. Click + New destination to create one.', 'Пока нет направлений. Нажмите + Новое направление, чтобы создать.')}
         </div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>

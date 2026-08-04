@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import { useT } from '@/lib/i18n-client'
 
 type Props = {
   slug: string
@@ -23,6 +24,7 @@ const buttonStyle: React.CSSProperties = {
 }
 
 export default function ProposalActions({ slug, kind = 'individual' }: Props) {
+  const t = useT()
   const [copiedKey, setCopiedKey] = useState<'ru' | 'en' | null>(null)
   const isMobile = useIsMobile()
 
@@ -47,7 +49,7 @@ export default function ProposalActions({ slug, kind = 'individual' }: Props) {
       setTimeout(() => setCopiedKey((k) => (k === lang ? null : k)), 1800)
     } catch {
       // Fallback: показать prompt с URL
-      window.prompt('Copy this link:', url)
+      window.prompt(t('Copy this link:', 'Скопируйте эту ссылку:'), url)
     }
   }
 
@@ -62,17 +64,17 @@ export default function ProposalActions({ slug, kind = 'individual' }: Props) {
         type="button"
         onClick={() => openPreview('ru')}
         style={buttonStyle}
-        title="Open Russian version in a new tab"
+        title={t('Open Russian version in a new tab', 'Открыть русскую версию в новой вкладке')}
       >
-        ↗ Preview RU
+        {t('↗ Preview RU', '↗ Просмотр RU')}
       </button>
       <button
         type="button"
         onClick={() => openPreview('en')}
         style={buttonStyle}
-        title="Open English version in a new tab"
+        title={t('Open English version in a new tab', 'Открыть английскую версию в новой вкладке')}
       >
-        ↗ Preview EN
+        {t('↗ Preview EN', '↗ Просмотр EN')}
       </button>
       <button
         type="button"
@@ -83,7 +85,7 @@ export default function ProposalActions({ slug, kind = 'individual' }: Props) {
           borderColor: copiedKey === 'ru' ? 'var(--admin-success)' : 'var(--admin-border)',
         }}
       >
-        {copiedKey === 'ru' ? '✓ Copied' : 'Copy RU link'}
+        {copiedKey === 'ru' ? t('✓ Copied', '✓ Скопировано') : t('Copy RU link', 'Копировать ссылку RU')}
       </button>
       <button
         type="button"
@@ -94,7 +96,7 @@ export default function ProposalActions({ slug, kind = 'individual' }: Props) {
           borderColor: copiedKey === 'en' ? 'var(--admin-success)' : 'var(--admin-border)',
         }}
       >
-        {copiedKey === 'en' ? '✓ Copied' : 'Copy EN link'}
+        {copiedKey === 'en' ? t('✓ Copied', '✓ Скопировано') : t('Copy EN link', 'Копировать ссылку EN')}
       </button>
     </div>
   )

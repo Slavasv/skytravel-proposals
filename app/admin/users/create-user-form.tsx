@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { createUser } from './actions'
+import { useT } from '@/lib/i18n-client'
 
 export default function CreateUserForm() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'manager' | 'admin'>('manager')
+  const [role, setRole] = useState<'manager' | 'admin' | 'accountant'>('manager')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,7 +24,7 @@ export default function CreateUserForm() {
       setRole('manager')
       setOpen(false)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error creating user')
+      setError(err instanceof Error ? err.message : t('Error creating user', 'Ошибка при создании пользователя'))
     } finally {
       setLoading(false)
     }
@@ -45,7 +47,7 @@ export default function CreateUserForm() {
           fontFamily: 'inherit',
         }}
       >
-        + New user
+        {t('+ New user', '+ Новый пользователь')}
       </button>
     )
   }
@@ -58,7 +60,7 @@ export default function CreateUserForm() {
       background: 'var(--admin-input)',
     }}>
       <h2 style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-        New user
+        {t('New user', 'Новый пользователь')}
       </h2>
 
       <form onSubmit={handleSubmit}>
@@ -67,7 +69,7 @@ export default function CreateUserForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
+            placeholder={t('Email', 'Email')}
             required
             autoFocus
             style={{
@@ -85,7 +87,7 @@ export default function CreateUserForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder={t('Password', 'Пароль')}
             required
             style={{
               padding: '10px 12px',
@@ -100,7 +102,7 @@ export default function CreateUserForm() {
           />
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as 'manager' | 'admin')}
+            onChange={(e) => setRole(e.target.value as 'manager' | 'admin' | 'accountant')}
             style={{
               padding: '10px 12px',
               fontSize: '14px',
@@ -112,8 +114,9 @@ export default function CreateUserForm() {
               outline: 'none',
             }}
           >
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
+            <option value="manager">{t('Manager', 'Менеджер')}</option>
+            <option value="admin">{t('Admin', 'Администратор')}</option>
+            <option value="accountant">{t('Accountant', 'Бухгалтер')}</option>
           </select>
         </div>
 
@@ -140,7 +143,7 @@ export default function CreateUserForm() {
               fontFamily: 'inherit',
             }}
           >
-            {loading ? 'Creating...' : 'Create user'}
+            {loading ? t('Creating...', 'Создание...') : t('Create user', 'Создать пользователя')}
           </button>
           <button
             type="button"
@@ -156,7 +159,7 @@ export default function CreateUserForm() {
               fontFamily: 'inherit',
             }}
           >
-            Cancel
+            {t('Cancel', 'Отмена')}
           </button>
         </div>
       </form>

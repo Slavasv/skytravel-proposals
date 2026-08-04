@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { addBlockToDay, getLibraryBlocks, type LibraryBlock } from './block-actions'
 import { createBlockMinimal } from '@/app/admin/library/actions'
 import type { Lang } from './edit-page-client'
+import { useDays } from './days-context'
 import LocationPicker from '@/app/admin/_components/location-picker'
+import { useT } from '@/lib/i18n-client'
 
 type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
@@ -49,7 +51,9 @@ const TYPE_FILTERS = [
 ]
 
 export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang, proposalId }: Props) {
+  const t = useT()
   const router = useRouter()
+  const { refresh } = useDays()
   const [blocks, setBlocks] = useState<LibraryBlock[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -109,6 +113,14 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
+  const filterLabels: Record<string, string> = {
+    All: t('All', 'Все'),
+    Hotel: t('Hotel', 'Отель'),
+    Activity: t('Activity', 'Активность'),
+    Transfer: t('Transfer', 'Трансфер'),
+    City: t('City', 'Город'),
+  }
+
   // Подсчёт по типам для pills
   const typeCounts: Record<string, number> = {}
   for (const b of blocks) {
@@ -153,13 +165,14 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
   function handleSelect(blockId: string) {
     startTransition(async () => {
       await addBlockToDay(dayId, blockId)
+      await refresh()
       onClose()
     })
   }
   async function handleCreate() {
     setCreateError('')
     if (!newTitleRu.trim() && !newTitleEn.trim()) {
-      setCreateError('Введите название хотя бы на одном языке')
+      setCreateError(t('Enter a title in at least one language', 'Введите название хотя бы на одном языке'))
       return
     }
     setCreating(true)
@@ -175,7 +188,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
       const returnTo = encodeURIComponent(`/admin/proposals/${proposalId}`)
       router.push(`/admin/library/${newId}?returnTo=${returnTo}&addToDay=${dayId}`)
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Ошибка создания')
+      setCreateError(e instanceof Error ? e.message : t('Failed to create', 'Ошибка создания'))
       setCreating(false)
     }
   }
@@ -234,16 +247,16 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
               margin: '0 0 2px',
               letterSpacing: '-0.01em',
             }}>
-              Add block to Day {dayNumber}
+              {t('Add block to Day', 'Добавить блок в день')} {dayNumber}
             </h2>
             <p style={{ margin: 0, fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-              {filtered.length} of {blocks.length} blocks
+              {filtered.length} {t('of', 'из')} {blocks.length} {t('blocks', 'блоков')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('Close', 'Закрыть')}
             style={{
               background: 'transparent',
               border: 'none',
@@ -267,7 +280,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title, description, location, tags..."
+              placeholder={t('Search by title, description, location, tags...', 'Поиск по названию, описанию, локации, тегам...')}
               autoFocus
               style={{
                 width: '100%',
@@ -322,14 +335,14 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
               mode="country"
               value={activeCountry}
               onChange={(id) => { setActiveCountry(id); setActiveCity(null) }}
-              label="Страна"
+              label={t('Country', 'Страна')}
               disableCreate
             />
             <LocationPicker
               mode="city"
               value={activeCity}
               onChange={setActiveCity}
-              label="Город"
+              label={t('City', 'Город')}
               disableCreate
               countryFilter={activeCountry}
             />
@@ -357,7 +370,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                       fontFamily: 'inherit',
                     }}
                   >
-                    {f.label} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{count}</span>
+                    {filterLabels[f.label] ?? f.label} <span style={{ opacity: 0.6, marginLeft: '4px' }}>{count}</span>
                   </button>
                 )
               })}
@@ -378,7 +391,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 whiteSpace: 'nowrap',
               }}
             >
-              + New block
+              {t('+ New block', '+ Новый блок')}
             </button>
           </div>
         </div>
@@ -395,7 +408,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--admin-text)' }}>
-                Новый блок
+                {t('New block', 'Новый блок')}
               </div>
               <button
                 type="button"
@@ -409,7 +422,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                   fontFamily: 'inherit',
                 }}
               >
-                Отмена
+                {t('Cancel', 'Отмена')}
               </button>
             </div>
 
@@ -432,16 +445,16 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                   outline: 'none',
                 }}
               >
-                <option value="hotel">Hotel</option>
-                <option value="activity">Activity</option>
-                <option value="transfer">Transfer</option>
-                <option value="city">City</option>
+                <option value="hotel">{t('Hotel', 'Отель')}</option>
+                <option value="activity">{t('Activity', 'Активность')}</option>
+                <option value="transfer">{t('Transfer', 'Трансфер')}</option>
+                <option value="city">{t('City', 'Город')}</option>
               </select>
               <input
                 type="text"
                 value={newTitleRu}
                 onChange={(e) => setNewTitleRu(e.target.value)}
-                placeholder="Название (RU)"
+                placeholder={t('Title (RU)', 'Название (RU)')}
                 style={{
                   padding: '8px 10px',
                   fontSize: '13px',
@@ -457,7 +470,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 type="text"
                 value={newTitleEn}
                 onChange={(e) => setNewTitleEn(e.target.value)}
-                placeholder="Title (EN)"
+                placeholder={t('Title (EN)', 'Название (EN)')}
                 style={{
                   padding: '8px 10px',
                   fontSize: '13px',
@@ -472,10 +485,10 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
             </div>
 
             {newType === 'hotel' && (
-              <LocationPicker mode="city" value={newCityId} onChange={setNewCityId} label="Город" />
+              <LocationPicker mode="city" value={newCityId} onChange={setNewCityId} label={t('City', 'Город')} />
             )}
             {newType === 'city' && (
-              <LocationPicker mode="country" value={newCountryId} onChange={setNewCountryId} label="Страна" />
+              <LocationPicker mode="country" value={newCountryId} onChange={setNewCountryId} label={t('Country', 'Страна')} />
             )}
 
             {createError && (
@@ -500,7 +513,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                 fontFamily: 'inherit',
               }}
             >
-              {creating ? 'Создание...' : 'Создать и перейти к заполнению →'}
+              {creating ? t('Creating...', 'Создание...') : t('Create and continue →', 'Создать и перейти к заполнению →')}
             </button>
           </div>
         )}
@@ -513,7 +526,7 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
         }}>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '14px' }}>
-              Loading library...
+              {t('Loading library...', 'Загрузка библиотеки...')}
             </div>
           ) : filtered.length === 0 ? (
             <div style={{
@@ -525,8 +538,8 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
               fontSize: '13px',
             }}>
               {blocks.length === 0
-                ? 'Library is empty. Add blocks at /admin/library.'
-                : 'No blocks match your search.'}
+                ? t('Library is empty. Add blocks at /admin/library.', 'Библиотека пуста. Добавьте блоки в /admin/library.')
+                : t('No blocks match your search.', 'Ничего не найдено по вашему запросу.')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -594,11 +607,11 @@ export default function AddBlockModal({ isOpen, onClose, dayId, dayNumber, lang,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}>
-                        {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>Untitled</span>}
+                        {title || <span style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>{t('Untitled', 'Без названия')}</span>}
                       </div>
                       {b.tags && b.tags.length > 0 && (
                         <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
-                          {b.tags.slice(0, 4).map((t) => `#${t}`).join(' ')}
+                          {b.tags.slice(0, 4).map((tag) => `#${tag}`).join(' ')}
                           {b.tags.length > 4 && <span> +{b.tags.length - 4}</span>}
                         </div>
                       )}

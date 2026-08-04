@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react'
 import GalleryUploader from '@/app/admin/library/[id]/gallery-uploader'
+import { useT } from '@/lib/i18n-client'
 import { updateSection } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
+import { normalizePhotos, type Photo } from '@/lib/photos'
 
 type Lang = 'ru' | 'en'
 
-function getImages(data: unknown): string[] {
+function getImages(data: unknown): Photo[] {
   if (data && typeof data === 'object' && 'images' in data) {
-    const imgs = (data as { images?: unknown }).images
-    if (Array.isArray(imgs)) return imgs.filter((x): x is string => typeof x === 'string')
+    return normalizePhotos((data as { images?: unknown }).images)
   }
   return []
 }
@@ -24,7 +25,8 @@ export default function SectionGallery({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
-  const [images, setImages] = useState<string[]>(getImages(section.data))
+  const t = useT()
+  const [images, setImages] = useState<Photo[]>(getImages(section.data))
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -63,7 +65,7 @@ export default function SectionGallery({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
       <div>
-        <label style={labelStyle}>Section title (optional) · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Section title (optional)', 'Заголовок раздела (необяз.)')} · {lang.toUpperCase()}</label>
         {lang === 'ru' ? (
           <input type="text" value={titleRu} onChange={(e) => setTitleRu(e.target.value)} style={inputStyle} placeholder="Например: Дикая природа Масаи-Мара" />
         ) : (
@@ -72,12 +74,12 @@ export default function SectionGallery({
       </div>
 
       <div>
-        <label style={labelStyle}>Photos</label>
-        <GalleryUploader images={images} onChange={setImages} />
+        <label style={labelStyle}>{t('Photos', 'Фотографии')}</label>
+        <GalleryUploader images={images} onChange={setImages} lang={lang} />
       </div>
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-        {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+        {saveState === 'saving' ? t('● Saving...', '● Сохранение...') : saveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
       </div>
     </div>
   )

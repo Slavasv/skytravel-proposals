@@ -1,0 +1,201 @@
+/* ============================================================
+   ПУБЛИЧНАЯ СТРАНИЦА НАПРАВЛЕНИЯ — секции (.dp-*)
+   Хедер / hero / навигация / бургер / карусель берём из proposal.css
+   (общие токены --tp-* и классы .tp-*). Здесь — только блоки,
+   которых нет в предложении: маршрут-сетка, город, активности,
+   отель+номера, галерея-мозаика, «день», стоимость-includes, CTA.
+   ============================================================ */
+
+/* лид-абзац под hero (интро направления) */
+.dp-intro {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 0 0;
+  font-size: 18px;
+  line-height: 1.8;
+  color: var(--tp-text);
+}
+
+/* капс-лейбл секции + крупный заголовок (как в макете) */
+.dp-eyebrow { display: block; margin-bottom: 14px; }
+.dp-sub-italic {
+  font-family: var(--tp-font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--tp-text);
+  margin: 16px 0 0;
+  max-width: 760px;
+}
+
+/* ---------- МАРШРУТ (две колонки дат) ---------- */
+.dp-itin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px 56px;
+  margin-top: 24px;
+}
+.dp-itin__day { border-top: 1px solid var(--tp-line-soft); padding-top: 18px; }
+.dp-itin__date { font-family: var(--tp-font-display); font-size: 20px; color: var(--tp-accent); margin-bottom: 6px; }
+.dp-itin__title { font-size: 15px; font-weight: 500; color: var(--tp-text); margin-bottom: 4px; }
+.dp-itin__desc { font-size: 14px; line-height: 1.7; color: var(--tp-text-soft); }
+
+/* ---------- ГОРОД / РЕГИОН (факты + фото) ---------- */
+.dp-city {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 44px;
+  align-items: center;
+  margin-top: 24px;
+}
+.dp-city--top { align-items: start; }
+.dp-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.dp-facts li { position: relative; padding-left: 22px; font-size: 15px; line-height: 1.6; color: var(--tp-text-soft); }
+.dp-facts li::before { content: '\2726'; position: absolute; left: 0; color: var(--tp-accent); font-size: 12px; top: 2px; }
+.dp-city__text { font-size: 16px; line-height: 1.8; color: var(--tp-text); margin: 0 0 18px; }
+
+/* ---------- АКТИВНОСТИ (карточки) ---------- */
+.dp-acts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 30px 24px;
+  margin-top: 24px;
+}
+.dp-act__media { margin-bottom: 12px; }
+.dp-act__title { font-size: 17px; font-weight: 600; color: var(--tp-text); margin: 0 0 6px; }
+.dp-act__desc { font-size: 13px; line-height: 1.6; color: var(--tp-text-soft); margin: 0; }
+.dp-act__dur { font-size: 12px; color: var(--tp-text-muted); margin-top: 8px; }
+
+/* ---------- ОТЕЛЬ + НОМЕРА ---------- */
+.dp-hotels { display: flex; flex-direction: column; gap: 64px; margin-top: 24px; }
+.dp-hotel__name {
+  font-family: var(--tp-font-display);
+  font-size: 32px;
+  font-weight: 500;
+  margin: 0 0 6px;
+  display: inline-block;
+  border-bottom: 2px solid var(--tp-text);
+  padding-bottom: 4px;
+  color: var(--tp-text);
+}
+.dp-hotel__grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 40px;
+  align-items: center;
+  margin-top: 20px;
+}
+.dp-hotel__desc { font-size: 15px; line-height: 1.8; color: var(--tp-text-soft); }
+.dp-rooms { margin-top: 40px; display: flex; flex-direction: column; gap: 40px; }
+.dp-room__name {
+  font-family: var(--tp-font-display);
+  font-size: 23px;
+  font-weight: 500;
+  margin: 0;
+  display: inline-block;
+  border-bottom: 1px solid var(--tp-line);
+  padding-bottom: 3px;
+  color: var(--tp-text);
+}
+.dp-room__size { font-size: 13px; color: var(--tp-text-muted); margin: 6px 0 14px; }
+
+/* активности отеля списком в две колонки */
+.dp-actlist { columns: 2; column-gap: 56px; margin-top: 18px; max-width: 820px; }
+.dp-actlist div {
+  break-inside: avoid;
+  padding: 9px 0 9px 22px;
+  position: relative;
+  font-size: 15px;
+  color: var(--tp-text-soft);
+  border-bottom: 1px solid var(--tp-line-soft);
+}
+.dp-actlist div::before { content: '\2726'; position: absolute; left: 0; color: var(--tp-accent); font-size: 11px; top: 11px; }
+
+/* ---------- ГАЛЕРЕЯ-МОЗАИКА ---------- */
+.dp-gal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 200px;
+  gap: 10px;
+  margin-top: 24px;
+}
+.dp-gal__cell { overflow: hidden; border-radius: 2px; }
+.dp-gal__cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-gal__cell--big { grid-column: span 2; grid-row: span 2; }
+.dp-gal__cell--wide { grid-column: span 2; }
+.dp-gal__cell--tall { grid-row: span 2; }
+
+/* ---------- ДЕНЬ (расписание с боковыми фото) ---------- */
+.dp-day {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 0;
+  margin-top: 24px;
+  align-items: stretch;
+}
+.dp-day__side { background-color: #2a2018; background-size: cover; background-position: center; min-height: 520px; }
+.dp-day__mid { padding: 8px 34px; text-align: center; }
+.dp-day__it { padding: 14px 0; border-top: 1px solid var(--tp-line-soft); }
+.dp-day__it:first-child { border-top: none; }
+.dp-day__t { font-family: var(--tp-font-display); font-size: 18px; color: var(--tp-accent); }
+.dp-day__x { font-size: 14px; font-weight: 500; color: var(--tp-text); margin-top: 2px; }
+
+/* ---------- СТОИМОСТЬ ---------- */
+.dp-price-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--tp-line);
+  padding-bottom: 16px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.dp-price-head__big { font-family: var(--tp-font-display); font-size: 44px; font-weight: 500; color: var(--tp-text); }
+.dp-costlist { margin-top: 26px; }
+.dp-costcat { margin-bottom: 26px; }
+.dp-costcat__label { margin-bottom: 8px; }
+.dp-costrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--tp-line-soft);
+}
+.dp-costrow__name { font-size: 15px; color: var(--tp-text); }
+.dp-costrow__desc { font-size: 13px; color: var(--tp-text-muted); line-height: 1.5; margin-top: 2px; }
+.dp-costrow__price { font-family: var(--tp-font-display); font-size: 19px; color: var(--tp-text); white-space: nowrap; }
+.dp-incl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 30px;
+}
+.dp-incl h4 { font-family: var(--tp-font-display); font-size: 22px; font-weight: 500; margin: 0 0 16px; color: var(--tp-text); }
+.dp-incl ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.dp-incl li { position: relative; padding-left: 18px; font-size: 14px; line-height: 1.6; color: var(--tp-text-soft); }
+.dp-incl li::before { content: '\2014'; position: absolute; left: 0; color: var(--tp-text-muted); }
+.dp-costnote { font-size: 13px; color: var(--tp-text-muted); line-height: 1.6; margin: 24px 0 0; max-width: 640px; }
+
+/* ---------- CTA «Хочу такое путешествие» ---------- */
+.dp-cta { background: var(--tp-surface); border-top: 1px solid var(--tp-line); }
+.dp-cta__in { max-width: 720px; margin: 0 auto; padding: 64px var(--tp-gutter); text-align: center; }
+.dp-cta__title { font-family: var(--tp-font-display); font-size: 40px; font-weight: 500; margin: 0 0 10px; color: var(--tp-text); }
+.dp-cta__lead { color: var(--tp-text-soft); margin: 0 0 26px; }
+.dp-cta .tp-btn { margin-top: 2px; }
+.dp-cta__note { font-size: 13px; color: var(--tp-text-muted); line-height: 1.6; margin: 18px 0 0; }
+
+/* подвал */
+.dp-footer { margin-top: 8px; padding: 40px 0 60px; text-align: center; font-size: 13px; color: var(--tp-text-muted); border-top: 1px solid var(--tp-line-soft); }
+
+/* ---------- АДАПТИВ ---------- */
+@media (max-width: 860px) {
+  .dp-itin, .dp-city, .dp-hotel__grid, .dp-incl { grid-template-columns: 1fr; }
+  .dp-actlist { columns: 1; }
+  .dp-gal { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
+  .dp-gal__cell--big { grid-row: span 1; }
+  .dp-day { grid-template-columns: 1fr; }
+  .dp-day__side { display: none; }
+  .dp-hotel__name { font-size: 26px; }
+  .dp-price-head__big { font-size: 34px; }
+  .dp-cta__title { font-size: 30px; }
+}

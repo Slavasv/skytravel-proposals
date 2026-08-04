@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useT } from '@/lib/i18n-client'
 import { createSupabaseBrowser } from '@/lib/supabase-client'
 
 export default function ChangePasswordForm() {
+  const t = useT()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -17,12 +19,12 @@ export default function ChangePasswordForm() {
     setSuccess(false)
 
     if (password !== confirm) {
-      setError('Passwords do not match')
+      setError(t('Passwords do not match', 'Пароли не совпадают'))
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('Password must be at least 6 characters', 'Пароль должен содержать не менее 6 символов'))
       return
     }
 
@@ -66,7 +68,7 @@ export default function ChangePasswordForm() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="New password"
+            placeholder={t('New password', 'Новый пароль')}
             required
             style={inputStyle}
           />
@@ -75,7 +77,7 @@ export default function ChangePasswordForm() {
             onClick={() => setShowPassword(!showPassword)}
             style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}
           >
-            {showPassword ? 'Hide' : 'Show'}
+            {showPassword ? t('Hide', 'Скрыть') : t('Show', 'Показать')}
           </button>
         </div>
         <div style={{ position: 'relative' }}>
@@ -83,7 +85,7 @@ export default function ChangePasswordForm() {
             type={showPassword ? 'text' : 'password'}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Confirm password"
+            placeholder={t('Confirm password', 'Подтвердите пароль')}
             required
             style={inputStyle}
           />
@@ -98,7 +100,7 @@ export default function ChangePasswordForm() {
 
       {success && (
         <div style={{ color: 'var(--admin-success)', fontSize: '13px', marginTop: '10px' }}>
-          Password updated successfully.
+          {t('Password updated successfully.', 'Пароль успешно обновлён.')}
         </div>
       )}
 
@@ -119,7 +121,7 @@ export default function ChangePasswordForm() {
           fontFamily: 'inherit',
         }}
       >
-        {loading ? 'Saving...' : 'Update password'}
+        {loading ? t('Saving...', 'Сохранение...') : t('Update password', 'Обновить пароль')}
       </button>
     </form>
   )

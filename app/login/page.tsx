@@ -55,7 +55,7 @@ function LoginForm() {
         marginBottom: '10px',
         fontWeight: 500,
       }}>
-        Sky Travel
+        Travel System
       </div>
       <h1 style={{
         fontSize: '24px',

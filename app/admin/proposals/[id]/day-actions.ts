@@ -19,15 +19,19 @@ function addDays(dateStr: string | null, days: number): string | null {
   return d.toISOString().slice(0, 10)
 }
 
-export async function createDay(proposalId: string) {
+export async function createDay(proposalId: string, variantId?: string | null) {
   const supabase = await createSupabaseServer()
 
-  const { data: existing } = await supabase
+  // нумерация в пределах варианта (если он есть), иначе — предложения
+  const existingQuery = supabase
     .from('days')
     .select('day_number')
-    .eq('proposal_id', proposalId)
     .order('day_number', { ascending: false })
     .limit(1)
+
+  const { data: existing } = variantId
+    ? await existingQuery.eq('variant_id', variantId)
+    : await existingQuery.eq('proposal_id', proposalId)
 
   const { data: proposal } = await supabase
     .from('proposals')
@@ -42,6 +46,7 @@ export async function createDay(proposalId: string) {
     .from('days')
     .insert({
       proposal_id: proposalId,
+      variant_id: variantId ?? null,
       day_number: nextNumber,
       date: nextDate,
       title_ru: '',
@@ -82,7 +87,7 @@ export async function deleteDay(id: string) {
 
   const { data: day } = await supabase
     .from('days')
-    .select('proposal_id, day_number')
+    .select('proposal_id, variant_id, day_number')
     .eq('id', id)
     .single()
 
@@ -95,11 +100,11 @@ export async function deleteDay(id: string) {
 
   if (error) throw new Error(error.message)
 
-  await renumberDays(day.proposal_id)
+  await renumberDays(day.proposal_id, day.variant_id)
   revalidatePath(`/admin/proposals/${day.proposal_id}`)
 }
 
-export async function reorderDays(proposalId: string, orderedIds: string[]) {
+export async function reorderDays(proposalId: string, orderedIds: string[], variantId?: string | null) {
   const supabase = await createSupabaseServer()
 
   for (let i = 0; i < orderedIds.length; i++) {
@@ -115,11 +120,13 @@ export async function reorderDays(proposalId: string, orderedIds: string[]) {
       .eq('id', orderedIds[i])
   }
 
-  await renumberDays(proposalId)
+  await renumberDays(proposalId, variantId)
   revalidatePath(`/admin/proposals/${proposalId}`)
 }
 
-async function renumberDays(proposalId: string) {
+// Нумерация в пределах ВАРИАНТА (если он есть), иначе — предложения.
+// Раньше было по proposal_id — мешало дни всех вариантов и ломало номера.
+async function renumberDays(proposalId: string, variantId?: string | null) {
   const supabase = await createSupabaseServer()
 
   const { data: proposal } = await supabase
@@ -128,11 +135,14 @@ async function renumberDays(proposalId: string) {
     .eq('id', proposalId)
     .single()
 
-  const { data: days } = await supabase
+  const daysQuery = supabase
     .from('days')
     .select('id, day_number')
-    .eq('proposal_id', proposalId)
     .order('day_number', { ascending: true })
+
+  const { data: days } = variantId
+    ? await daysQuery.eq('variant_id', variantId)
+    : await daysQuery.eq('proposal_id', proposalId)
 
   if (!days || days.length === 0) return
 

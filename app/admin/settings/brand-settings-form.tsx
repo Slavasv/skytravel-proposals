@@ -134,7 +134,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
 
         <div>
           <label style={labelStyle}>Footer note</label>
-          <input type="text" name="footer_note" defaultValue={company.footer_note || ''} placeholder="Sky Travel · Dubai" style={inputStyle} />
+          <input type="text" name="footer_note" defaultValue={company.footer_note || ''} placeholder="Travel System" style={inputStyle} />
         </div>
 
         <GreetingField defaultValue={company.greeting_message || ''} />

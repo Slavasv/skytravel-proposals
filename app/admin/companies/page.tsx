@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
 import { getProfile } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import CreateBrandForm from './create-brand-form'
 
 export default async function CompaniesPage() {
   const profile = await getProfile()
+  const lang = profile?.ui_language ?? 'en'
 
   // Только superadmin
   if (profile?.role !== 'superadmin') {
@@ -22,10 +24,10 @@ export default async function CompaniesPage() {
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-          Компании
+          {tr(lang, 'Companies', 'Компании')}
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-          {companies?.length ?? 0} {(companies?.length ?? 0) === 1 ? 'бренд' : 'брендов'}
+          {companies?.length ?? 0} {(companies?.length ?? 0) === 1 ? tr(lang, 'brand', 'бренд') : tr(lang, 'brands', 'брендов')}
         </p>
       </div>
 
@@ -41,7 +43,7 @@ export default async function CompaniesPage() {
           }}>
             <div style={{ fontWeight: 500, color: 'var(--admin-text)' }}>{c.name}</div>
             <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
-              slug: {c.slug}{!c.is_active && ' · архив'}
+              slug: {c.slug}{!c.is_active && ` · ${tr(lang, 'archived', 'архив')}`}
             </div>
           </li>
         ))}

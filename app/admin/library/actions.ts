@@ -3,6 +3,9 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { type Photo } from '@/lib/photos'
+import { getUiLang } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 
 export type BlockType = 'hotel' | 'activity' | 'transfer' | 'city'
 
@@ -12,11 +15,16 @@ export type BlockUpdate = {
   country_id?: string | null
   title_ru?: string | null
   title_en?: string | null
+  subtitle_ru?: string | null
+  subtitle_en?: string | null
   description_ru?: string | null
   description_en?: string | null
   image_url?: string | null
-  images?: string[]
+  images?: Photo[]
   location?: string | null
+  link_url?: string | null
+  address?: string | null
+  phone?: string | null
   tags?: string[]
   notable_amenities_ru?: string | null
   notable_amenities_en?: string | null
@@ -49,7 +57,8 @@ export async function createBlock() {
     .single()
 
   if (error || !data) {
-    throw new Error(error?.message || 'Failed to create block')
+    const lang = await getUiLang()
+    throw new Error(error?.message || tr(lang, 'Failed to create block', 'Не удалось создать блок'))
   }
 
   revalidatePath('/admin/library')
@@ -82,7 +91,8 @@ export async function createBlockMinimal(input: {
     .single()
 
   if (error || !data) {
-    throw new Error(error?.message || 'Failed to create block')
+    const lang = await getUiLang()
+    throw new Error(error?.message || tr(lang, 'Failed to create block', 'Не удалось создать блок'))
   }
 
   revalidatePath('/admin/library')
@@ -140,7 +150,8 @@ export async function deleteBlock(id: string) {
   if (countError) throw new Error(countError.message)
 
   if (count && count > 0) {
-    throw new Error(`Cannot delete: this block is used in ${count} day(s) across proposals`)
+    const lang = await getUiLang()
+    throw new Error(tr(lang, `Cannot delete: this block is used in ${count} day(s) across proposals`, `Нельзя удалить: блок используется в ${count} дн. в предложениях`))
   }
 
   const { error } = await supabase

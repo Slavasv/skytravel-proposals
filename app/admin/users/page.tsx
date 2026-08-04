@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { tr } from '@/lib/i18n'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import UserRow from './user-row'
 import CreateUserForm from './create-user-form'
 
 export default async function UsersPage() {
   const profile = await getProfile()
+  const lang = profile?.ui_language ?? 'en'
 
  if (!canManageBrand(profile?.role)) {
     notFound()
@@ -21,7 +23,7 @@ export default async function UsersPage() {
     .single()
 
   if (!meProfile?.company_id) {
-    return <div style={{ padding: '40px', color: 'var(--admin-text-muted)' }}>Компания не найдена.</div>
+    return <div style={{ padding: '40px', color: 'var(--admin-text-muted)' }}>{tr(lang, 'Company not found.', 'Компания не найдена.')}</div>
   }
 
   // Грузим только профили своей компании
@@ -36,7 +38,7 @@ export default async function UsersPage() {
   const { data: { users }, error } = await adminClient.auth.admin.listUsers()
 
   if (error) {
-    return <div style={{ padding: '40px', color: 'red' }}>Ошибка: {error.message}</div>
+    return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>
   }
 
   const filteredUsers = users.filter((u) => ownIds.has(u.id))
@@ -68,10 +70,10 @@ export default async function UsersPage() {
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
-          Users
+          {tr(lang, 'Users', 'Пользователи')}
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-          {enriched.length} {enriched.length === 1 ? 'user' : 'users'}
+          {enriched.length} {enriched.length === 1 ? tr(lang, 'user', 'пользователь') : tr(lang, 'users', 'пользователей')}
         </p>
       </div>
 

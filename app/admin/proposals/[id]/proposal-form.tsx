@@ -7,8 +7,14 @@ import ClientPicker from '@/app/admin/_components/client-picker'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
 import { useIsMobile } from '@/lib/use-is-mobile'
-import CostLines, { type CostLine, type CostSuggestion } from './cost-lines'
+import CostBreakdown from './cost-breakdown'
+import VariantTerms from './variant-terms'
+import VariantImpressions from './variant-impressions'
+import { useDays } from './days-context'
+import type { VariantFull } from './variant-actions'
+import HotelsSection from './hotels-section'
 import type { Day } from './edit-page-client'
+import { useT } from '@/lib/i18n-client'
 
 type Proposal = {
   id: string
@@ -26,6 +32,8 @@ type Proposal = {
   cover_image_url: string | null
   intro_text_ru: string | null
   intro_text_en: string | null
+  country_ru?: string | null
+  country_en?: string | null
   payment_terms_ru: string | null
   payment_terms_en: string | null
   cancellation_policy_ru: string | null
@@ -37,8 +45,8 @@ type Proposal = {
   cost_excludes_en: string | null
   cost_notes_ru: string | null
   cost_notes_en: string | null
-  cost_lines: CostLine[] | null
   client_id: string | null
+  layout: string | null
 }
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
@@ -77,13 +85,22 @@ type Props = {
   proposal: Proposal
   lang: Lang
   onLangChange: (lang: Lang) => void
-  days?: Day[]
   actions?: React.ReactNode
   itinerary?: React.ReactNode
+  variantSwitcher?: React.ReactNode
+  activeVariant?: VariantFull | null
+  variantCount?: number
   clients?: ProposalClientOption[]
 }
 
-export default function ProposalForm({ proposal, lang, onLangChange, days = [], actions, itinerary, clients = [] }: Props) {
+export default function ProposalForm({ proposal, lang, onLangChange, actions, itinerary, variantSwitcher, activeVariant, variantCount = 0, clients = [] }: Props) {
+  const t = useT()
+  const statusLabels: Record<string, string> = {
+    draft: t('Draft', 'Черновик'),
+    sent: t('Sent', 'Отправлено'),
+    confirmed: t('Confirmed', 'Подтверждено'),
+  }
+  const { days } = useDays()
   const router = useRouter()
   const searchParams = useSearchParams()
   const pickedClient = searchParams.get('pickedClient')
@@ -107,6 +124,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
     cover_image_url: proposal.cover_image_url || '',
     intro_text_ru: proposal.intro_text_ru || '',
     intro_text_en: proposal.intro_text_en || '',
+    country_ru: proposal.country_ru || '',
+    country_en: proposal.country_en || '',
     payment_terms_ru: proposal.payment_terms_ru || '',
     payment_terms_en: proposal.payment_terms_en || '',
     cancellation_policy_ru: proposal.cancellation_policy_ru || '',
@@ -118,8 +137,8 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
     cost_excludes_en: proposal.cost_excludes_en || '',
     cost_notes_ru: proposal.cost_notes_ru || '',
     cost_notes_en: proposal.cost_notes_en || '',
-    cost_lines: (proposal.cost_lines ?? []) as CostLine[],
     client_id: proposal.client_id || '',
+    layout: proposal.layout || 'full',
   })
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -149,11 +168,12 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
           start_date: currentForm.start_date || null,
           end_date: currentForm.end_date || null,
           status: currentForm.status,
-          total_price: currentForm.total_price === '' ? null : Number(currentForm.total_price),
           currency: currentForm.currency,
           cover_image_url: currentForm.cover_image_url || null,
           intro_text_ru: currentForm.intro_text_ru || null,
           intro_text_en: currentForm.intro_text_en || null,
+          country_ru: currentForm.country_ru || null,
+          country_en: currentForm.country_en || null,
           payment_terms_ru: currentForm.payment_terms_ru || null,
           payment_terms_en: currentForm.payment_terms_en || null,
           cancellation_policy_ru: currentForm.cancellation_policy_ru || null,
@@ -165,13 +185,13 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
           cost_excludes_en: currentForm.cost_excludes_en || null,
           cost_notes_ru: currentForm.cost_notes_ru || null,
           cost_notes_en: currentForm.cost_notes_en || null,
-          cost_lines: currentForm.cost_lines,
           client_id: currentForm.client_id || null,
+          layout: currentForm.layout,
         })
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -230,6 +250,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
   const clientKey = lang === 'ru' ? 'client_name_ru' : 'client_name_en'
   const titleKey = lang === 'ru' ? 'trip_title_ru' : 'trip_title_en'
   const introKey = lang === 'ru' ? 'intro_text_ru' : 'intro_text_en'
+  const countryKey = lang === 'ru' ? 'country_ru' : 'country_en'
   const paymentKey = lang === 'ru' ? 'payment_terms_ru' : 'payment_terms_en'
   const cancellationKey = lang === 'ru' ? 'cancellation_policy_ru' : 'cancellation_policy_en'
   const includesKey = lang === 'ru' ? 'cost_includes_ru' : 'cost_includes_en'
@@ -238,27 +259,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
   // Подсказки для строк тарифов: блоки из маршрута, сгруппированные по категории.
   // Дубли по названию убираем. transfer/activity маппятся 1:1, остальные типы (city и пр.) игнорируем.
-  const costSuggestions: CostSuggestion[] = (() => {
-    const out: CostSuggestion[] = []
-    const seen = new Set<string>()
-    for (const day of days) {
-      for (const db of day.day_blocks ?? []) {
-        const b = db.content_blocks
-        if (!b) continue
-        const cat = b.type === 'hotel' ? 'hotel' : b.type === 'transfer' ? 'transfer' : b.type === 'activity' ? 'activity' : null
-        if (!cat) continue
-        const key = `${cat}|${b.title_ru || ''}|${b.title_en || ''}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        out.push({
-          category: cat,
-          label_ru: b.title_ru || '',
-          label_en: b.title_en || '',
-        })
-      }
-    }
-    return out
-  })()
+  
   const titlePlaceholder = lang === 'ru'
     ? 'Например: Путешествие в Прованс для семьи Алиевых'
     : 'e.g.: A Provence Journey for the Aliyev Family'
@@ -271,18 +272,18 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
   function renderSaveIndicator() {
     if (saveState === 'error') {
-      return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
+      return <span style={{ color: 'var(--admin-danger)' }}>{t('● Error', '● Ошибка')}: {errorMsg}</span>
     }
     if (saveState === 'saving') {
-      return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
+      return <span style={{ color: 'var(--admin-accent)' }}>{t('● Saving...', '● Сохранение...')}</span>
     }
     if (saveState === 'editing') {
-      return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
+      return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● Editing...', '● Редактирование...')}</span>
     }
     if (saveState === 'saved' && savedAt) {
-      return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
+      return <span style={{ color: 'var(--admin-success)' }}>{t('● Saved at', '● Сохранено в')} {savedAt.toLocaleTimeString()}</span>
     }
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>{t('● All changes saved', '● Все изменения сохранены')}</span>
   }
 
   return (
@@ -298,7 +299,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-            Editing in
+            {t('Editing in', 'Редактирование на')}
           </span>
           <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             <button
@@ -335,17 +336,34 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             </button>
           </div>
         </div>
-        <div style={{ fontSize: '12px' }}>
-          {renderSaveIndicator()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+              {t('Layout', 'Макет')}
+            </span>
+            <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
+              <button type="button" onClick={() => set('layout', 'full')}
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout !== 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout !== 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('Full', 'Полный')}
+              </button>
+              <button type="button" onClick={() => set('layout', 'hotel')}
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, background: form.layout === 'hotel' ? 'var(--admin-text-on-dark)' : 'transparent', color: form.layout === 'hotel' ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('Hotel', 'Отель')}
+              </button>
+            </div>
+          </div>
+          <div style={{ fontSize: '12px' }}>
+            {renderSaveIndicator()}
+          </div>
         </div>
       </div>
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Client & dates <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Client & dates', 'Клиент и даты')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>CRM Client</label>
+          <label style={labelStyle}>{t('CRM Client', 'Клиент CRM')}</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <ClientPicker
@@ -362,21 +380,21 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
                   const c = clients.find((x) => x.id === form.client_id)
                   if (c?.name) set(clientKey, c.name)
                 }}
-                title="Fill the client name field from the CRM client"
+                title={t('Fill the client name field from the CRM client', 'Заполнить поле имени клиента из клиента CRM')}
                 style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
-                ↓ Use name
+                {t('↓ Use name', '↓ Использовать имя')}
               </button>
             )}
           </div>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-            Link this proposal to a CRM client to see it in their history.
+            {t('Link this proposal to a CRM client to see it in their history.', 'Привяжите это предложение к клиенту CRM, чтобы видеть его в истории клиента.')}
           </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Client name</label>
+            <label style={labelStyle}>{t('Client name', 'Имя клиента')}</label>
             <input
               type="text"
               value={form[clientKey]}
@@ -386,7 +404,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             />
           </div>
           <div>
-            <label style={labelStyle}>Guests</label>
+            <label style={labelStyle}>{t('Guests', 'Гости')}</label>
             <input
               type="number"
               min={1}
@@ -396,7 +414,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             />
           </div>
           <div>
-            <label style={labelStyle}>Start date</label>
+            <label style={labelStyle}>{t('Start date', 'Дата начала')}</label>
             <input
               type="date"
               value={form.start_date}
@@ -405,7 +423,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             />
           </div>
           <div>
-            <label style={labelStyle}>End date</label>
+            <label style={labelStyle}>{t('End date', 'Дата окончания')}</label>
             <input
               type="date"
               value={form.end_date}
@@ -418,11 +436,11 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Trip details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Trip details', 'Детали поездки')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Trip title</label>
+            <label style={labelStyle}>{t('Trip title', 'Название поездки')}</label>
             <input
               type="text"
               value={form[titleKey]}
@@ -435,12 +453,12 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             <ImageUploader
               value={form.cover_image_url}
               onChange={(url) => set('cover_image_url', url)}
-              label="Cover image"
+              label={t('Cover image', 'Обложка')}
               height={240}
             />
           </div>
           <div>
-            <label style={labelStyle}>Intro text</label>
+            <label style={labelStyle}>{t('Intro text', 'Вступительный текст')}</label>
             <textarea
               value={form[introKey]}
               onChange={(e) => set(introKey, e.target.value)}
@@ -449,42 +467,63 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
               placeholder={introPlaceholder}
             />
           </div>
+          <div>
+            <label style={labelStyle}>{t('Country', 'Страна')}</label>
+            <input
+              type="text"
+              value={form[countryKey]}
+              onChange={(e) => set(countryKey, e.target.value)}
+              style={inputStyle}
+              placeholder={lang === 'ru' ? 'Например: ЮАР · или: Танзания · Кения' : 'e.g.: South Africa · or: Tanzania · Kenya'}
+            />
+          </div>
         </div>
       </section>
 
-      {(() => {
-        const s = form.start_date, e = form.end_date
-        if (!s || !e || days.length === 0) return null
-        const d1 = new Date(s), d2 = new Date(e)
-        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
-        const expected = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1
-        if (expected <= 0 || expected === days.length) return null
-        return (
-          <div style={{
-            padding: '12px 16px',
-            background: '#2a2417',
-            border: '1px solid #4a3f1e',
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: 'var(--admin-accent)',
-            lineHeight: 1.5,
-          }}>
-            {`${days.length} of ${expected} days filled in.`}
-          </div>
+      {/* Несколько маршрутов: показываем полноценную секцию с заголовком.
+          Один маршрут: прячем «вариантную» шапку — остаётся только скромная
+          кнопка «+ Добавить альтернативный маршрут» из самого переключателя. */}
+      {variantSwitcher && (
+        variantCount > 1 ? (
+          <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Route variants', 'Варианты маршрута')}</h2>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+              {t('Offer the client several full scenarios. Each variant has its own days, costs and terms.', 'Предложите клиенту несколько полных сценариев. У каждого варианта свои дни, стоимость и условия.')}
+            </p>
+            {variantSwitcher}
+          </section>
+        ) : (
+          <section style={{ paddingTop: '8px' }}>
+            {variantSwitcher}
+          </section>
         )
-      })()}
+      )}
 
-      {itinerary}
+      {activeVariant && form.layout !== 'hotel' && (
+        <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Impressions', 'Впечатления')}</h2>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+            {t('Gallery, text and a divider photo shown before the itinerary.', 'Галерея, текст и фото-разделитель, показываемые перед маршрутом.')}
+          </p>
+          <VariantImpressions key={activeVariant.id} variant={activeVariant} lang={lang} />
+        </section>
+      )}
+
+      {form.layout === 'hotel' ? (
+        <HotelsSection proposalId={proposal.id} lang={lang} />
+      ) : (
+        itinerary
+      )}
 
       
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Costs <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Costs', 'Стоимость')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ maxWidth: '200px' }}>
-            <label style={labelStyle}>Currency (for this Costs section)</label>
+            <label style={labelStyle}>{t('Currency (for this Costs section)', 'Валюта (для этого раздела «Стоимость»)')}</label>
             <select
               value={form.cost_currency}
               onChange={(e) => set('cost_currency', e.target.value)}
@@ -498,123 +537,48 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
 
           <div style={{ marginTop: '8px', paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '4px' }}>
-              Price breakdown
+              {t('Price breakdown', 'Детализация цены')}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
-              Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.
+              {t('Breakdown by hotels, transfers and activities. Write the price exactly as in the proposal — we don’t recalculate it.', 'Разбивка по отелям, трансферам и активностям. Указывайте цену точно как в предложении — мы её не пересчитываем.')}
             </p>
-            <CostLines
-              lines={form.cost_lines}
-              lang={lang}
-              suggestions={costSuggestions}
-              onChange={(next) => set('cost_lines', next)}
-            />
+            <CostBreakdown lang={lang} currency={form.cost_currency} onTotalChange={(total) => set('total_price', total)} />
           </div>
-          <div>
-            <label style={labelStyle}>This cost includes</label>
-            <textarea
-              value={form[includesKey]}
-              onChange={(e) => set(includesKey, e.target.value)}
-              rows={6}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nAirport transfers\n2 nights at Four Seasons — Villa, All Inclusive'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>This cost does not include</label>
-            <textarea
-              value={form[excludesKey]}
-              onChange={(e) => set(excludesKey, e.target.value)}
-              rows={5}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nInternational flights\nVisas\nPersonal insurance'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>Notes</label>
-            <textarea
-              value={form[costNotesKey]}
-              onChange={(e) => set(costNotesKey, e.target.value)}
-              rows={4}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nKenya requires an ETA prior to travel\nBaggage strictly 15kg in soft bags'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-
-          
+          {activeVariant && (
+            <div style={{ paddingTop: '20px', borderTop: '1px solid var(--admin-border-card)' }}>
+              <VariantTerms key={activeVariant.id} variant={activeVariant} lang={lang} />
+            </div>
+          )}
         </div>
       </section>
 
-      <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Terms & Conditions <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Payment terms</label>
-            <textarea
-              value={form[paymentKey]}
-              onChange={(e) => set(paymentKey, e.target.value)}
-              rows={4}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\n30% — Upon Confirmation\n70% — 45 days before arrival'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-          <div>
-            <label style={labelStyle}>Cancellation policy</label>
-            <textarea
-              value={form[cancellationKey]}
-              onChange={(e) => set(cancellationKey, e.target.value)}
-              rows={6}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder={'e.g.:\nMore than 120 days before arrival — the 20% deposit is refunded...\nLess than 30 days — 100% is forfeited'}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One item per line.
-            </p>
-          </div>
-        </div>
-      </section>
+      
 
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Total & status</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Total & status', 'Итого и статус')}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Total price</label>
+            <label style={labelStyle}>{t('Total price', 'Итоговая цена')}</label>
             <input
               type="number"
-              min={0}
-              step="0.01"
               value={form.total_price}
-              onChange={(e) => set('total_price', e.target.value === '' ? '' : parseFloat(e.target.value))}
-              style={inputStyle}
+              readOnly
+              style={{ ...inputStyle, background: 'var(--admin-card)', color: 'var(--admin-text-muted)', cursor: 'not-allowed' }}
               placeholder="0"
             />
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              {`Currency is taken from the Costs section (${form.cost_currency}).`}
+              {`${t('Calculated from the Costs section above', 'Рассчитано из раздела «Стоимость» выше')} · ${form.cost_currency}.`}
             </p>
           </div>
           <div>
-            <label style={labelStyle}>Status</label>
+            <label style={labelStyle}>{t('Status', 'Статус')}</label>
             <select
               value={form.status}
               onChange={(e) => set('status', e.target.value)}
               style={inputStyle}
             >
               {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{statusLabels[s.value] ?? s.label}</option>
               ))}
             </select>
           </div>
@@ -624,7 +588,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>URL</h2>
         <div>
-          <label style={labelStyle}>Slug</label>
+          <label style={labelStyle}>{t('Slug', 'Slug')}</label>
           <input
             type="text"
             value={form.slug}
@@ -633,7 +597,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             placeholder="e.g.: aliyev-provence-jul26"
           />
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-            Public URL: /p/{form.slug} (RU) · /en/p/{form.slug} (EN)
+            {t('Public URL', 'Публичная ссылка')}: /p/{form.slug} (RU) · /en/p/{form.slug} (EN)
           </p>
         </div>
       </section>
@@ -674,7 +638,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, days = [], 
             e.currentTarget.style.background = 'var(--admin-text-on-dark)'
           }}
         >
-          Done
+          {t('Done', 'Готово')}
         </button>
       </div>
     </div>

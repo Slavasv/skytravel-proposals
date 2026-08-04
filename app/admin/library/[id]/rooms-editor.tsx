@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import GalleryUploader from './gallery-uploader'
+import { normalizePhotos, type Photo } from '@/lib/photos'
+import { useT } from '@/lib/i18n-client'
 
 export type Room = {
   id: string
@@ -23,7 +25,7 @@ export type Room = {
   title_en: string
   subtitle_ru: string
   subtitle_en: string
-  images: string[]
+  images: Photo[]
 }
 
 type Lang = 'ru' | 'en'
@@ -38,7 +40,7 @@ export function normalizeRooms(data: unknown): Room[] {
       title_en: typeof x.title_en === 'string' ? x.title_en : '',
       subtitle_ru: typeof x.subtitle_ru === 'string' ? x.subtitle_ru : '',
       subtitle_en: typeof x.subtitle_en === 'string' ? x.subtitle_en : '',
-      images: Array.isArray(x.images) ? x.images.filter((i): i is string => typeof i === 'string') : [],
+      images: normalizePhotos(x.images),
     }))
 }
 
@@ -63,6 +65,7 @@ function SortableRoom({
   onChange: (id: string, patch: Partial<Room>) => void
   onRemove: (id: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: room.id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -80,27 +83,27 @@ function SortableRoom({
   return (
     <div ref={setNodeRef} style={style}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <button type="button" {...attributes} {...listeners} aria-label="Drag"
+        <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>⋮⋮</button>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-muted)', flex: 1 }}>Room</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-muted)', flex: 1 }}>{t('Room', 'Номер')}</span>
         <button type="button" onClick={() => onRemove(room.id)}
-          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ Remove</button>
+          style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', padding: '6px 8px', fontFamily: 'inherit' }}>✕ {t('Remove', 'Удалить')}</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
-          <label style={labelStyle}>Room name · {lang.toUpperCase()}</label>
+          <label style={labelStyle}>{t('Room name', 'Название номера')} · {lang.toUpperCase()}</label>
           <input type="text" value={room[titleKey]} onChange={(e) => onChange(room.id, { [titleKey]: e.target.value })}
             style={inputStyle} placeholder={lang === 'ru' ? 'Executive Suite' : 'Executive Suite'} />
         </div>
         <div>
-          <label style={labelStyle}>Subtitle · {lang.toUpperCase()}</label>
+          <label style={labelStyle}>{t('Subtitle', 'Подзаголовок')} · {lang.toUpperCase()}</label>
           <input type="text" value={room[subKey]} onChange={(e) => onChange(room.id, { [subKey]: e.target.value })}
             style={inputStyle} placeholder={lang === 'ru' ? '80 кв.м., кровати кинг или твин' : '80 sqm, king or twin beds'} />
         </div>
         <div>
-          <label style={labelStyle}>Room photos</label>
-          <GalleryUploader images={room.images} onChange={(imgs) => onChange(room.id, { images: imgs })} />
+          <label style={labelStyle}>{t('Room photos', 'Фото номера')}</label>
+          <GalleryUploader images={room.images} onChange={(imgs) => onChange(room.id, { images: imgs })} lang={lang} />
         </div>
       </div>
     </div>
@@ -116,6 +119,7 @@ export default function RoomsEditor({
   lang: Lang
   onChange: (rooms: Room[]) => void
 }) {
+  const t = useT()
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function addRoom() {
@@ -149,11 +153,11 @@ export default function RoomsEditor({
           </SortableContext>
         </DndContext>
       ) : (
-        <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>No rooms yet.</p>
+        <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>{t('No rooms yet.', 'Номеров пока нет.')}</p>
       )}
       <button type="button" onClick={addRoom}
         style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-        + Add room
+        {t('+ Add room', '+ Добавить номер')}
       </button>
     </div>
   )

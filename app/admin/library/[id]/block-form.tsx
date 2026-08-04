@@ -10,7 +10,9 @@ import ImageUploader from '@/app/admin/_components/image-uploader'
 import LocationPicker from '@/app/admin/_components/location-picker'
 import GalleryUploader from './gallery-uploader'
 import RoomsEditor, { normalizeRooms, type Room } from './rooms-editor'
+import { normalizePhotos } from '@/lib/photos'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import { useT } from '@/lib/i18n-client'
 
 type Block = {
   id: string
@@ -19,11 +21,16 @@ type Block = {
   country_id: string | null
   title_ru: string | null
   title_en: string | null
+  subtitle_ru: string | null
+  subtitle_en: string | null
   description_ru: string | null
   description_en: string | null
   image_url: string | null
   images: string[] | null
   location: string | null
+  link_url: string | null
+  address: string | null
+  phone: string | null
   tags: string[] | null
   notable_amenities_ru: string | null
   notable_amenities_en: string | null
@@ -44,11 +51,11 @@ type Block = {
 type Lang = 'ru' | 'en'
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
-const TYPES: { value: BlockType; label: string }[] = [
-  { value: 'hotel', label: 'Hotel' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'transfer', label: 'Transfer' },
-  { value: 'city', label: 'City' },
+const TYPES: { value: BlockType; en: string; ru: string }[] = [
+  { value: 'hotel', en: 'Hotel', ru: 'Отель' },
+  { value: 'activity', en: 'Activity', ru: 'Активность' },
+  { value: 'transfer', en: 'Transfer', ru: 'Трансфер' },
+  { value: 'city', en: 'City', ru: 'Город' },
 ]
 
 const labelStyle: React.CSSProperties = {
@@ -76,6 +83,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function BlockForm({ block }: { block: Block }) {
+  const t = useT()
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnTo = searchParams.get('returnTo')
@@ -94,11 +102,16 @@ export default function BlockForm({ block }: { block: Block }) {
     country_id: block.country_id,
     title_ru: block.title_ru || '',
     title_en: block.title_en || '',
+    subtitle_ru: block.subtitle_ru || '',
+    subtitle_en: block.subtitle_en || '',
     description_ru: block.description_ru || '',
     description_en: block.description_en || '',
     image_url: block.image_url || '',
-    images: (block.images ?? []) as string[],
+    images: normalizePhotos(block.images),
     location: block.location || '',
+    link_url: block.link_url || '',
+    address: block.address || '',
+    phone: block.phone || '',
     tags: block.tags || [],
     // hotel
     notable_amenities_ru: block.notable_amenities_ru || '',
@@ -143,11 +156,16 @@ export default function BlockForm({ block }: { block: Block }) {
           country_id: currentForm.type === 'city' ? currentForm.country_id : null,
           title_ru: currentForm.title_ru || null,
           title_en: currentForm.title_en || null,
+          subtitle_ru: currentForm.subtitle_ru || null,
+          subtitle_en: currentForm.subtitle_en || null,
           description_ru: currentForm.description_ru || null,
           description_en: currentForm.description_en || null,
           image_url: currentForm.image_url || null,
           images: currentForm.images,
           location: currentForm.location || null,
+          link_url: currentForm.link_url || null,
+          address: currentForm.type === 'hotel' ? (currentForm.address || null) : null,
+          phone: currentForm.type === 'hotel' ? (currentForm.phone || null) : null,
           tags: currentForm.tags,
           notable_amenities_ru: currentForm.type === 'hotel' ? (currentForm.notable_amenities_ru || null) : null,
           notable_amenities_en: currentForm.type === 'hotel' ? (currentForm.notable_amenities_en || null) : null,
@@ -173,7 +191,7 @@ export default function BlockForm({ block }: { block: Block }) {
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Save failed')
+        setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
         setSaveState('error')
       }
     })()
@@ -237,6 +255,7 @@ export default function BlockForm({ block }: { block: Block }) {
 
   // Keys для двуязычных полей в зависимости от выбранного языка
   const titleKey = lang === 'ru' ? 'title_ru' : 'title_en'
+  const subtitleKey = lang === 'ru' ? 'subtitle_ru' : 'subtitle_en'
   const descKey = lang === 'ru' ? 'description_ru' : 'description_en'
   const amenitiesKey = lang === 'ru' ? 'notable_amenities_ru' : 'notable_amenities_en'
   const seasonKey = lang === 'ru' ? 'best_season_ru' : 'best_season_en'
@@ -245,11 +264,11 @@ export default function BlockForm({ block }: { block: Block }) {
   const factsKey = lang === 'ru' ? 'facts_ru' : 'facts_en'
 
   function renderSaveIndicator() {
-    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● Error: {errorMsg}</span>
-    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● Saving...</span>
-    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● Editing...</span>
-    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● Saved at {savedAt.toLocaleTimeString()}</span>
-    return <span style={{ color: 'var(--admin-text-muted)' }}>● All changes saved</span>
+    if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
+    if (saveState === 'saving') return <span style={{ color: 'var(--admin-accent)' }}>● {t('Saving...', 'Сохранение...')}</span>
+    if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
+    if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
+    return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
   }
 
   return (
@@ -265,7 +284,7 @@ export default function BlockForm({ block }: { block: Block }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-            Editing in
+            {t('Editing in', 'Язык контента')}
           </span>
           <div style={{ display: 'inline-flex', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
             <button
@@ -323,29 +342,29 @@ export default function BlockForm({ block }: { block: Block }) {
 
       {/* Type selector */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Type</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Type', 'Тип')}</h2>
         <select
           value={form.type}
           onChange={(e) => set('type', e.target.value as BlockType)}
           style={inputStyle}
         >
-          {TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+          {TYPES.map((tx) => (
+            <option key={tx.value} value={tx.value}>{t(tx.en, tx.ru)}</option>
           ))}
         </select>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-          Changing type will show different specific fields below
+          {t('Changing type will show different specific fields below', 'При смене типа ниже появятся другие специфичные поля')}
         </p>
       </section>
 
       {/* Common fields */}
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-          Basic info <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+          {t('Basic info', 'Основная информация')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>Title</label>
+            <label style={labelStyle}>{t('Title', 'Название')}</label>
             <input
               type="text"
               value={form[titleKey]}
@@ -355,7 +374,17 @@ export default function BlockForm({ block }: { block: Block }) {
             />
           </div>
           <div>
-            <label style={labelStyle}>Description</label>
+            <label style={labelStyle}>{t('Subtitle', 'Подзаголовок')}</label>
+            <input
+              type="text"
+              value={form[subtitleKey]}
+              onChange={(e) => set(subtitleKey, e.target.value)}
+              style={inputStyle}
+              placeholder={lang === 'ru' ? 'Короткая строка под названием' : 'Short line under the title'}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>{t('Description', 'Описание')}</label>
             <textarea
               value={form[descKey]}
               onChange={(e) => set(descKey, e.target.value)}
@@ -364,12 +393,25 @@ export default function BlockForm({ block }: { block: Block }) {
               placeholder={lang === 'ru' ? 'Подробное описание...' : 'Detailed description...'}
             />
           </div>
+          <div>
+            <label style={labelStyle}>{t('Link (website)', 'Ссылка (сайт)')}</label>
+            <input
+              type="url"
+              value={form.link_url}
+              onChange={(e) => set('link_url', e.target.value)}
+              style={inputStyle}
+              placeholder="https://..."
+            />
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
+              {lang === 'ru' ? 'Например, сайт отеля — на клиентской покажется ссылкой.' : 'e.g. hotel website — shown as a link on the client page.'}
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Location & image */}
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Location & image</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Location & image', 'Локация и изображение')}</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {form.type === 'hotel' && (
@@ -377,7 +419,7 @@ export default function BlockForm({ block }: { block: Block }) {
               mode="city"
               value={form.city_id}
               onChange={(id) => set('city_id', id)}
-              label="Город"
+              label={t('City', 'Город')}
             />
           )}
 
@@ -386,7 +428,7 @@ export default function BlockForm({ block }: { block: Block }) {
               mode="country"
               value={form.country_id}
               onChange={(id) => set('country_id', id)}
-              label="Страна"
+              label={t('Country', 'Страна')}
             />
           )}
 
@@ -394,34 +436,35 @@ export default function BlockForm({ block }: { block: Block }) {
             <ImageUploader
               value={form.image_url}
               onChange={(url) => set('image_url', url)}
-              label="Cover image"
+              label={t('Cover image', 'Обложка')}
               height={200}
             />
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              Shown first in the client gallery. If empty, the first gallery photo is used instead.
+              {t('Shown first in the client gallery. If empty, the first gallery photo is used instead.', 'Показывается первой в клиентской галерее. Если пусто, используется первое фото из галереи.')}
             </p>
           </div>
 
           <div>
-            <label style={labelStyle}>Gallery (additional photos)</label>
+            <label style={labelStyle}>{t('Gallery (additional photos)', 'Галерея (дополнительные фото)')}</label>
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
-              Extra photos shown to the client as a gallery. Drag to reorder.
+              {t('Extra photos shown to the client as a gallery. Drag to reorder.', 'Дополнительные фото показываются клиенту галереей. Перетаскивайте для сортировки.')}
             </p>
             <GalleryUploader
               images={form.images}
               onChange={(imgs) => set('images', imgs)}
+              lang={lang}
             />
           </div>
         </div>
       </section>
       <section>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>Tags</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Tags', 'Теги')}</h2>
         <TagsInput
           value={form.tags}
           onChange={(tags) => set('tags', tags)}
         />
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-          Press Enter or comma to add. Used for search. Same for both languages.
+          {t('Press Enter or comma to add. Used for search. Same for both languages.', 'Нажмите Enter или запятую для добавления. Используются для поиска. Общие для обоих языков.')}
         </p>
       </section>
 
@@ -429,10 +472,35 @@ export default function BlockForm({ block }: { block: Block }) {
       {form.type === 'hotel' && (
         <section>
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-            Hotel details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+            {t('Hotel details', 'Детали отеля')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={labelStyle}>{t('Address', 'Адрес')}</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={(e) => set('address', e.target.value)}
+                style={inputStyle}
+                placeholder={lang === 'ru' ? '40 Av. Princesse Grace, Monaco' : '40 Av. Princesse Grace, Monaco'}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>{t('Phone', 'Телефон')}</label>
+              <input
+                type="text"
+                value={form.phone}
+                onChange={(e) => set('phone', e.target.value)}
+                style={inputStyle}
+                placeholder="+377 98 06 02 00"
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '-14px 0 20px' }}>
+            {t('Address and phone are pulled into the voucher automatically.', 'Адрес и телефон автоматически подтягиваются в ваучер.')}
+          </p>
           <div>
-            <label style={labelStyle}>Notable amenities</label>
+            <label style={labelStyle}>{t('Notable amenities', 'Ключевые удобства')}</label>
             <textarea
               value={form[amenitiesKey]}
               onChange={(e) => set(amenitiesKey, e.target.value)}
@@ -442,9 +510,9 @@ export default function BlockForm({ block }: { block: Block }) {
             />
           </div>
           <div style={{ marginTop: '24px' }}>
-            <label style={labelStyle}>Rooms</label>
+            <label style={labelStyle}>{t('Rooms', 'Номера')}</label>
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
-              Room types for this hotel (name, size, photos). Reused across destinations and proposals.
+              {t('Room types for this hotel (name, size, photos). Reused across destinations and proposals.', 'Категории номеров этого отеля (название, размер, фото). Переиспользуются в направлениях и предложениях.')}
             </p>
             <RoomsEditor rooms={form.rooms} lang={lang} onChange={(rooms) => set('rooms', rooms)} />
           </div>
@@ -454,12 +522,12 @@ export default function BlockForm({ block }: { block: Block }) {
       {form.type === 'activity' && (
         <section>
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-            Activity details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+            {t('Activity details', 'Детали активности')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '16px' }}>
               <div>
-                <label style={labelStyle}>Duration (hours)</label>
+                <label style={labelStyle}>{t('Duration (hours)', 'Длительность (часы)')}</label>
                 <input
                   type="number"
                   min={0}
@@ -469,10 +537,10 @@ export default function BlockForm({ block }: { block: Block }) {
                   style={inputStyle}
                   placeholder="4"
                 />
-                <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>Same for both languages</p>
+                <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>{t('Same for both languages', 'Общее для обоих языков')}</p>
               </div>
               <div>
-                <label style={labelStyle}>Best season</label>
+                <label style={labelStyle}>{t('Best season', 'Лучший сезон')}</label>
                 <input
                   type="text"
                   value={form[seasonKey]}
@@ -489,11 +557,11 @@ export default function BlockForm({ block }: { block: Block }) {
       {form.type === 'transfer' && (
         <section>
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-            Transfer details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+            {t('Transfer details', 'Детали трансфера')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={labelStyle}>Vehicle</label>
+              <label style={labelStyle}>{t('Vehicle', 'Транспорт')}</label>
               <input
                 type="text"
                 value={form[vehicleKey]}
@@ -504,7 +572,7 @@ export default function BlockForm({ block }: { block: Block }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
-                <label style={labelStyle}>Duration (min)</label>
+                <label style={labelStyle}>{t('Duration (min)', 'Длительность (мин)')}</label>
                 <input
                   type="number"
                   min={0}
@@ -516,7 +584,7 @@ export default function BlockForm({ block }: { block: Block }) {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Max passengers</label>
+                <label style={labelStyle}>{t('Max passengers', 'Макс. пассажиров')}</label>
                 <input
                   type="number"
                   min={1}
@@ -528,7 +596,7 @@ export default function BlockForm({ block }: { block: Block }) {
                 />
               </div>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0' }}>Duration and passengers are same for both languages</p>
+            <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0' }}>{t('Duration and passengers are same for both languages', 'Длительность и число пассажиров общие для обоих языков')}</p>
           </div>
         </section>
       )}
@@ -536,10 +604,10 @@ export default function BlockForm({ block }: { block: Block }) {
       {form.type === 'city' && (
         <section>
           <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
-            City details <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
+            {t('City details', 'Детали города')} <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400, fontSize: '13px' }}>· {lang.toUpperCase()}</span>
           </h2>
           <div>
-            <label style={labelStyle}>Notable</label>
+            <label style={labelStyle}>{t('Notable', 'Достопримечательности')}</label>
             <textarea
               value={form[notableKey]}
               onChange={(e) => set(notableKey, e.target.value)}
@@ -549,7 +617,7 @@ export default function BlockForm({ block }: { block: Block }) {
             />
           </div>
           <div style={{ marginTop: '16px' }}>
-            <label style={labelStyle}>Facts</label>
+            <label style={labelStyle}>{t('Facts', 'Факты')}</label>
             <textarea
               value={form[factsKey]}
               onChange={(e) => set(factsKey, e.target.value)}
@@ -560,7 +628,7 @@ export default function BlockForm({ block }: { block: Block }) {
                 : 'Nairobi is the only capital with a national park inside the city\nAverage temperature year-round — about 22°C'}
             />
             <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
-              One fact per line. Shown as a list on destination pages.
+              {t('One fact per line. Shown as a list on destination pages.', 'По одному факту в строке. Показываются списком на страницах направлений.')}
             </p>
           </div>
         </section>
@@ -599,7 +667,7 @@ export default function BlockForm({ block }: { block: Block }) {
             e.currentTarget.style.background = 'var(--admin-text-on-dark)'
           }}
         >
-          Done
+          {t('Done', 'Готово')}
         </button>
       </div>
     </div>

@@ -9,6 +9,24 @@ export type Hotel = {
   name: string | null; address: string | null; phone: string | null
   check_in: string | null; check_out: string | null; nights: string | null
   room_type: string | null; meal_plan: string | null; extras: string | null
+  guests?: Guest[] | null
+}
+
+// Группируем строки отелей по самому отелю (имя+адрес+город+страна),
+// чтобы несколько номеров одного отеля шли под одной шапкой.
+export type HotelGroup = { head: Hotel; rooms: Hotel[] }
+export function groupHotels(hotels: Hotel[]): HotelGroup[] {
+  const keyOf = (h: Hotel) =>
+    [h.name, h.address, h.city, h.country].map((x) => (x || '').trim().toLowerCase()).join('|')
+  const byKey = new Map<string, HotelGroup>()
+  const groups: HotelGroup[] = []
+  for (const h of hotels) {
+    const k = keyOf(h)
+    const g = byKey.get(k)
+    if (g) g.rooms.push(h)
+    else { const ng: HotelGroup = { head: h, rooms: [h] }; byKey.set(k, ng); groups.push(ng) }
+  }
+  return groups
 }
 
 export const CHILD_TITLES = new Set(['Miss', 'Mstr', 'Chd', 'Inf'])

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useT, useLang } from '@/lib/i18n-client'
 
 // Поле даты DD/MM/YYYY: посимвольный ввод + всплывающий календарь.
 // Значение хранится строкой "ДД/ММ/ГГГГ" (или пустой / частичной при вводе).
@@ -13,8 +14,10 @@ type Props = {
   placeholder?: string
 }
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const WEEKDAYS = ['Mo','Tu','We','Th','Fr','Sa','Su']
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+const WEEKDAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
+const WEEKDAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
 
 // строка -> Date (строгий разбор ДД/ММ/ГГГГ)
 function parse(value: string): Date | null {
@@ -42,6 +45,10 @@ function maskDigits(digits: string): string {
 }
 
 export default function DateInput({ value, onChange, style, readOnly, placeholder = 'dd/mm/yyyy' }: Props) {
+  const t = useT()
+  const lang = useLang()
+  const MONTHS = lang === 'ru' ? MONTHS_RU : MONTHS_EN
+  const WEEKDAYS = lang === 'ru' ? WEEKDAYS_RU : WEEKDAYS_EN
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -124,7 +131,7 @@ export default function DateInput({ value, onChange, style, readOnly, placeholde
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          aria-label="Open calendar"
+          aria-label={t('Open calendar', 'Открыть календарь')}
           style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--admin-text-muted)', fontSize: '15px', padding: '2px', lineHeight: 1 }}
         >
           ⌗
@@ -141,15 +148,15 @@ export default function DateInput({ value, onChange, style, readOnly, placeholde
           {/* Навигация: год/месяц */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
             <div style={{ display: 'flex', gap: '2px' }}>
-              <button type="button" onClick={prevYear} style={navBtn} title="Previous year">«</button>
-              <button type="button" onClick={prevMonth} style={navBtn} title="Previous month">‹</button>
+              <button type="button" onClick={prevYear} style={navBtn} title={t('Previous year', 'Предыдущий год')}>«</button>
+              <button type="button" onClick={prevMonth} style={navBtn} title={t('Previous month', 'Предыдущий месяц')}>‹</button>
             </div>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
               {MONTHS[month]} {year}
             </span>
             <div style={{ display: 'flex', gap: '2px' }}>
-              <button type="button" onClick={nextMonth} style={navBtn} title="Next month">›</button>
-              <button type="button" onClick={nextYear} style={navBtn} title="Next year">»</button>
+              <button type="button" onClick={nextMonth} style={navBtn} title={t('Next month', 'Следующий месяц')}>›</button>
+              <button type="button" onClick={nextYear} style={navBtn} title={t('Next year', 'Следующий год')}>»</button>
             </div>
           </div>
 

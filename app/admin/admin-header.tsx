@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
+import { useT } from '@/lib/i18n-client'
 import GearMenu from './gear-menu'
 
 type Props = {
@@ -11,25 +12,33 @@ type Props = {
   email: string
   companyName: string | null
   isSuperadmin: boolean
+  isAccountant?: boolean
 }
 
-export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin }: Props) {
+export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin, isAccountant }: Props) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
+  const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const navItems = isSuperadmin
     ? [
-        { href: '/admin/companies', label: 'Компании', matchPrefix: '/admin/companies' },
+        { href: '/admin/companies', label: t('Companies', 'Компании'), matchPrefix: '/admin/companies' },
+      ]
+    : isAccountant
+    ? [
+        { href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting' },
       ]
     : [
-        { href: '/admin/clients', label: 'Clients', matchPrefix: '/admin/clients' },
-        { href: '/admin/requests', label: 'Requests', matchPrefix: '/admin/requests' },
-        { href: '/admin/partners', label: 'Partners', matchPrefix: '/admin/partners' },
-        { href: '/admin', label: 'Proposals', matchPrefix: '/admin/proposals' },
-        { href: '/admin/destinations', label: 'Destinations', matchPrefix: '/admin/destinations' },
-        { href: '/admin/vouchers', label: 'Vouchers', matchPrefix: '/admin/vouchers' },
-        { href: '/admin/library', label: 'Library', matchPrefix: '/admin/library' },
+        { href: '/admin/clients', label: t('Clients', 'Клиенты'), matchPrefix: '/admin/clients' },
+        { href: '/admin/requests', label: t('Requests', 'Заявки'), matchPrefix: '/admin/requests' },
+        { href: '/admin/bookings', label: t('Bookings', 'Брони'), matchPrefix: '/admin/bookings' },
+        ...(isAdmin ? [{ href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting' }] : []),
+        { href: '/admin/partners', label: t('Partners', 'Партнёры'), matchPrefix: '/admin/partners' },
+        { href: '/admin', label: t('Proposals', 'Предложения'), matchPrefix: '/admin/proposals' },
+        { href: '/admin/destinations', label: t('Destinations', 'Направления'), matchPrefix: '/admin/destinations' },
+        { href: '/admin/vouchers', label: t('Vouchers', 'Ваучеры'), matchPrefix: '/admin/vouchers' },
+        { href: '/admin/library', label: t('Library', 'Библиотека'), matchPrefix: '/admin/library' },
       ]
 
   function isActive(item: typeof navItems[number]) {
@@ -70,7 +79,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin 
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
       >
-        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Sky Travel').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
+        {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Travel System').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
       {isMobile ? (

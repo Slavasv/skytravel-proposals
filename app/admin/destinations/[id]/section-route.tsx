@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useT } from '@/lib/i18n-client'
 import { updateSection } from './destination-actions'
 import type { DestinationSection } from './destination-actions'
 
@@ -73,6 +74,7 @@ function SortableStop({
   onChange: (id: string, patch: Partial<RouteStop>) => void
   onRemove: (id: string) => void
 }) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stop.id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -91,7 +93,7 @@ function SortableStop({
   return (
     <div ref={setNodeRef} style={style}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <button type="button" {...attributes} {...listeners} aria-label="Drag"
+        <button type="button" {...attributes} {...listeners} aria-label={t('Drag', 'Перетащить')}
           style={{ background: 'transparent', border: 'none', cursor: 'grab', color: 'var(--admin-text-muted)', fontSize: '14px', padding: '2px 4px', touchAction: 'none', fontFamily: 'inherit' }}>
           ⋮⋮
         </button>
@@ -120,6 +122,7 @@ export default function SectionRoute({
   lang: Lang
   onLocalChange: (patch: Partial<DestinationSection>) => void
 }) {
+  const t = useT()
   const [stops, setStops] = useState<RouteStop[]>(getStops(section.data))
   const [titleRu, setTitleRu] = useState(section.title_ru || '')
   const [titleEn, setTitleEn] = useState(section.title_en || '')
@@ -168,7 +171,7 @@ export default function SectionRoute({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
       <div>
-        <label style={labelStyle}>Section title (optional) · {lang.toUpperCase()}</label>
+        <label style={labelStyle}>{t('Section title (optional)', 'Заголовок раздела (необяз.)')} · {lang.toUpperCase()}</label>
         {lang === 'ru' ? (
           <input type="text" value={titleRu} onChange={(e) => setTitleRu(e.target.value)} style={inputStyle} placeholder="Например: Маршрут путешествия" />
         ) : (
@@ -177,7 +180,7 @@ export default function SectionRoute({
       </div>
 
       <div>
-        <label style={labelStyle}>Stops</label>
+        <label style={labelStyle}>{t('Stops', 'Остановки')}</label>
         {stops.length > 0 ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={stops.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -189,16 +192,16 @@ export default function SectionRoute({
             </SortableContext>
           </DndContext>
         ) : (
-          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>No stops yet.</p>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-faint)', margin: '0 0 8px' }}>{t('No stops yet.', 'Пока нет остановок.')}</p>
         )}
         <button type="button" onClick={addStop}
           style={{ padding: '8px 14px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginTop: '4px' }}>
-          + Add stop
+          + {t('Add stop', 'Добавить остановку')}
         </button>
       </div>
 
       <div style={{ fontSize: '11px', color: saveState === 'saved' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-        {saveState === 'saving' ? '● Saving...' : saveState === 'saved' ? '● Saved' : ''}
+        {saveState === 'saving' ? t('● Saving...', '● Сохранение...') : saveState === 'saved' ? t('● Saved', '● Сохранено') : ''}
       </div>
     </div>
   )

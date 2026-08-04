@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { deleteUser, resetPassword, toggleRole } from './actions'
+import { useT } from '@/lib/i18n-client'
 
 type User = {
   id: string
@@ -13,30 +14,31 @@ type User = {
 }
 
 export default function UserRow({ user, currentUserId }: { user: User; currentUserId: string }) {
+  const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const isSelf = user.id === currentUserId
 
-  async function handleToggleRole() {
+  async function handleSetRole(role: 'manager' | 'admin' | 'accountant') {
     setLoading(true)
     setMenuOpen(false)
-    await toggleRole(user.id, user.role === 'admin' ? 'manager' : 'admin')
+    await toggleRole(user.id, role)
     setLoading(false)
   }
 
   async function handleResetPassword() {
-    const newPassword = prompt(`New password for ${user.email}:`)
+    const newPassword = prompt(t(`New password for ${user.email}:`, `Новый пароль для ${user.email}:`))
     if (!newPassword) return
     setLoading(true)
     setMenuOpen(false)
     await resetPassword(user.id, newPassword)
     setLoading(false)
-    alert('Password updated.')
+    alert(t('Password updated.', 'Пароль обновлён.'))
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete user ${user.email}? This cannot be undone.`)) return
+    if (!confirm(t(`Delete user ${user.email}? This cannot be undone.`, `Удалить пользователя ${user.email}? Это действие необратимо.`))) return
     setLoading(true)
     setMenuOpen(false)
     await deleteUser(user.id)
@@ -61,7 +63,7 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '14px', color: 'var(--admin-text)' }}>{user.email}</span>
           {isSelf && (
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', letterSpacing: '0.06em' }}>you</span>
+            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', letterSpacing: '0.06em' }}>{t('you', 'вы')}</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -74,14 +76,14 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
             {user.role}
           </span>
           <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
-            · {user.proposal_count} {user.proposal_count === 1 ? 'proposal' : 'proposals'}
+            · {user.proposal_count} {user.proposal_count === 1 ? t('proposal', 'предложение') : t('proposals', 'предложений')}
           </span>
           <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
-            · joined {formatDate(user.created_at)}
+            · {t('joined', 'создан')} {formatDate(user.created_at)}
           </span>
           {user.last_sign_in && (
             <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>
-              · last login {formatDate(user.last_sign_in)}
+              · {t('last login', 'последний вход')} {formatDate(user.last_sign_in)}
             </span>
           )}
         </div>
@@ -119,21 +121,24 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                 minWidth: '180px',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               }}>
-                <button
-                  onClick={handleToggleRole}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                >
-                  Make {user.role === 'admin' ? 'manager' : 'admin'}
-                </button>
+                {(['manager', 'admin', 'accountant'] as const).filter((r) => r !== user.role).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => handleSetRole(r)}
+                    style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                  >
+                    {t('Make', 'Назначить')} {r}
+                  </button>
+                ))}
                 <button
                   onClick={handleResetPassword}
                   style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
-                  Reset password
+                  {t('Reset password', 'Сбросить пароль')}
                 </button>
                 <button
                   onClick={handleDelete}
@@ -141,7 +146,7 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                 >
-                  Delete user
+                  {t('Delete user', 'Удалить пользователя')}
                 </button>
               </div>
             </>

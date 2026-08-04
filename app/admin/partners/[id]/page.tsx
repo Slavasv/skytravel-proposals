@@ -3,8 +3,14 @@ import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import PartnerForm from './partner-form'
 
-export default async function PartnerPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PartnerPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ returnTo?: string }>
+}) {
   const { id } = await params
+  const { returnTo } = await searchParams
   const supabase = await createSupabaseServer()
 
   const { data: partner, error } = await supabase
@@ -26,7 +32,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         </h1>
       </div>
 
-      <PartnerForm partner={partner} />
+      <PartnerForm partner={partner} returnTo={returnTo} />
     </div>
   )
 }
