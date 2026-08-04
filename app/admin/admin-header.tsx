@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
@@ -19,8 +19,17 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const t = useT()
-  const [menuOpen, setMenuOpen] = useState(false)
+const [menuOpen, setMenuOpen] = useState(false)
 
+  // Навигацию сворачиваем в бургер раньше, чем общий mobile (768):
+  // пунктов много, на планшетах/узких окнах строка разъезжается.
+  const [navCollapsed, setNavCollapsed] = useState(false)
+  useEffect(() => {
+    const check = () => setNavCollapsed(window.innerWidth < 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
   const navItems = isSuperadmin
     ? [
         { href: '/admin/companies', label: t('Companies', 'Компании'), matchPrefix: '/admin/companies' },
@@ -82,8 +91,8 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
         {isSuperadmin ? 'PLATFORM' : (companyName ?? 'Travel System').toUpperCase()} <span style={{ color: 'var(--admin-text-faint)', margin: isMobile ? '0 4px' : '0 6px' }}>·</span> {isSuperadmin ? 'SUPERADMIN' : 'ADMIN'}
       </Link>
 
-      {isMobile ? (
-        /* Mobile: burger + dropdown */
+      {navCollapsed ? (
+        /* Mobile/tablet: burger + dropdown */
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             type="button"
@@ -109,7 +118,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
               {/* overlay для закрытия по тапу вне меню */}
               <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
               <div style={{
-                position: 'absolute', top: '100%', right: '16px', marginTop: '8px',
+                position: 'absolute', top: '100%', right: isMobile ? '16px' : '40px', marginTop: '8px',
                 minWidth: '200px', background: 'var(--admin-card)',
                 border: '1px solid var(--admin-border-card)', borderRadius: '10px',
                 boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 41,
