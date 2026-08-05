@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { addTransaction, deleteTransaction, addAccount, archiveAccount, type AccountRow } from './actions'
+import { addTransaction, deleteTransaction, addAccount, archiveAccount, addSupplierInvoice, type AccountRow, type PartnerLite } from './actions'
 
 export type InvoiceRow = {
   id: string
@@ -248,6 +248,110 @@ function AddPayment({ bookings, invoices, accounts, onDone }: {
   )
 }
 
+// ---------- Форма добавления инвойса поставщика ----------
+function AddInvoice({ bookings, partners, onDone }: {
+  bookings: BookingOption[]
+  partners: PartnerLite[]
+  onDone: () => void
+}) {
+  const t = useT()
+  const [bookingId, setBookingId] = useState('')
+  const [partnerId, setPartnerId] = useState('')
+  const [invoiceNo, setInvoiceNo] = useState('')
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState('EUR')
+  const [issueDate, setIssueDate] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save() {
+    setError('')
+    if (!bookingId) { setError(t('Select a booking', 'Выберите бронь')); return }
+    const amt = Number(amount)
+    if (!amt || amt <= 0) { setError(t('Enter an amount', 'Введите сумму')); return }
+    setSaving(true)
+    const res = await addSupplierInvoice({
+      booking_id: bookingId,
+      partner_id: partnerId || null,
+      invoice_number: invoiceNo || null,
+      amount: amt,
+      currency,
+      issue_date: issueDate || null,
+      due_date: dueDate || null,
+      notes: notes || null,
+    })
+    setSaving(false)
+    if (!res.ok) { setError(res.error || t('Error', 'Ошибка')); return }
+    onDone()
+  }
+
+  return (
+    <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '16px', background: 'var(--admin-card)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div style={{ width: '260px' }}>
+          <label style={labelSt}>{t('Booking', 'Бронь')} *</label>
+          <select value={bookingId} onChange={(e) => setBookingId(e.target.value)} style={inputSt}>
+            <option value="">{t('— select —', '— выберите —')}</option>
+            {bookings.map((b) => <option key={b.id} value={b.id}>{bookingLabel(b)}</option>)}
+          </select>
+        </div>
+        <div style={{ width: '220px' }}>
+          <label style={labelSt}>{t('Supplier', 'Поставщик')}</label>
+          <select value={partnerId} onChange={(e) => setPartnerId(e.target.value)} style={inputSt}>
+            <option value="">{t('— none —', '— не указан —')}</option>
+            {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div style={{ width: '160px' }}>
+          <label style={labelSt}>{t('Invoice №', 'Инвойс №')}</label>
+          <input type="text" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} style={inputSt} placeholder="INV-001" />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div style={{ width: '140px' }}>
+          <label style={labelSt}>{t('Amount', 'Сумма')} *</label>
+          <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputSt} placeholder="0" />
+        </div>
+        <div style={{ width: '90px' }}>
+          <label style={labelSt}>{t('Currency', 'Валюта')}</label>
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputSt}>
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ width: '150px' }}>
+          <label style={labelSt}>{t('Issue date', 'Дата выставления')}</label>
+          <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} style={inputSt} />
+        </div>
+        <div style={{ width: '150px' }}>
+          <label style={labelSt}>{t('Due date', 'Срок оплаты')}</label>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputSt} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '10px' }}>
+        <label style={labelSt}>{t('Note', 'Заметка')}</label>
+        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} style={inputSt} placeholder={t('Comment…', 'Комментарий…')} />
+      </div>
+
+      {error && <div style={{ fontSize: '12px', color: 'var(--admin-danger)', marginBottom: '8px' }}>{error}</div>}
+
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button type="button" onClick={save} disabled={saving}
+          style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.5 : 1, fontFamily: 'inherit' }}>
+          {saving ? t('Saving…', 'Сохранение…') : t('Add invoice', 'Добавить инвойс')}
+        </button>
+        <button type="button" onClick={onDone}
+          style={{ padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          {t('Cancel', 'Отмена')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ---------- Вкладка «Счета» ----------
 function AccountsTab({ accounts }: { accounts: AccountRow[] }) {
   const t = useT()
@@ -330,12 +434,13 @@ function AccountsTab({ accounts }: { accounts: AccountRow[] }) {
   )
 }
 
-export default function AccountingClient({ invoices, transactions, bookings, receivables, accounts, from, to }: {
+export default function AccountingClient({ invoices, transactions, bookings, receivables, accounts, partners, from, to }: {
   invoices: InvoiceRow[]
   transactions: TransactionRow[]
   bookings: BookingOption[]
   receivables: ReceivableRow[]
   accounts: AccountRow[]
+  partners: PartnerLite[]
   from: string | null
   to: string | null
 }) {
@@ -343,6 +448,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
   const t = useT()
   const [tab, setTab] = useState<Tab>('ledger')
   const [adding, setAdding] = useState(false)
+  const [addingInvoice, setAddingInvoice] = useState(false)
   const [fClient, setFClient] = useState('')
   const [fSupplier, setFSupplier] = useState('')
   const [fBooking, setFBooking] = useState('')
@@ -362,6 +468,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
   }
   const exportParams = new URLSearchParams()
   if (from) exportParams.set('from', from)
+  if (to) exportParams.set('to', to)
   exportParams.set('tab', tab)
   const exportUrl = `/admin/accounting/export${exportParams.toString() ? `?${exportParams.toString()}` : ''}`
 
@@ -524,55 +631,63 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                 </table>
               </div>
 
-                {cashCurrencies.length > 0 && (
-                  <div style={{ marginTop: '20px' }}>
-                    <div style={{ ...thSt, padding: '0 0 10px' }}>{t('Totals by currency', 'Итоги по валютам')}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '520px' }}>
-                      {cashCurrencies.map((cur) => {
-                        const c = cash[cur]
-                        const net = c.in - c.out
-                        const open = !!openCur[cur]
-                        const perAccount = cashByAccount[cur] ?? {}
-                        const accNames = Object.keys(perAccount).sort()
-                        return (
-                          <div key={cur} style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', overflow: 'hidden' }}>
-                            <button type="button" onClick={() => setOpenCur((p) => ({ ...p, [cur]: !p[cur] }))}
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '18px', padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexWrap: 'wrap', textAlign: 'left' }}>
-                              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', width: '12px' }}>{open ? '▾' : '▸'}</span>
-                              <span style={{ fontSize: '13px', fontWeight: 600, minWidth: '44px' }}>{cur}</span>
-                              <span style={{ fontSize: '12px', color: 'var(--admin-success)' }}>{t('Income', 'Приход')} {money(c.in)}</span>
-                              <span style={{ fontSize: '12px', color: 'var(--admin-danger)' }}>{t('Expense', 'Расход')} {money(c.out)}</span>
-                              <span style={{ fontSize: '14px', fontWeight: 600, marginLeft: 'auto', color: net >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
-                                {t('Net', 'Итого')} {money(net)}
-                              </span>
-                            </button>
-                            {open && (
-                              <div style={{ borderTop: '1px solid var(--admin-border-card)', padding: '6px 14px 10px 38px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                {accNames.map((nm) => {
-                                  const a = perAccount[nm]
-                                  const anet = a.in - a.out
-                                  return (
-                                    <div key={nm} style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                                      <span style={{ fontSize: '12px', color: 'var(--admin-text)' }}>{nm}</span>
-                                      <span style={{ fontSize: '13px', fontWeight: 600, marginLeft: 'auto', color: anet >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
-                                        {money(anet)} {cur}
-                                      </span>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+              {cashCurrencies.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{ ...thSt, padding: '0 0 10px' }}>{t('Totals by currency', 'Итоги по валютам')}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '520px' }}>
+                    {cashCurrencies.map((cur) => {
+                      const c = cash[cur]
+                      const net = c.in - c.out
+                      const open = !!openCur[cur]
+                      const perAccount = cashByAccount[cur] ?? {}
+                      const accNames = Object.keys(perAccount).sort()
+                      return (
+                        <div key={cur} style={{ border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', overflow: 'hidden' }}>
+                          <button type="button" onClick={() => setOpenCur((p) => ({ ...p, [cur]: !p[cur] }))}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '18px', padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexWrap: 'wrap', textAlign: 'left' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', width: '12px' }}>{open ? '▾' : '▸'}</span>
+                            <span style={{ fontSize: '13px', fontWeight: 600, minWidth: '44px' }}>{cur}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--admin-success)' }}>{t('Income', 'Приход')} {money(c.in)}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--admin-danger)' }}>{t('Expense', 'Расход')} {money(c.out)}</span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, marginLeft: 'auto', color: net >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
+                              {t('Net', 'Итого')} {money(net)}
+                            </span>
+                          </button>
+                          {open && (
+                            <div style={{ borderTop: '1px solid var(--admin-border-card)', padding: '6px 14px 10px 38px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {accNames.map((nm) => {
+                                const a = perAccount[nm]
+                                const anet = a.in - a.out
+                                return (
+                                  <div key={nm} style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--admin-text)' }}>{nm}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 600, marginLeft: 'auto', color: anet >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
+                                      {money(anet)} {cur}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
-                )}
+                </div>
+              )}
             </>
           )}
         </div>
       ) : tab === 'invoices' ? (
         <div>
+          {addingInvoice ? (
+            <AddInvoice bookings={bookings} partners={partners} onDone={() => { setAddingInvoice(false); router.refresh() }} />
+          ) : (
+            <button type="button" onClick={() => setAddingInvoice(true)}
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '20px' }}>
+              {t('+ Add invoice', '+ Добавить инвойс')}
+            </button>
+          )}
           {invoices.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
               {t('No invoices yet. Managers enter them inside bookings.',
@@ -619,29 +734,29 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
             </div>
           )}
         </div>
-        ) : tab === 'debts' ? (
-          <div>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                  <div style={{ width: '220px' }}>
-                    <label style={labelSt}>{t('Client', 'Клиент')}</label>
-                <input type="text" value={fClient} onChange={(e) => setFClient(e.target.value)} style={inputSt} placeholder={t('client name…', 'имя клиента…')} />
-              </div>
-              <div style={{ width: '220px' }}>
-                <label style={labelSt}>{t('Supplier', 'Поставщик')}</label>
-                <input type="text" value={fSupplier} onChange={(e) => setFSupplier(e.target.value)} style={inputSt} placeholder={t('supplier name…', 'имя поставщика…')} />
-              </div>
-              <div style={{ width: '180px' }}>
-                <label style={labelSt}>{t('Booking №', 'Номер брони')}</label>
-                <input type="text" value={fBooking} onChange={(e) => setFBooking(e.target.value)} style={inputSt} placeholder={t('e.g. BK-1042', 'напр. BK-1042')} />
-              </div>
-              {(fClient || fSupplier || fBooking) && (
-                <button type="button" onClick={() => { setFClient(''); setFSupplier(''); setFBooking('') }}
-                  style={{ alignSelf: 'flex-end', padding: '8px 12px', fontSize: '13px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {t('Reset', 'Сбросить')}
-                </button>
-              )}
+      ) : tab === 'debts' ? (
+        <div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+            <div style={{ width: '220px' }}>
+              <label style={labelSt}>{t('Client', 'Клиент')}</label>
+              <input type="text" value={fClient} onChange={(e) => setFClient(e.target.value)} style={inputSt} placeholder={t('client name…', 'имя клиента…')} />
             </div>
-            <div style={{ ...thSt, padding: '0 0 10px' }}>{t('What we owe suppliers', 'Кому мы должны поставщикам')}</div>
+            <div style={{ width: '220px' }}>
+              <label style={labelSt}>{t('Supplier', 'Поставщик')}</label>
+              <input type="text" value={fSupplier} onChange={(e) => setFSupplier(e.target.value)} style={inputSt} placeholder={t('supplier name…', 'имя поставщика…')} />
+            </div>
+            <div style={{ width: '180px' }}>
+              <label style={labelSt}>{t('Booking №', 'Номер брони')}</label>
+              <input type="text" value={fBooking} onChange={(e) => setFBooking(e.target.value)} style={inputSt} placeholder={t('e.g. BK-1042', 'напр. BK-1042')} />
+            </div>
+            {(fClient || fSupplier || fBooking) && (
+              <button type="button" onClick={() => { setFClient(''); setFSupplier(''); setFBooking('') }}
+                style={{ alignSelf: 'flex-end', padding: '8px 12px', fontSize: '13px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('Reset', 'Сбросить')}
+              </button>
+            )}
+          </div>
+          <div style={{ ...thSt, padding: '0 0 10px' }}>{t('What we owe suppliers', 'Кому мы должны поставщикам')}</div>
           {payableRows.length === 0 ? (
             <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginBottom: '28px' }}>{t('No unpaid invoices.', 'Нет неоплаченных инвойсов.')}</div>
           ) : (
@@ -676,31 +791,31 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
             </div>
           )}
 
-              <div style={{ ...thSt, padding: '0 0 10px' }}>{t('Who owes us (clients)', 'Кто должен нам (клиенты)')}</div>
-              {debtReceivables.length === 0 ? (
-                <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>{t('All clients have settled (or no sales data).', 'Все клиенты рассчитались (или нет данных о продажах).')}</div>
-              ) : (
-                <>
-                  <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border-card)', borderRadius: '10px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={thSt}>{t('Booking', 'Бронь')}</th>
-                          <th style={thSt}>{t('Client', 'Клиент')}</th>
-                          <th style={{ ...thSt, textAlign: 'right' }}>{t('Sale', 'Продажа')}</th>
+          <div style={{ ...thSt, padding: '0 0 10px' }}>{t('Who owes us (clients)', 'Кто должен нам (клиенты)')}</div>
+          {debtReceivables.length === 0 ? (
+            <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>{t('All clients have settled (or no sales data).', 'Все клиенты рассчитались (или нет данных о продажах).')}</div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border-card)', borderRadius: '10px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={thSt}>{t('Booking', 'Бронь')}</th>
+                      <th style={thSt}>{t('Client', 'Клиент')}</th>
+                      <th style={{ ...thSt, textAlign: 'right' }}>{t('Sale', 'Продажа')}</th>
                       <th style={{ ...thSt, textAlign: 'right' }}>{t('Paid', 'Оплачено')}</th>
                       <th style={{ ...thSt, textAlign: 'right' }}>{t('Balance', 'Остаток')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                          {debtReceivables.map((r, i) => (
-                            <tr key={`${r.booking_id}-${r.currency}-${i}`}>
-                              <td style={tdSt}>
-                                <Link href={`/admin/bookings/${r.booking_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>
-                                  {r.booking_code || 'Booking'}
-                                </Link>
-                              </td>
-                              <td style={tdSt}>{r.client}</td>
+                    {debtReceivables.map((r, i) => (
+                      <tr key={`${r.booking_id}-${r.currency}-${i}`}>
+                        <td style={tdSt}>
+                          <Link href={`/admin/bookings/${r.booking_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>
+                            {r.booking_code || 'Booking'}
+                          </Link>
+                        </td>
+                        <td style={tdSt}>{r.client}</td>
                         <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--admin-text-muted)' }}>{money(r.sale)} {r.currency}</td>
                         <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--admin-text-muted)' }}>{money(r.paid)} {r.currency}</td>
                         <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600, color: r.balance > 0 ? 'var(--admin-danger)' : 'var(--admin-success)' }}>{money(r.balance)} {r.currency}</td>
@@ -723,12 +838,12 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                   ))}
                 </div>
               )}
-              </>
-            )}
-          </div>
-          ) : (
-          <AccountsTab accounts={accounts} />
-      )}
+            </>
+          )}
         </div>
-      )
-      }
+      ) : (
+        <AccountsTab accounts={accounts} />
+      )}
+    </div>
+  )
+}
