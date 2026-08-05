@@ -50,6 +50,44 @@ export async function archiveAccount(id: string): Promise<void> {
   revalidatePath('/admin/accounting')
 }
 
+// ---- Поставщики (для выбора в форме инвойса) ----
+export type PartnerLite = { id: string; name: string }
+
+// ---- Ручное добавление инвойса поставщика ----
+export type NewInvoice = {
+  booking_id: string
+  partner_id: string | null
+  invoice_number: string | null
+  amount: number
+  currency: string
+  issue_date: string | null
+  due_date: string | null
+  notes: string | null
+}
+
+export async function addSupplierInvoice(input: NewInvoice): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: booking } = await supabase
+    .from('bookings').select('company_id').eq('id', input.booking_id).single()
+
+  const { error } = await supabase.from('supplier_invoices').insert({
+    booking_id: input.booking_id,
+    company_id: booking?.company_id ?? null,
+    partner_id: input.partner_id,
+    invoice_number: input.invoice_number,
+    amount: input.amount,
+    currency: input.currency,
+    issue_date: input.issue_date,
+    due_date: input.due_date,
+    notes: input.notes,
+    created_by: user?.id ?? null,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/admin/accounting')
+  return { ok: true }
+}
+
 export async function addTransaction(input: NewTransaction): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()

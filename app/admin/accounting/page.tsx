@@ -4,7 +4,7 @@ import { getProfile, canSeeAccounting } from '@/lib/get-profile'
 import AccountingClient, {
   type InvoiceRow, type TransactionRow, type BookingOption, type ReceivableRow,
 } from './accounting-client'
-import type { AccountRow } from './actions'
+import type { AccountRow, PartnerLite } from './actions'
 
 // object | array | null → object | null (Supabase-джойн бывает и тем, и другим)
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -62,6 +62,13 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   }))
   const accountName = new Map<string, string>()
   for (const a of accounts) accountName.set(a.id, a.name)
+
+  // --- поставщики (для формы инвойса) ---
+  const { data: prtRaw } = await supabase
+    .from('partners')
+    .select('id, name')
+    .order('name', { ascending: true })
+  const partners: PartnerLite[] = (prtRaw ?? []).map((p) => ({ id: p.id as string, name: (p.name as string | null) ?? '' }))
 
   // бронь → имя клиента и номер брони
   const bookingClient = new Map<string, string>()
@@ -172,6 +179,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       bookings={bookings}
       receivables={receivables}
       accounts={accounts}
+      partners={partners}
       from={from}
       to={to}
     />
