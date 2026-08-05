@@ -5,7 +5,7 @@ import {
   addService, updateService, deleteService, duplicateService,
   type BookingService, type PartnerOption, type BookingTraveller,
 } from '../actions'
-import { getRouteServices, addServiceFromRoute, type RouteServiceCandidate } from '../booking-route-actions'
+import { getRouteServices, addServiceFromRoute, getLibraryHotels, addServiceFromLibrary, type RouteServiceCandidate, type LibraryHotel } from '../booking-route-actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
 import { useT } from '@/lib/i18n-client'
 
@@ -22,7 +22,7 @@ const SERVICE_TYPES = [
   'Other',
 ]
 
-const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP']
+const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP', 'UAH']
 
 const labelSt: React.CSSProperties = {
   fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -261,11 +261,15 @@ export default function BookingServices({
   const [route, setRoute] = useState<RouteServiceCandidate[]>([])
   const [routeOpen, setRouteOpen] = useState(false)
   const [pulling, setPulling] = useState(false)
+  const [library, setLibrary] = useState<LibraryHotel[]>([])
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [librarySearch, setLibrarySearch] = useState('')
 
-  // подтягиваем услуги из маршрута предложения (для дропдауна)
+  // подтягиваем услуги из маршрута предложения и отели из библиотеки (для дропдаунов)
   useEffect(() => {
     let cancelled = false
-    getRouteServices(bookingId).then((rows) => { if (!cancelled) setRoute(rows) }).catch(() => {})
+    getRouteServices(bookingId).then((rows) => { if (!cancelled) setRoute(rows) }).catch(() => { })
+    getLibraryHotels().then((rows) => { if (!cancelled) setLibrary(rows) }).catch(() => { })
     return () => { cancelled = true }
   }, [bookingId])
 
@@ -278,6 +282,14 @@ export default function BookingServices({
     setRouteOpen(false)
     setPulling(true)
     const created = await addServiceFromRoute(bookingId, c)
+    setPulling(false)
+    if (created) setServices((p) => [...p, created])
+  }
+
+  async function handleAddFromLibrary(h: LibraryHotel, roomType: string | null) {
+    setLibraryOpen(false)
+    setPulling(true)
+    const created = await addServiceFromLibrary(bookingId, { block_id: h.block_id, title: h.title, room_type: roomType })
     setPulling(false)
     if (created) setServices((p) => [...p, created])
   }
@@ -325,7 +337,7 @@ export default function BookingServices({
         {services.length === 0 ? (
           <div style={{ padding: '28px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
             {t('No services yet. Add hotels, transfers, visas — everything you booked.',
-               'Пока нет услуг. Добавьте отели, трансферы, визы — всё, что забронировали.')}
+              'Пока нет услуг. Добавьте отели, трансферы, визы — всё, что забронировали.')}
           </div>
         ) : (
           services.map((s) => (
@@ -368,6 +380,44 @@ export default function BookingServices({
                       )}
                     </button>
                   ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {library.length > 0 && (
+          <div style={{ position: 'relative' }}>
+            <button type="button" onClick={() => setLibraryOpen((v) => !v)} disabled={pulling}
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: pulling ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Add hotel from library ▾', '+ Добавить отель из библиотеки ▾')}
+            </button>
+            {libraryOpen && (
+              <>
+                <div onClick={() => setLibraryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 20, minWidth: '320px', maxWidth: '440px', maxHeight: '360px', overflowY: 'auto', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '10px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                  <input type="text" value={librarySearch} onChange={(e) => setLibrarySearch(e.target.value)} placeholder={t('Search hotel…', 'Поиск отеля…')} style={{ ...inputSt, marginBottom: '6px' }} autoFocus />
+                  {library
+                    .filter((h) => !librarySearch || `${h.title} ${h.city ?? ''}`.toLowerCase().includes(librarySearch.toLowerCase()))
+                    .map((h) => (
+                      <div key={h.block_id} style={{ marginBottom: '2px' }}>
+                        <button type="button" onClick={() => handleAddFromLibrary(h, null)}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', background: 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text)' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                          <span style={{ display: 'block', fontSize: '13px', fontWeight: 500 }}>{h.title}</span>
+                          {h.city && <span style={{ display: 'block', fontSize: '11px', color: 'var(--admin-text-faint)' }}>{h.city}</span>}
+                        </button>
+                        {h.rooms.map((r) => (
+                          <button key={r.id} type="button" onClick={() => handleAddFromLibrary(h, r.title)}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '5px 10px 5px 22px', background: 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text-muted)', fontSize: '12px' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                            {t('+ room:', '+ номер:')} {r.title}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
                 </div>
               </>
             )}

@@ -6,7 +6,7 @@ import { getBookingServices, type PartnerOption, type BookingService } from '../
 import PartnerPicker from '@/app/admin/_components/partner-picker'
 import { useT } from '@/lib/i18n-client'
 
-const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP']
+const CURRENCIES = ['EUR', 'USD', 'AED', 'CHF', 'GBP' , 'UAH']
 
 const labelSt: React.CSSProperties = {
   fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',

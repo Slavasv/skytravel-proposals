@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 export type BookingUpdate = {
+  booking_code?: string | null
   client_id?: string | null
   start_date?: string | null
   end_date?: string | null
@@ -64,12 +65,10 @@ export async function createBooking() {
   }
   if (!companyId) throw new Error('Компания не найдена')
 
-  const { data: code } = await supabase.rpc('next_booking_code', { p_company_id: companyId })
-
   const { data, error } = await supabase
     .from('bookings')
     .insert({
-      booking_code: code ?? null,
+      booking_code: null,   // номер вводит агент вручную
       status: 'draft',
       company_id: companyId,
       owner_id: user?.id ?? null,
@@ -94,10 +93,6 @@ export async function createBookingFromRequest(requestId: string) {
 
   if (!request) throw new Error('Request not found')
 
-  const { data: code } = await supabase.rpc('next_booking_code', {
-    p_company_id: request.company_id,
-  })
-
   // Тянем даты и направление из утверждённого предложения этой заявки
   // (не destination). Если нет confirmed — берём самое свежее.
   const { data: proposals } = await supabase
@@ -111,7 +106,7 @@ export async function createBookingFromRequest(requestId: string) {
   const { data, error } = await supabase
     .from('bookings')
     .insert({
-      booking_code: code ?? null,
+      booking_code: null,   // номер вводит агент вручную
       request_id: requestId,
       client_id: request.client_id,
       proposal_id: approved?.id ?? null,
@@ -139,6 +134,20 @@ export async function updateBooking(id: string, updates: BookingUpdate) {
   if (error) throw new Error(error.message)
   revalidatePath('/admin/bookings')
   revalidatePath(`/admin/bookings/${id}`)
+}
+
+// Проверка: есть ли ДРУГАЯ бронь с таким же номером (в пределах компании — по RLS).
+export async function checkBookingCodeExists(id: string, code: string): Promise<boolean> {
+  const c = code.trim()
+  if (!c) return false
+  const supabase = await createSupabaseServer()
+  const { data } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('booking_code', c)
+    .neq('id', id)
+    .limit(1)
+  return !!(data && data.length > 0)
 }
 
 export async function deleteBooking(id: string) {

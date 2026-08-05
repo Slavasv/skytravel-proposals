@@ -38,6 +38,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
         { href: '/admin', label: t('Proposals', 'Предложения'), matchPrefix: '/admin/proposals' },
         { href: '/admin/destinations', label: t('Destinations', 'Направления'), matchPrefix: '/admin/destinations' },
         { href: '/admin/vouchers', label: t('Vouchers', 'Ваучеры'), matchPrefix: '/admin/vouchers' },
+        { href: '/admin/birthdays', label: t('Birthdays', 'Дни рождения'), matchPrefix: '/admin/birthdays' },
         { href: '/admin/library', label: t('Library', 'Библиотека'), matchPrefix: '/admin/library' },
       ]
 

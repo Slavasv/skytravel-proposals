@@ -4,6 +4,7 @@ import { getProfile, canSeeAccounting } from '@/lib/get-profile'
 import AccountingClient, {
   type InvoiceRow, type TransactionRow, type BookingOption, type ReceivableRow,
 } from './accounting-client'
+import type { AccountRow } from './actions'
 
 // object | array | null → object | null (Supabase-джойн бывает и тем, и другим)
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -33,7 +34,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const { data: txRaw } = await supabase
     .from('transactions')
     .select(`
-      id, booking_id, direction, category, invoice_id, amount, currency, paid_on, notes,
+      id, booking_id, account_id, direction, category, invoice_id, amount, currency, paid_on, notes,
       bookings ( booking_code, clients ( name ) ),
       supplier_invoices ( invoice_number, partners ( name ) )
     `)
@@ -50,11 +51,25 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     .from('booking_services')
     .select('booking_id, gross, currency')
 
-  // бронь → имя клиента
+  // --- счета (справочник) ---
+  const { data: accRaw } = await supabase
+    .from('payment_accounts')
+    .select('id, name, currency, archived')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true })
+  const accounts: AccountRow[] = (accRaw ?? []).map((a) => ({
+    id: a.id, name: a.name, currency: a.currency, archived: a.archived,
+  }))
+  const accountName = new Map<string, string>()
+  for (const a of accounts) accountName.set(a.id, a.name)
+
+  // бронь → имя клиента и номер брони
   const bookingClient = new Map<string, string>()
+  const bookingCode = new Map<string, string | null>()
   for (const b of bkRaw ?? []) {
     const c = one(b.clients as unknown)
     bookingClient.set(b.id, (c as { name?: string | null } | null)?.name ?? '—')
+    bookingCode.set(b.id, b.booking_code)
   }
 
   // сколько оплачено по каждому инвойсу (расходы 'out' в той же валюте)
@@ -105,6 +120,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       currency: r.currency ?? 'EUR',
       paid_on: r.paid_on,
       notes: r.notes,
+      account_id: r.account_id ?? null,
+      account_name: r.account_id ? (accountName.get(r.account_id) ?? null) : null,
     }
   })
 
@@ -114,26 +131,32 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     client_name: bookingClient.get(b.id) ?? null,
   }))
 
-  // «Кто должен нам»: по (клиент, валюта) — продажа (gross) минус оплаты клиента
-  const key = (client: string, cur: string) => `${client}||${cur}`
-  const acc = new Map<string, { client: string; currency: string; sale: number; paid: number }>()
-  const bump = (client: string, cur: string, field: 'sale' | 'paid', v: number) => {
-    const k = key(client, cur)
-    const row = acc.get(k) ?? { client, currency: cur, sale: 0, paid: 0 }
+  // «Кто должен нам»: по (бронь, валюта) — продажа (gross) минус оплаты клиента
+  const key = (bid: string, cur: string) => `${bid}||${cur}`
+  const acc = new Map<string, { booking_id: string; currency: string; sale: number; paid: number }>()
+  const bump = (bid: string, cur: string, field: 'sale' | 'paid', v: number) => {
+    const k = key(bid, cur)
+    const row = acc.get(k) ?? { booking_id: bid, currency: cur, sale: 0, paid: 0 }
     row[field] += v
     acc.set(k, row)
   }
   for (const s of svcRaw ?? []) {
-    const client = bookingClient.get(s.booking_id) ?? '—'
-    bump(client, s.currency ?? 'EUR', 'sale', Number(s.gross ?? 0))
+    bump(s.booking_id, s.currency ?? 'EUR', 'sale', Number(s.gross ?? 0))
   }
   for (const t of txRaw ?? []) {
     if (t.category !== 'client_payment') continue
-    const client = bookingClient.get(t.booking_id) ?? '—'
-    bump(client, t.currency ?? 'EUR', 'paid', Number(t.amount ?? 0))
+    bump(t.booking_id, t.currency ?? 'EUR', 'paid', Number(t.amount ?? 0))
   }
   const receivables: ReceivableRow[] = Array.from(acc.values())
-    .map((r) => ({ client: r.client, currency: r.currency, sale: r.sale, paid: r.paid, balance: r.sale - r.paid }))
+    .map((r) => ({
+      booking_id: r.booking_id,
+      booking_code: bookingCode.get(r.booking_id) ?? null,
+      client: bookingClient.get(r.booking_id) ?? '—',
+      currency: r.currency,
+      sale: r.sale,
+      paid: r.paid,
+      balance: r.sale - r.paid,
+    }))
     .filter((r) => Math.abs(r.balance) > 0.005)
     .sort((a, b) => b.balance - a.balance)
 
@@ -148,6 +171,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       transactions={ledgerTx}
       bookings={bookings}
       receivables={receivables}
+      accounts={accounts}
       from={from}
       to={to}
     />

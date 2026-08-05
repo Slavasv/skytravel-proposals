@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { setBookingTravellers, type BookingTraveller } from '../actions'
 import { useT } from '@/lib/i18n-client'
+import { birthdayInTripWindow } from '@/lib/birthday'
 
 const CHILD_TITLES = new Set(['Miss', 'Mstr', 'Chd', 'Inf'])
 
@@ -25,12 +26,14 @@ function ageFrom(dob: string | null, t: (en: string, ru: string) => string): str
 }
 
 export default function BookingTravellers({
-  bookingId, requestId, all, initialSelected,
+  bookingId, requestId, all, initialSelected, tripStart, tripEnd,
 }: {
   bookingId: string
   requestId: string | null
   all: BookingTraveller[]
   initialSelected: string[]
+  tripStart?: string | null
+  tripEnd?: string | null
 }) {
   const t = useT()
   const [selected, setSelected] = useState<string[]>(initialSelected)
@@ -77,14 +80,16 @@ export default function BookingTravellers({
         {all.map((trav) => {
           const age = ageFrom(trav.date_of_birth, t)
           const checked = selected.includes(trav.id)
+          const bday = birthdayInTripWindow(trav.date_of_birth, tripStart, tripEnd)
           return (
             <label key={trav.id}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', color: 'var(--admin-text)', background: checked ? 'var(--admin-card)' : 'transparent' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: `1px solid ${bday ? 'var(--admin-accent)' : 'var(--admin-border-card)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', color: 'var(--admin-text)', background: checked ? 'var(--admin-card)' : 'transparent' }}>
               <input type="checkbox" checked={checked} onChange={() => toggle(trav.id)} style={{ cursor: 'pointer' }} />
               <span style={{ flex: 1 }}>
                 {trav.title && <span style={{ color: 'var(--admin-text-muted)' }}>{trav.title} </span>}
                 {trav.name || t('Unnamed', 'Без имени')}
                 {age && <span style={{ color: 'var(--admin-text-muted)' }}> · {age}</span>}
+                {bday && <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--admin-accent)' }}>🎂 {t('Birthday during trip', 'ДР во время поездки')}</span>}
               </span>
               {trav.relation && (
                 <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{trav.relation}</span>

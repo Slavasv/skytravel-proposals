@@ -3,7 +3,7 @@
 import { computeCosts } from '@/lib/proposal-costs'
 import type { PublicVariant, PublicProposal, Lang } from './types'
 
-const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', AED: 'AED ', GBP: '£' }
+const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', AED: 'AED ', GBP: '£' , UAH: '₴' }
 
 function fmtPrice(v: number | null | undefined, cur: string): string {
   if (v == null) return ''
