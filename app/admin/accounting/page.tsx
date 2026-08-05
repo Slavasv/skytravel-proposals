@@ -24,7 +24,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const { data: invRaw } = await supabase
     .from('supplier_invoices')
     .select(`
-      id, booking_id, invoice_number, amount, currency, issue_date, due_date, notes,
+      id, booking_id, partner_id, invoice_number, amount, currency, issue_date, due_date, notes,
       partners ( name ),
       bookings ( booking_code, clients ( name ) )
     `)
@@ -98,6 +98,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       booking_code: (booking as { booking_code?: string | null } | null)?.booking_code ?? null,
       client_name: (client as { name?: string | null } | null)?.name ?? null,
       supplier: (partner as { name?: string | null } | null)?.name ?? null,
+      partner_id: (r as { partner_id?: string | null }).partner_id ?? null,
       invoice_number: r.invoice_number,
       amount,
       currency: r.currency ?? 'EUR',
@@ -105,6 +106,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       balance: amount - paid,
       issue_date: r.issue_date,
       due_date: r.due_date,
+      notes: (r.notes as string | null) ?? null,
     }
   })
 
