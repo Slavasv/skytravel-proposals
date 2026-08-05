@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { addTransaction, deleteTransaction, addAccount, archiveAccount, addSupplierInvoice, type AccountRow, type PartnerLite } from './actions'
+import { addTransaction, deleteTransaction, addAccount, archiveAccount, addSupplierInvoice, updateSupplierInvoice, deleteSupplierInvoice, type AccountRow, type PartnerLite } from './actions'
 
 export type InvoiceRow = {
   id: string
@@ -12,6 +12,7 @@ export type InvoiceRow = {
   booking_code: string | null
   client_name: string | null
   supplier: string | null
+  partner_id: string | null
   invoice_number: string | null
   amount: number
   currency: string
@@ -19,6 +20,7 @@ export type InvoiceRow = {
   balance: number
   issue_date: string | null
   due_date: string | null
+  notes: string | null
 }
 
 export type TransactionRow = {
@@ -249,20 +251,21 @@ function AddPayment({ bookings, invoices, accounts, onDone }: {
 }
 
 // ---------- Форма добавления инвойса поставщика ----------
-function AddInvoice({ bookings, partners, onDone }: {
+function InvoiceForm({ bookings, partners, initial, onDone }: {
   bookings: BookingOption[]
   partners: PartnerLite[]
+  initial?: InvoiceRow | null
   onDone: () => void
 }) {
   const t = useT()
-  const [bookingId, setBookingId] = useState('')
-  const [partnerId, setPartnerId] = useState('')
-  const [invoiceNo, setInvoiceNo] = useState('')
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('EUR')
-  const [issueDate, setIssueDate] = useState('')
-  const [dueDate, setDueDate] = useState('')
-  const [notes, setNotes] = useState('')
+  const [bookingId, setBookingId] = useState(initial?.booking_id ?? '')
+  const [partnerId, setPartnerId] = useState(initial?.partner_id ?? '')
+  const [invoiceNo, setInvoiceNo] = useState(initial?.invoice_number ?? '')
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [currency, setCurrency] = useState(initial?.currency ?? 'EUR')
+  const [issueDate, setIssueDate] = useState(initial?.issue_date ?? '')
+  const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
+  const [notes, setNotes] = useState(initial?.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -272,8 +275,7 @@ function AddInvoice({ bookings, partners, onDone }: {
     const amt = Number(amount)
     if (!amt || amt <= 0) { setError(t('Enter an amount', 'Введите сумму')); return }
     setSaving(true)
-    const res = await addSupplierInvoice({
-      booking_id: bookingId,
+    const payload = {
       partner_id: partnerId || null,
       invoice_number: invoiceNo || null,
       amount: amt,
@@ -281,7 +283,10 @@ function AddInvoice({ bookings, partners, onDone }: {
       issue_date: issueDate || null,
       due_date: dueDate || null,
       notes: notes || null,
-    })
+    }
+    const res = initial
+      ? await updateSupplierInvoice(initial.id, payload)
+      : await addSupplierInvoice({ booking_id: bookingId, ...payload })
     setSaving(false)
     if (!res.ok) { setError(res.error || t('Error', 'Ошибка')); return }
     onDone()
@@ -292,7 +297,7 @@ function AddInvoice({ bookings, partners, onDone }: {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
         <div style={{ width: '260px' }}>
           <label style={labelSt}>{t('Booking', 'Бронь')} *</label>
-          <select value={bookingId} onChange={(e) => setBookingId(e.target.value)} style={inputSt}>
+          <select value={bookingId} onChange={(e) => setBookingId(e.target.value)} style={inputSt} disabled={!!initial}>
             <option value="">{t('— select —', '— выберите —')}</option>
             {bookings.map((b) => <option key={b.id} value={b.id}>{bookingLabel(b)}</option>)}
           </select>
@@ -341,7 +346,7 @@ function AddInvoice({ bookings, partners, onDone }: {
       <div style={{ display: 'flex', gap: '8px' }}>
         <button type="button" onClick={save} disabled={saving}
           style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.5 : 1, fontFamily: 'inherit' }}>
-          {saving ? t('Saving…', 'Сохранение…') : t('Add invoice', 'Добавить инвойс')}
+          {saving ? t('Saving…', 'Сохранение…') : (initial ? t('Save', 'Сохранить') : t('Add invoice', 'Добавить инвойс'))}
         </button>
         <button type="button" onClick={onDone}
           style={{ padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -449,6 +454,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
   const [tab, setTab] = useState<Tab>('ledger')
   const [adding, setAdding] = useState(false)
   const [addingInvoice, setAddingInvoice] = useState(false)
+  const [editInvoice, setEditInvoice] = useState<InvoiceRow | null>(null)
   const [fClient, setFClient] = useState('')
   const [fSupplier, setFSupplier] = useState('')
   const [fBooking, setFBooking] = useState('')
@@ -536,7 +542,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
       <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>{t('Accounting', 'Бухгалтерия')}</h1>
       <p style={{ fontSize: '13px', color: 'var(--admin-text-muted)', margin: '0 0 20px' }}>
         {t('Supplier invoices and cash movement. Currencies are counted separately — no conversion.',
-           'Инвойсы поставщиков и движение денег. Валюты считаются раздельно — без конвертации.')}
+          'Инвойсы поставщиков и движение денег. Валюты считаются раздельно — без конвертации.')}
       </p>
 
       {/* период (фильтрует «Приход-расход» и выгрузку) + выгрузка в Excel */}
@@ -588,7 +594,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
           {transactions.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
               {t('No payments yet. Add the first one via “+ Add payment”.',
-                 'Пока нет платежей. Добавьте первый через «+ Добавить платёж».')}
+                'Пока нет платежей. Добавьте первый через «+ Добавить платёж».')}
             </div>
           ) : (
             <>
@@ -680,8 +686,9 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
         </div>
       ) : tab === 'invoices' ? (
         <div>
-          {addingInvoice ? (
-            <AddInvoice bookings={bookings} partners={partners} onDone={() => { setAddingInvoice(false); router.refresh() }} />
+          {addingInvoice || editInvoice ? (
+            <InvoiceForm bookings={bookings} partners={partners} initial={editInvoice}
+              onDone={() => { setAddingInvoice(false); setEditInvoice(null); router.refresh() }} />
           ) : (
             <button type="button" onClick={() => setAddingInvoice(true)}
               style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '20px' }}>
@@ -691,7 +698,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
           {invoices.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
               {t('No invoices yet. Managers enter them inside bookings.',
-                 'Пока нет инвойсов. Их заводят менеджеры в бронях.')}
+                'Пока нет инвойсов. Их заводят менеджеры в бронях.')}
             </div>
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border-card)', borderRadius: '10px' }}>
@@ -706,6 +713,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                     <th style={{ ...thSt, textAlign: 'right' }}>{t('Balance', 'Остаток')}</th>
                     <th style={thSt}>{t('Status', 'Статус')}</th>
                     <th style={thSt}>{t('Due', 'Срок')}</th>
+                    <th style={thSt}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -726,6 +734,16 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                         <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{money(inv.balance)}</td>
                         <td style={tdSt}><span style={{ color: st.color, fontWeight: 600, fontSize: '12px' }}>{t(st.en, st.ru)}</span></td>
                         <td style={{ ...tdSt, whiteSpace: 'nowrap', color: 'var(--admin-text-muted)' }}>{inv.due_date || '—'}</td>
+                        <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button type="button" onClick={() => { setEditInvoice(inv); setAddingInvoice(false) }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--admin-accent)', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', marginRight: '8px' }}>
+                            {t('Edit', 'Изм.')}
+                          </button>
+                          <button type="button" onClick={async () => { if (confirm(t('Delete this invoice?', 'Удалить этот инвойс?'))) { await deleteSupplierInvoice(inv.id); router.refresh() } }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--admin-danger)', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                            {t('Delete', 'Удал.')}
+                          </button>
+                        </td>
                       </tr>
                     )
                   })}

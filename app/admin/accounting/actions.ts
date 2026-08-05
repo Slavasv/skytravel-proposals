@@ -88,6 +88,32 @@ export async function addSupplierInvoice(input: NewInvoice): Promise<{ ok: boole
   return { ok: true }
 }
 
+export async function updateSupplierInvoice(
+  id: string, input: Omit<NewInvoice, 'booking_id'>
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('supplier_invoices').update({
+    partner_id: input.partner_id,
+    invoice_number: input.invoice_number,
+    amount: input.amount,
+    currency: input.currency,
+    issue_date: input.issue_date,
+    due_date: input.due_date,
+    notes: input.notes,
+    updated_at: new Date().toISOString(),
+  }).eq('id', id)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/admin/accounting')
+  return { ok: true }
+}
+
+export async function deleteSupplierInvoice(id: string): Promise<void> {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('supplier_invoices').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/accounting')
+}
+
 export async function addTransaction(input: NewTransaction): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
