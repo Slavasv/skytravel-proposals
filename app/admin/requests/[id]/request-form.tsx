@@ -244,6 +244,8 @@ export default function RequestForm({
           requestId={request.id}
           clientId={form.client_id}
           initialIds={request.traveller_ids ?? []}
+          tripStart={form.trip_start}
+          tripEnd={form.trip_end}
         />
       </section>
 

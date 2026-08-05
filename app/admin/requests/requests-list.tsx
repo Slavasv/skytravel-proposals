@@ -159,13 +159,27 @@ export default function RequestsList({
   const [createdTo, setCreatedTo] = useState('')
   const [tripFrom, setTripFrom] = useState('')
   const [tripTo, setTripTo] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState('')  // какой контрол показан
 
   const statusLabel = (v: string) => STATUS_META[v] ? t(STATUS_META[v].en, STATUS_META[v].ru) : v
 
+  // список агентов из загруженных заявок (для фильтра в режиме «Все»)
+  const agentOptions = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const r of safe) {
+      if (!r.owner_id) continue
+      const email = Array.isArray(r.profiles) ? r.profiles[0]?.email : r.profiles?.email
+      if (!map.has(r.owner_id)) map.set(r.owner_id, email || r.owner_id)
+    }
+    return Array.from(map, ([id, email]) => ({ id, email })).sort((a, b) => a.email.localeCompare(b.email))
+  }, [safe])
+  const agentLabel = (id: string) => agentOptions.find((a) => a.id === id)?.email || id
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return safe.filter((r) => {
+      if (ownerFilter && r.owner_id !== ownerFilter) return false
       if (statusFilter && r.status !== statusFilter) return false
       if (priorityFilter && r.priority !== priorityFilter) return false
 
@@ -192,7 +206,7 @@ export default function RequestsList({
       const hay = [client?.name, r.request_code, r.destination, r.details].filter(Boolean).join(' ').toLowerCase()
       return hay.includes(q)
     })
-  }, [safe, search, statusFilter, priorityFilter, createdFrom, createdTo, tripFrom, tripTo])
+  }, [safe, search, statusFilter, priorityFilter, createdFrom, createdTo, tripFrom, tripTo, ownerFilter])
 
   const inputStyle: React.CSSProperties = {
     padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
@@ -208,6 +222,7 @@ export default function RequestsList({
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by client, destination, details…', 'Поиск по клиенту, направлению, деталям…')} style={{ ...inputStyle, flex: 1, minWidth: '200px' }} />
           <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} style={{ ...inputStyle, width: '180px' }}>
             <option value="">{t('+ Filter ▾', '+ Фильтр ▾')}</option>
+            {showOwner && <option value="agent">{t('Agent', 'Агент')}</option>}
             <option value="status">{t('Status', 'Статус')}</option>
             <option value="priority">{t('Priority', 'Приоритет')}</option>
             <option value="created">{t('Created date', 'Дата создания')}</option>
@@ -216,6 +231,14 @@ export default function RequestsList({
         </div>
 
         {/* контрол выбранного типа фильтра */}
+        {activeFilter === 'agent' && showOwner && (
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
+            <option value="">{t('All agents', 'Все агенты')}</option>
+            {agentOptions.map((a) => (
+              <option key={a.id} value={a.id}>{a.email}</option>
+            ))}
+          </select>
+        )}
         {activeFilter === 'status' && (
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
             <option value="">{t('All statuses', 'Все статусы')}</option>
@@ -250,8 +273,11 @@ export default function RequestsList({
         )}
 
         {/* чипсы активных фильтров */}
-        {(statusFilter || priorityFilter || createdFrom || createdTo || tripFrom || tripTo) && (
+        {(ownerFilter || statusFilter || priorityFilter || createdFrom || createdTo || tripFrom || tripTo) && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+            {ownerFilter && (
+              <Chip label={`${t('Agent', 'Агент')}: ${agentLabel(ownerFilter)}`} onClear={() => setOwnerFilter('')} />
+            )}
             {statusFilter && (
               <Chip label={`${t('Status', 'Статус')}: ${statusLabel(statusFilter)}`} onClear={() => setStatusFilter('')} />
             )}

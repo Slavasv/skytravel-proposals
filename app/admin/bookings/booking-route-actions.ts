@@ -188,3 +188,72 @@ export async function addServiceFromRoute(
   revalidatePath(`/admin/bookings/${bookingId}`)
   return data as BookingService
 }
+
+// ---- Отели из библиотеки (для бизнес-поездок без предложения) ----
+
+export type LibraryHotel = {
+  block_id: string
+  title: string
+  city: string | null
+  rooms: { id: string; title: string }[]
+}
+
+export async function getLibraryHotels(): Promise<LibraryHotel[]> {
+  const supabase = await createSupabaseServer()
+  const lang = await getUiLang()
+
+  const { data } = await supabase
+    .from('content_blocks')
+    .select('id, title_ru, title_en, rooms, city:city_id ( name_en, name_ru )')
+    .eq('type', 'hotel')
+    .is('archived_at', null)
+    .order('title_ru', { ascending: true })
+
+  const rows = (data ?? []) as Record<string, unknown>[]
+  const cityName = (o: unknown): string | null => {
+    const f = Array.isArray(o) ? o[0] : o
+    if (!f || typeof f !== 'object') return null
+    const r = f as Record<string, unknown>
+    return (lang === 'ru' ? str(r.name_ru) : str(r.name_en)) || str(r.name_ru) || str(r.name_en) || null
+  }
+
+  return rows.map((b) => {
+    const rooms = Array.isArray(b.rooms) ? (b.rooms as Record<string, unknown>[]) : []
+    return {
+      block_id: str(b.id),
+      title: pick(lang, b.title_ru, b.title_en) || '—',
+      city: cityName(b.city),
+      rooms: rooms
+        .map((r) => ({ id: str(r.id), title: pick(lang, r.title_ru, r.title_en) }))
+        .filter((r) => r.title),
+    }
+  })
+}
+
+export async function addServiceFromLibrary(
+  bookingId: string, input: { block_id: string; title: string; room_type: string | null }
+): Promise<BookingService | null> {
+  const supabase = await createSupabaseServer()
+
+  const { data: existing } = await supabase
+    .from('booking_services').select('sort_order')
+    .eq('booking_id', bookingId).order('sort_order', { ascending: false }).limit(1)
+  const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0
+
+  const { data, error } = await supabase
+    .from('booking_services')
+    .insert({
+      booking_id: bookingId,
+      service_type: 'Accomodation',
+      description: input.title || null,
+      currency: 'EUR',
+      room_type: input.room_type,
+      source_block_id: input.block_id,   // ваучер по нему подтянет адрес/телефон/город
+      sort_order: nextOrder,
+    })
+    .select().single()
+
+  if (error) return null
+  revalidatePath(`/admin/bookings/${bookingId}`)
+  return data as BookingService
+}

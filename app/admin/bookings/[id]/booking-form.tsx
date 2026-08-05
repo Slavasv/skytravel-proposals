@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateBooking, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
+import { updateBooking, checkBookingCodeExists, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
 import BookingInvoices from './booking-invoices'
 import BookingTravellers from './booking-travellers'
@@ -66,7 +66,10 @@ export default function BookingForm({
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  const [dupWarn, setDupWarn] = useState(false)
+
   const [form, setForm] = useState({
+    booking_code: booking.booking_code || '',
     client_id: booking.client_id || '',
     start_date: booking.start_date || '',
     end_date: booking.end_date || '',
@@ -87,6 +90,7 @@ export default function BookingForm({
     setSaveState('saving'); setErrorMsg(null)
     try {
       await updateBooking(booking.id, {
+        booking_code: current.booking_code.trim() || null,
         client_id: current.client_id || null,
         start_date: current.start_date || null,
         end_date: current.end_date || null,
@@ -108,6 +112,16 @@ export default function BookingForm({
     return () => { if (timer.current) clearTimeout(timer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form])
+
+  // предупреждение о дубле номера брони
+  useEffect(() => {
+    const code = form.booking_code.trim()
+    if (!code) { setDupWarn(false); return }
+    const h = setTimeout(async () => {
+      try { setDupWarn(await checkBookingCodeExists(booking.id, code)) } catch { /* игнор */ }
+    }, 600)
+    return () => clearTimeout(h)
+  }, [form.booking_code, booking.id])
 
   function renderSave() {
     if (saveState === 'error') return <span style={{ color: 'var(--admin-danger)' }}>● {t('Error', 'Ошибка')}: {errorMsg}</span>
@@ -142,6 +156,17 @@ export default function BookingForm({
       </div>
 
       {/* ШАПКА */}
+      <section>
+        <label style={labelStyle}>{t('Booking No.', 'Номер брони')}</label>
+        <input type="text" value={form.booking_code} onChange={(e) => set('booking_code', e.target.value)}
+          style={{ ...inputStyle, maxWidth: '260px' }} placeholder={t('e.g. BK-1042', 'напр. BK-1042')} />
+        {dupWarn && (
+          <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--admin-danger)' }}>
+            {t('⚠ A booking with this number already exists', '⚠ Бронь с таким номером уже существует')}
+          </div>
+        )}
+      </section>
+
       <section>
         <label style={labelStyle}>{t('Client', 'Клиент')}</label>
         <ClientPicker
@@ -178,13 +203,15 @@ export default function BookingForm({
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Travellers', 'Путешественники')}</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
           {t('Who’s actually going. Someone can drop out or join at the last minute.',
-             'Кто действительно едет. Кто-то может отказаться или присоединиться в последний момент.')}
+            'Кто действительно едет. Кто-то может отказаться или присоединиться в последний момент.')}
         </p>
         <BookingTravellers
           bookingId={booking.id}
           requestId={travellers.requestId}
           all={travellers.all}
           initialSelected={travellers.selected}
+          tripStart={form.start_date}
+          tripEnd={form.end_date}
         />
       </section>
 
@@ -193,7 +220,7 @@ export default function BookingForm({
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Services', 'Услуги')}</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
           {t('Everything booked for this trip. Commission is calculated as Gross − Net.',
-             'Всё, что забронировано для этой поездки. Комиссия рассчитывается как Брутто − Нетто.')}
+            'Всё, что забронировано для этой поездки. Комиссия рассчитывается как Брутто − Нетто.')}
         </p>
         <BookingServices bookingId={booking.id} initial={services} partners={partners} travellers={travellers.all.filter((tr) => travellers.selected.includes(tr.id))} />
       </section>
@@ -203,7 +230,7 @@ export default function BookingForm({
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Supplier invoices', 'Счета поставщиков')}</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
           {t('Bills received from hotels and partners for this booking. The accountant records payments against them.',
-             'Счета, полученные от отелей и партнёров по этому бронированию. Бухгалтер отмечает по ним платежи.')}
+            'Счета, полученные от отелей и партнёров по этому бронированию. Бухгалтер отмечает по ним платежи.')}
         </p>
         <BookingInvoices bookingId={booking.id} initial={invoices} partners={partners} />
       </section>
@@ -213,7 +240,7 @@ export default function BookingForm({
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Vouchers', 'Ваучеры')}</h2>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 14px' }}>
           {t('Guests and hotels are pulled from this booking, including confirmation numbers.',
-             'Гости и отели берутся из этого бронирования, включая номера подтверждений.')}
+            'Гости и отели берутся из этого бронирования, включая номера подтверждений.')}
         </p>
 
         {vouchers.length > 0 && (

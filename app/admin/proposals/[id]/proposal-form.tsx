@@ -51,7 +51,7 @@ type Proposal = {
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
-const CURRENCIES = ['USD', 'EUR', 'AED', 'GBP']
+const CURRENCIES = ['USD', 'EUR', 'AED', 'GBP' , 'UAH']
 const STATUSES = [
   { value: 'draft', label: 'Draft' },
   { value: 'sent', label: 'Sent' },

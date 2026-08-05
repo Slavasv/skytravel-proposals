@@ -60,7 +60,7 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'CHF']
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'CHF' , 'UAH']
 
 export default function DestinationForm({ proposal, sections }: { proposal: Proposal; sections: DestinationSection[] }) {
   const router = useRouter()

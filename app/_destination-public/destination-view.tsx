@@ -8,7 +8,7 @@ import SavePdfButton from '../_proposal-public/save-pdf-button'
 import { notifyDestinationInterest } from './destination-lead-actions'
 import type { DestinationData, DSection, DPhoto, Lang } from './types'
 
-const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', AED: 'AED ', GBP: '£' }
+const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', AED: 'AED ', GBP: '£' , UAH: '₴' }
 
 function fmtPrice(value: number | null | undefined, currency: string): string {
   if (value == null) return ''
