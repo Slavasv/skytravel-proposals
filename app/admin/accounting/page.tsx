@@ -4,7 +4,7 @@ import { getProfile, canSeeAccounting } from '@/lib/get-profile'
 import AccountingClient, {
   type InvoiceRow, type TransactionRow, type BookingOption, type ReceivableRow,
 } from './accounting-client'
-import type { AccountRow, PartnerLite } from './actions'
+import type { AccountRow, PartnerLite, ClientLite } from './actions'
 
 // object | array | null → object | null (Supabase-джойн бывает и тем, и другим)
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -35,16 +35,30 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     .from('transactions')
     .select(`
       id, booking_id, account_id, direction, category, invoice_id, amount, currency, paid_on, notes,
+      client:client_id ( name ),
+      partner:partner_id ( name ),
       bookings ( booking_code, clients ( name ) ),
       supplier_invoices ( invoice_number, partners ( name ) )
     `)
     .order('paid_on', { ascending: false })
 
+  // --- разбивка платежей (аллокации) ---
+  const { data: allocRaw } = await supabase
+    .from('transaction_allocations')
+    .select('transaction_id, booking_id, invoice_id, amount')
+
   // --- брони для выпадашки при добавлении платежа ---
   const { data: bkRaw } = await supabase
     .from('bookings')
-    .select('id, booking_code, clients ( name )')
+    .select('id, booking_code, client_id, clients ( name )')
     .order('created_at', { ascending: false })
+
+  // --- клиенты (для оплаты клиента) ---
+  const { data: clRaw } = await supabase
+    .from('clients')
+    .select('id, name')
+    .order('name', { ascending: true })
+  const clients: ClientLite[] = (clRaw ?? []).map((c) => ({ id: c.id as string, name: (c.name as string | null) ?? '' }))
 
   // --- услуги броней (для «кто должен нам»: продажа клиенту = сумма gross) ---
   const { data: svcRaw } = await supabase
@@ -63,7 +77,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const accountName = new Map<string, string>()
   for (const a of accounts) accountName.set(a.id, a.name)
 
-  // --- поставщики (для формы инвойса) ---
+  // --- поставщики (для формы инвойса и оплаты поставщику) ---
   const { data: prtRaw } = await supabase
     .from('partners')
     .select('id, name')
@@ -79,11 +93,15 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     bookingCode.set(b.id, b.booking_code)
   }
 
-  // сколько оплачено по каждому инвойсу (расходы 'out' в той же валюте)
+  // категория/валюта платежа по id (для расчётов по аллокациям)
+  const txMeta = new Map<string, { category: string; currency: string }>()
+  for (const r of txRaw ?? []) txMeta.set(r.id, { category: r.category, currency: r.currency ?? 'EUR' })
+
+  // сколько оплачено по каждому инвойсу — из аллокаций
   const paidByInvoice = new Map<string, number>()
-  for (const p of txRaw ?? []) {
-    if (p.direction !== 'out' || !p.invoice_id) continue
-    paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) ?? 0) + Number(p.amount ?? 0))
+  for (const a of allocRaw ?? []) {
+    if (!a.invoice_id) continue
+    paidByInvoice.set(a.invoice_id, (paidByInvoice.get(a.invoice_id) ?? 0) + Number(a.amount ?? 0))
   }
 
   const invoices: InvoiceRow[] = (invRaw ?? []).map((r) => {
@@ -110,37 +128,58 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     }
   })
 
+  // номер инвойса по id (для подписи аллокаций в реестре)
+  const invoiceNumber = new Map<string, string | null>()
+  for (const inv of invoices) invoiceNumber.set(inv.id, inv.invoice_number)
+
+  // аллокации по платежу (для колонки «по чему» в реестре)
+  const allocByTx = new Map<string, { label: string; amount: number; booking_id: string | null }[]>()
+  for (const a of allocRaw ?? []) {
+    const label = a.invoice_id
+      ? (invoiceNumber.get(a.invoice_id) || 'Invoice')
+      : a.booking_id ? (bookingCode.get(a.booking_id) || 'Booking') : '—'
+    const arr = allocByTx.get(a.transaction_id) ?? []
+    arr.push({ label: String(label), amount: Number(a.amount ?? 0), booking_id: a.booking_id ?? null })
+    allocByTx.set(a.transaction_id, arr)
+  }
+
   const transactions: TransactionRow[] = (txRaw ?? []).map((r) => {
     const booking = one(r.bookings as unknown)
-    const client = booking ? one((booking as { clients?: unknown }).clients) : null
+    const bClient = booking ? one((booking as { clients?: unknown }).clients) : null
+    const directClient = one((r as { client?: unknown }).client)
     const inv = one(r.supplier_invoices as unknown)
     const invPartner = inv ? one((inv as { partners?: unknown }).partners) : null
+    const directPartner = one((r as { partner?: unknown }).partner)
     return {
       id: r.id,
       booking_id: r.booking_id,
       booking_code: (booking as { booking_code?: string | null } | null)?.booking_code ?? null,
-      client_name: (client as { name?: string | null } | null)?.name ?? null,
+      client_name: (directClient as { name?: string | null } | null)?.name
+        ?? (bClient as { name?: string | null } | null)?.name ?? null,
       direction: r.direction as 'in' | 'out',
       category: r.category,
       invoice_id: r.invoice_id,
       invoice_number: (inv as { invoice_number?: string | null } | null)?.invoice_number ?? null,
-      partner_name: (invPartner as { name?: string | null } | null)?.name ?? null,
+      partner_name: (directPartner as { name?: string | null } | null)?.name
+        ?? (invPartner as { name?: string | null } | null)?.name ?? null,
       amount: Number(r.amount ?? 0),
       currency: r.currency ?? 'EUR',
       paid_on: r.paid_on,
       notes: r.notes,
       account_id: r.account_id ?? null,
       account_name: r.account_id ? (accountName.get(r.account_id) ?? null) : null,
+      allocations: allocByTx.get(r.id) ?? [],
     }
   })
 
   const bookings: BookingOption[] = (bkRaw ?? []).map((b) => ({
     id: b.id,
     booking_code: b.booking_code,
+    client_id: (b as { client_id?: string | null }).client_id ?? null,
     client_name: bookingClient.get(b.id) ?? null,
   }))
 
-  // «Кто должен нам»: по (бронь, валюта) — продажа (gross) минус оплаты клиента
+  // «Кто должен нам»: по (бронь, валюта) — продажа (gross) минус оплаты клиента (по аллокациям)
   const key = (bid: string, cur: string) => `${bid}||${cur}`
   const acc = new Map<string, { booking_id: string; currency: string; sale: number; paid: number }>()
   const bump = (bid: string, cur: string, field: 'sale' | 'paid', v: number) => {
@@ -152,9 +191,11 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   for (const s of svcRaw ?? []) {
     bump(s.booking_id, s.currency ?? 'EUR', 'sale', Number(s.gross ?? 0))
   }
-  for (const t of txRaw ?? []) {
-    if (t.category !== 'client_payment') continue
-    bump(t.booking_id, t.currency ?? 'EUR', 'paid', Number(t.amount ?? 0))
+  for (const a of allocRaw ?? []) {
+    const meta = txMeta.get(a.transaction_id)
+    if (!meta || meta.category !== 'client_payment') continue
+    if (!a.booking_id) continue
+    bump(a.booking_id, meta.currency, 'paid', Number(a.amount ?? 0))
   }
   const receivables: ReceivableRow[] = Array.from(acc.values())
     .map((r) => ({
@@ -182,6 +223,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       receivables={receivables}
       accounts={accounts}
       partners={partners}
+      clients={clients}
       from={from}
       to={to}
     />

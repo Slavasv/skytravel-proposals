@@ -50,8 +50,75 @@ export async function archiveAccount(id: string): Promise<void> {
   revalidatePath('/admin/accounting')
 }
 
-// ---- Поставщики (для выбора в форме инвойса) ----
+// ---- Поставщики / клиенты (для выбора в формах) ----
 export type PartnerLite = { id: string; name: string }
+export type ClientLite = { id: string; name: string }
+
+// ---- Платёж с разбивкой (аллокациями) ----
+export type PaymentAllocation = { booking_id: string | null; invoice_id: string | null; amount: number }
+export type NewPayment = {
+  kind: 'client' | 'supplier'
+  client_id: string | null
+  partner_id: string | null
+  currency: string
+  account_id: string | null
+  paid_on: string | null
+  notes: string | null
+  allocations: PaymentAllocation[]
+}
+
+export async function addPayment(input: NewPayment): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  let companyId: string | null = null
+  if (user) {
+    const { data: me } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
+    companyId = me?.company_id ?? null
+  }
+
+  const allocs = input.allocations.filter((a) => a.amount > 0 && (a.booking_id || a.invoice_id))
+  if (allocs.length === 0) return { ok: false, error: 'Добавьте хотя бы одну строку с суммой' }
+  const total = allocs.reduce((s, a) => s + a.amount, 0)
+
+  // для оплаты поставщику подтягиваем бронь из инвойса
+  const invoiceIds = allocs.map((a) => a.invoice_id).filter((x): x is string => !!x)
+  const invBooking = new Map<string, string | null>()
+  if (invoiceIds.length) {
+    const { data: invs } = await supabase.from('supplier_invoices').select('id, booking_id').in('id', invoiceIds)
+    for (const iv of invs ?? []) invBooking.set(iv.id as string, (iv.booking_id as string | null) ?? null)
+  }
+
+  const direction = input.kind === 'client' ? 'in' : 'out'
+  const category = input.kind === 'client' ? 'client_payment' : 'supplier_payment'
+
+  const { data: tx, error: txErr } = await supabase.from('transactions').insert({
+    company_id: companyId,
+    booking_id: null,
+    direction,
+    category,
+    client_id: input.kind === 'client' ? input.client_id : null,
+    partner_id: input.kind === 'supplier' ? input.partner_id : null,
+    amount: total,
+    currency: input.currency,
+    account_id: input.account_id,
+    paid_on: input.paid_on,
+    notes: input.notes,
+    created_by: user?.id ?? null,
+  }).select('id').single()
+  if (txErr || !tx) return { ok: false, error: txErr?.message || 'Ошибка' }
+
+  const rows = allocs.map((a) => ({
+    transaction_id: tx.id,
+    booking_id: a.booking_id ?? (a.invoice_id ? invBooking.get(a.invoice_id) ?? null : null),
+    invoice_id: a.invoice_id ?? null,
+    amount: a.amount,
+  }))
+  const { error: alErr } = await supabase.from('transaction_allocations').insert(rows)
+  if (alErr) return { ok: false, error: alErr.message }
+
+  revalidatePath('/admin/accounting')
+  return { ok: true }
+}
 
 // ---- Ручное добавление инвойса поставщика ----
 export type NewInvoice = {
