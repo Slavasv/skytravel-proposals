@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 export type RequestDestination = {
   id: string
   request_id: string
+  region: string | null
   country_id: string | null
   city_ids: string[]
   sort_order: number
@@ -50,7 +51,7 @@ export async function addRequestDestination(requestId: string): Promise<RequestD
 // Обновить направление (страна и/или города)
 export async function updateRequestDestination(
   id: string,
-  updates: { country_id?: string | null; city_ids?: string[] }
+  updates: { country_id?: string | null; city_ids?: string[]; region?: string | null }
 ) {
   const supabase = await createSupabaseServer()
   const { error } = await supabase

@@ -1,0 +1,1 @@
+alter table public.request_destinations add column if not exists region text;

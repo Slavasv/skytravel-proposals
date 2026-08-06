@@ -16,6 +16,14 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--admin-text-muted)', marginBottom: '6px', fontWeight: 500,
 }
 
+const REGIONS = ['Europe', 'Asia', 'Indian Ocean', 'Africa', 'Middle East', 'North America', 'South America', 'Central America & Caribbean', 'Australia & Oceania']
+
+const regionSelectStyle: React.CSSProperties = {
+  padding: '8px 10px', fontSize: '13px', color: 'var(--admin-text)', background: 'var(--admin-input)',
+  border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', outline: 'none',
+  width: '100%', maxWidth: '320px', boxSizing: 'border-box',
+}
+
 // Одно направление: страна + теги городов
 function DestinationCard({
   dest, index, onRemove,
@@ -25,6 +33,7 @@ function DestinationCard({
   onRemove: (id: string) => void
 }) {
   const t = useT()
+  const [region, setRegion] = useState<string>(dest.region || '')
   const [countryId, setCountryId] = useState<string | null>(dest.country_id)
   const [cityIds, setCityIds] = useState<string[]>(dest.city_ids || [])
   const [cityLabels, setCityLabels] = useState<Record<string, string>>({})
@@ -90,6 +99,14 @@ function DestinationCard({
       </div>
 
       <div style={{ marginBottom: '14px' }}>
+        <label style={labelStyle}>{t('Region', 'Регион')}</label>
+        <select value={region} onChange={(e) => { setRegion(e.target.value); updateRequestDestination(dest.id, { region: e.target.value || null }).catch(() => { }) }} style={regionSelectStyle}>
+          <option value="">{t('— select —', '— выберите —')}</option>
+          {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '14px' }}>
         <label style={labelStyle}>{t('Country', 'Страна')}</label>
         <LocationPicker mode="country" value={countryId} onChange={handleCountryChange} />
       </div>
@@ -120,7 +137,7 @@ function DestinationCard({
         />
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '6px 0 0' }}>
           {t('Pick cities one by one. Choosing a city without a country will fill the country automatically.',
-             'Добавляйте города по одному. Если выбрать город без страны — страна подставится автоматически.')}
+            'Добавляйте города по одному. Если выбрать город без страны — страна подставится автоматически.')}
         </p>
       </div>
     </div>
