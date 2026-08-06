@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { addTransaction, deleteTransaction, addAccount, archiveAccount, addSupplierInvoice, updateSupplierInvoice, deleteSupplierInvoice, type AccountRow, type PartnerLite } from './actions'
+import { addPayment, deleteTransaction, addAccount, archiveAccount, addSupplierInvoice, updateSupplierInvoice, deleteSupplierInvoice, type AccountRow, type PartnerLite, type ClientLite } from './actions'
 
 export type InvoiceRow = {
   id: string
@@ -39,11 +39,13 @@ export type TransactionRow = {
   notes: string | null
   account_id: string | null
   account_name: string | null
+  allocations: { label: string; amount: number; booking_id: string | null }[]
 }
 
 export type BookingOption = {
   id: string
   booking_code: string | null
+  client_id: string | null
   client_name: string | null
 }
 
@@ -102,39 +104,48 @@ function bookingLabel(b: { booking_code: string | null; client_name: string | nu
 }
 
 // ---------- Форма добавления платежа ----------
-function AddPayment({ bookings, invoices, accounts, onDone }: {
+function AddPayment({ bookings, invoices, accounts, clients, partners, onDone }: {
   bookings: BookingOption[]
   invoices: InvoiceRow[]
   accounts: AccountRow[]
+  clients: ClientLite[]
+  partners: PartnerLite[]
   onDone: () => void
 }) {
   const t = useT()
-  const [bookingId, setBookingId] = useState('')
+  const [kind, setKind] = useState<'client' | 'supplier'>('client')
+  const [clientId, setClientId] = useState('')
+  const [partnerId, setPartnerId] = useState('')
   const [accountId, setAccountId] = useState('')
-  const [category, setCategory] = useState('client_payment')
-  const [direction, setDirection] = useState<'in' | 'out'>('in')
-  const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('EUR')
   const [paidOn, setPaidOn] = useState('')
-  const [invoiceId, setInvoiceId] = useState('')
   const [notes, setNotes] = useState('')
+  const [rows, setRows] = useState<{ id: number; targetId: string; amount: string }[]>([{ id: 0, targetId: '', amount: '' }])
+  const rowKey = useRef(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const bookingInvoices = invoices.filter((i) => i.booking_id === bookingId)
+  const clientBookings = bookings.filter((b) => b.client_id === clientId)
+  const supplierInvoices = invoices.filter((i) => i.partner_id === partnerId && i.balance > 0.005)
 
-  function pickCategory(v: string) {
-    setCategory(v)
-    const dir = CATEGORIES.find((c) => c.value === v)?.dir
-    if (dir) setDirection(dir)
-    if (dir !== 'out') setInvoiceId('')
+  function setRow(id: number, patch: Partial<{ targetId: string; amount: string }>) {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   }
-
-  function pickInvoice(id: string) {
-    setInvoiceId(id)
-    const inv = invoices.find((i) => i.id === id)
-    if (inv) setCurrency(inv.currency)
+  function pickTarget(id: number, targetId: string) {
+    if (kind === 'supplier') {
+      const inv = invoices.find((i) => i.id === targetId)
+      setRows((rs) => rs.map((r) => (r.id === id ? { ...r, targetId, amount: inv ? String(inv.balance) : r.amount } : r)))
+    } else {
+      setRow(id, { targetId })
+    }
   }
+  function addRow() { setRows((rs) => [...rs, { id: rowKey.current++, targetId: '', amount: '' }]) }
+  function removeRow(id: number) { setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs)) }
+  function switchKind(k: 'client' | 'supplier') {
+    setKind(k)
+    setRows([{ id: rowKey.current++, targetId: '', amount: '' }])
+  }
+  const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0)
 
   const activeAccounts = accounts.filter((a) => !a.archived)
   function pickAccount(id: string) {
@@ -145,20 +156,24 @@ function AddPayment({ bookings, invoices, accounts, onDone }: {
 
   async function save() {
     setError('')
-    if (!bookingId) { setError(t('Select a booking', 'Выберите бронь')); return }
-    const amt = Number(amount)
-    if (!amt || amt <= 0) { setError(t('Enter an amount', 'Введите сумму')); return }
+    if (kind === 'client' && !clientId) { setError(t('Select a client', 'Выберите клиента')); return }
+    if (kind === 'supplier' && !partnerId) { setError(t('Select a supplier', 'Выберите поставщика')); return }
+    const allocations = rows
+      .filter((r) => r.targetId && Number(r.amount) > 0)
+      .map((r) => kind === 'client'
+        ? { booking_id: r.targetId, invoice_id: null, amount: Number(r.amount) }
+        : { booking_id: null, invoice_id: r.targetId, amount: Number(r.amount) })
+    if (allocations.length === 0) { setError(t('Add at least one line with an amount', 'Добавьте хотя бы одну строку с суммой')); return }
     setSaving(true)
-    const res = await addTransaction({
-      booking_id: bookingId,
-      account_id: accountId || null,
-      direction,
-      category,
-      invoice_id: direction === 'out' && invoiceId ? invoiceId : null,
-      amount: amt,
+    const res = await addPayment({
+      kind,
+      client_id: kind === 'client' ? clientId : null,
+      partner_id: kind === 'supplier' ? partnerId : null,
       currency,
+      account_id: accountId || null,
       paid_on: paidOn || null,
       notes: notes || null,
+      allocations,
     })
     setSaving(false)
     if (!res.ok) { setError(res.error || t('Error', 'Ошибка')); return }
@@ -167,33 +182,36 @@ function AddPayment({ bookings, invoices, accounts, onDone }: {
 
   return (
     <div style={{ border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '16px', background: 'var(--admin-card)', marginBottom: '20px' }}>
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
-        <div style={{ width: '260px' }}>
-          <label style={labelSt}>{t('Booking', 'Бронь')} *</label>
-          <select value={bookingId} onChange={(e) => setBookingId(e.target.value)} style={inputSt}>
-            <option value="">{t('— select —', '— выберите —')}</option>
-            {bookings.map((b) => <option key={b.id} value={b.id}>{bookingLabel(b)}</option>)}
-          </select>
-        </div>
-        <div style={{ width: '190px' }}>
-          <label style={labelSt}>{t('Type', 'Тип')}</label>
-          <select value={category} onChange={(e) => pickCategory(e.target.value)} style={inputSt}>
-            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{t(c.en, c.ru)}</option>)}
-          </select>
-        </div>
-        <div style={{ width: '150px' }}>
-          <label style={labelSt}>{t('Direction', 'Направление')}</label>
-          <select value={direction} onChange={(e) => setDirection(e.target.value as 'in' | 'out')} style={inputSt}>
-            <option value="in">{t('Income', 'Приход')}</option>
-            <option value="out">{t('Expense', 'Расход')}</option>
-          </select>
-        </div>
+      {/* тип платежа */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        {(['client', 'supplier'] as const).map((k) => (
+          <button key={k} type="button" onClick={() => switchKind(k)}
+            style={{
+              padding: '8px 14px', fontSize: '13px', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
+              borderRadius: '6px', border: `1px solid ${kind === k ? 'var(--admin-text-on-dark)' : 'var(--admin-border-card)'}`,
+              background: kind === k ? 'var(--admin-text-on-dark)' : 'transparent',
+              color: kind === k ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+            }}>
+            {k === 'client' ? t('Client payment', 'Оплата клиента') : t('Supplier payment', 'Оплата поставщику')}
+          </button>
+        ))}
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '10px' }}>
-        <div style={{ width: '140px' }}>
-          <label style={labelSt}>{t('Amount', 'Сумма')} *</label>
-          <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputSt} placeholder="0" />
+      {/* контрагент + счёт/валюта/дата */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '12px' }}>
+        <div style={{ width: '240px' }}>
+          <label style={labelSt}>{kind === 'client' ? t('Client', 'Клиент') : t('Supplier', 'Поставщик')} *</label>
+          {kind === 'client' ? (
+            <select value={clientId} onChange={(e) => setClientId(e.target.value)} style={inputSt}>
+              <option value="">{t('— select —', '— выберите —')}</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <select value={partnerId} onChange={(e) => setPartnerId(e.target.value)} style={inputSt}>
+              <option value="">{t('— select —', '— выберите —')}</option>
+              {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          )}
         </div>
         {activeAccounts.length > 0 && (
           <div style={{ width: '190px' }}>
@@ -214,19 +232,38 @@ function AddPayment({ bookings, invoices, accounts, onDone }: {
           <label style={labelSt}>{t('Date', 'Дата')}</label>
           <input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} style={inputSt} />
         </div>
-        {direction === 'out' && (
-          <div style={{ flex: 1, minWidth: '220px' }}>
-            <label style={labelSt}>{t('Invoice (which one)', 'Инвойс (по какому счёту)')}</label>
-            <select value={invoiceId} onChange={(e) => pickInvoice(e.target.value)} style={inputSt} disabled={!bookingId}>
-              <option value="">{t('— do not link —', '— не привязывать —')}</option>
-              {bookingInvoices.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {(i.invoice_number || 'Invoice')} · {i.supplier || '—'} · {t('balance', 'остаток')} {money(i.balance)} {i.currency}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      </div>
+
+      {/* строки разбивки: брони (клиент) или инвойсы (поставщик) */}
+      <div style={{ marginBottom: '10px' }}>
+        <label style={labelSt}>{kind === 'client' ? t('Bookings and amounts', 'Брони и суммы') : t('Invoices and amounts', 'Инвойсы и суммы')}</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {rows.map((r) => (
+            <div key={r.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select value={r.targetId} onChange={(e) => pickTarget(r.id, e.target.value)} style={{ ...inputSt, flex: 1, minWidth: '240px' }}>
+                <option value="">{kind === 'client' ? t('— booking —', '— бронь —') : t('— invoice —', '— инвойс —')}</option>
+                {kind === 'client'
+                  ? clientBookings.map((b) => <option key={b.id} value={b.id}>{bookingLabel(b)}</option>)
+                  : supplierInvoices.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {(i.invoice_number || 'Invoice')} · {t('balance', 'остаток')} {money(i.balance)} {i.currency}
+                      </option>
+                    ))}
+              </select>
+              <input type="number" step="0.01" value={r.amount} onChange={(e) => setRow(r.id, { amount: e.target.value })}
+                style={{ ...inputSt, width: '120px' }} placeholder="0" />
+              <button type="button" onClick={() => removeRow(r.id)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '15px', fontFamily: 'inherit', padding: '0 4px' }}>×</button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addRow}
+          style={{ marginTop: '8px', padding: '6px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          {kind === 'client' ? t('+ Add booking', '+ Добавить бронь') : t('+ Add invoice', '+ Добавить инвойс')}
+        </button>
+        <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--admin-text)' }}>
+          {t('Total', 'Итого')}: <strong>{money(total)} {currency}</strong>
+        </div>
       </div>
 
       <div style={{ marginBottom: '10px' }}>
@@ -439,13 +476,14 @@ function AccountsTab({ accounts }: { accounts: AccountRow[] }) {
   )
 }
 
-export default function AccountingClient({ invoices, transactions, bookings, receivables, accounts, partners, from, to }: {
+export default function AccountingClient({ invoices, transactions, bookings, receivables, accounts, partners, clients, from, to }: {
   invoices: InvoiceRow[]
   transactions: TransactionRow[]
   bookings: BookingOption[]
   receivables: ReceivableRow[]
   accounts: AccountRow[]
   partners: PartnerLite[]
+  clients: ClientLite[]
   from: string | null
   to: string | null
 }) {
@@ -542,7 +580,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
       <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>{t('Accounting', 'Бухгалтерия')}</h1>
       <p style={{ fontSize: '13px', color: 'var(--admin-text-muted)', margin: '0 0 20px' }}>
         {t('Supplier invoices and cash movement. Currencies are counted separately — no conversion.',
-          'Инвойсы поставщиков и движение денег. Валюты считаются раздельно — без конвертации.')}
+           'Инвойсы поставщиков и движение денег. Валюты считаются раздельно — без конвертации.')}
       </p>
 
       {/* период (фильтрует «Приход-расход» и выгрузку) + выгрузка в Excel */}
@@ -583,7 +621,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
       {tab === 'ledger' ? (
         <div>
           {adding ? (
-            <AddPayment bookings={bookings} invoices={invoices} accounts={accounts} onDone={() => { setAdding(false); router.refresh() }} />
+            <AddPayment bookings={bookings} invoices={invoices} accounts={accounts} clients={clients} partners={partners} onDone={() => { setAdding(false); router.refresh() }} />
           ) : (
             <button type="button" onClick={() => setAdding(true)}
               style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '20px' }}>
@@ -594,7 +632,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
           {transactions.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
               {t('No payments yet. Add the first one via “+ Add payment”.',
-                'Пока нет платежей. Добавьте первый через «+ Добавить платёж».')}
+                 'Пока нет платежей. Добавьте первый через «+ Добавить платёж».')}
             </div>
           ) : (
             <>
@@ -603,9 +641,9 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                   <thead>
                     <tr>
                       <th style={thSt}>{t('Date', 'Дата')}</th>
-                      <th style={thSt}>{t('Booking', 'Бронь')}</th>
                       <th style={thSt}>{t('Type', 'Тип')}</th>
-                      <th style={thSt}>{t('Invoice / supplier', 'Инвойс / поставщик')}</th>
+                      <th style={thSt}>{t('Client / supplier', 'Клиент / поставщик')}</th>
+                      <th style={thSt}>{t('For', 'По чему')}</th>
                       <th style={{ ...thSt, textAlign: 'right' }}>{t('Amount', 'Сумма')}</th>
                       <th style={thSt}></th>
                     </tr>
@@ -614,15 +652,20 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
                     {transactions.map((tx) => (
                       <tr key={tx.id}>
                         <td style={{ ...tdSt, whiteSpace: 'nowrap', color: 'var(--admin-text-muted)' }}>{tx.paid_on || '—'}</td>
-                        <td style={tdSt}>
-                          <Link href={`/admin/bookings/${tx.booking_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>
-                            {tx.booking_code || 'Booking'}
-                          </Link>
-                          {tx.client_name && <span style={{ color: 'var(--admin-text-muted)' }}> · {tx.client_name}</span>}
-                        </td>
                         <td style={tdSt}>{catLabel(tx.category)}</td>
+                        <td style={tdSt}>{(tx.direction === 'in' ? tx.client_name : tx.partner_name) || '—'}</td>
                         <td style={{ ...tdSt, color: 'var(--admin-text-muted)' }}>
-                          {tx.invoice_number ? `${tx.invoice_number}${tx.partner_name ? ` · ${tx.partner_name}` : ''}` : '—'}
+                          {tx.allocations.length > 0
+                            ? tx.allocations.map((a, i) => (
+                                <span key={i}>
+                                  {i > 0 && ', '}
+                                  {a.booking_id
+                                    ? <Link href={`/admin/bookings/${a.booking_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>{a.label}</Link>
+                                    : a.label}
+                                  {' '}({money(a.amount)})
+                                </span>
+                              ))
+                            : '—'}
                         </td>
                         <td style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600, color: tx.direction === 'in' ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
                           {tx.direction === 'in' ? '+' : '−'}{money(tx.amount)} {tx.currency}
@@ -698,7 +741,7 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
           {invoices.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
               {t('No invoices yet. Managers enter them inside bookings.',
-                'Пока нет инвойсов. Их заводят менеджеры в бронях.')}
+                 'Пока нет инвойсов. Их заводят менеджеры в бронях.')}
             </div>
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border-card)', borderRadius: '10px' }}>
