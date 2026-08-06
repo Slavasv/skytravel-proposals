@@ -257,3 +257,22 @@ export async function addServiceFromLibrary(
   revalidatePath(`/admin/bookings/${bookingId}`)
   return data as BookingService
 }
+
+// Проставить услуге источник-блок (для подтяжки адреса/телефона в ваучер).
+export async function setServiceSourceBlock(serviceId: string, blockId: string | null): Promise<void> {
+  const supabase = await createSupabaseServer()
+  await supabase.from('booking_services').update({ source_block_id: blockId }).eq('id', serviceId)
+}
+
+// Быстро создать отель в библиотеке (из карточки услуги).
+export async function createLibraryHotel(name: string): Promise<{ block_id: string; title: string } | null> {
+  const supabase = await createSupabaseServer()
+  const nm = name.trim()
+  if (!nm) return null
+  const { data, error } = await supabase
+    .from('content_blocks')
+    .insert({ type: 'hotel', title_ru: nm, title_en: nm, tags: [] })
+    .select('id').single()
+  if (error || !data) return null
+  return { block_id: data.id as string, title: nm }
+}
