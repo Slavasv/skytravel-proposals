@@ -31,6 +31,7 @@ const tdSt: React.CSSProperties = {
 export default function AnalyticsClient({ rows }: { rows: ProfitRow[] }) {
     const t = useT()
     const [groupBy, setGroupBy] = useState<GroupKey>('client')
+    const [search, setSearch] = useState('')
 
     const GROUPS: [GroupKey, string][] = [
         ['client', t('Client', 'Клиент')],
@@ -59,11 +60,19 @@ export default function AnalyticsClient({ rows }: { rows: ProfitRow[] }) {
         return Array.from(m.values()).sort((a, b) => b.total - a.total)
     }, [rows, groupBy])
 
-    const totals = useMemo(() => {
+    const filteredAgg = useMemo(() => {
+        const q = search.trim().toLowerCase()
+        if (!q) return agg
+        return agg.filter((row) => row.label.toLowerCase().includes(q))
+    }, [agg, search])
+
+    const filteredTotals = useMemo(() => {
         const byCur: Record<string, number> = {}
-        for (const r of rows) byCur[r.currency] = (byCur[r.currency] ?? 0) + r.profit
+        for (const row of filteredAgg) {
+            for (const c of Object.keys(row.byCur)) byCur[c] = (byCur[c] ?? 0) + row.byCur[c]
+        }
         return byCur
-    }, [rows])
+    }, [filteredAgg])
 
     const inputStyle: React.CSSProperties = {
         padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
@@ -87,10 +96,22 @@ export default function AnalyticsClient({ rows }: { rows: ProfitRow[] }) {
                 </select>
             </div>
 
-            {agg.length === 0 ? (
+            <div style={{ marginBottom: '18px' }}>
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('Search…', 'Поиск…')}
+                    style={{ ...inputStyle, width: '100%' }}
+                />
+            </div>
+
+            {filteredAgg.length === 0 ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-                    {t('No profit data yet. Fill Gross/Net in booking services.',
-                        'Пока нет данных о прибыли. Заполните Брутто/Нетто в услугах броней.')}
+                    {agg.length === 0
+                        ? t('No profit data yet. Fill Gross/Net in booking services.',
+                            'Пока нет данных о прибыли. Заполните Брутто/Нетто в услугах броней.')
+                        : t('Nothing matches your search.', 'Ничего не найдено по запросу.')}
                 </div>
             ) : (
                 <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border-card)', borderRadius: '10px' }}>
@@ -102,7 +123,7 @@ export default function AnalyticsClient({ rows }: { rows: ProfitRow[] }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {agg.map((row) => (
+                                {filteredAgg.map((row) => (
                                 <tr key={row.label}>
                                     <td style={tdSt}>{row.label}</td>
                                     {currencies.map((c) => (
@@ -117,8 +138,8 @@ export default function AnalyticsClient({ rows }: { rows: ProfitRow[] }) {
                             <tr>
                                 <td style={{ ...tdSt, fontWeight: 700, borderTop: '2px solid var(--admin-border)' }}>{t('Total', 'Итого')}</td>
                                 {currencies.map((c) => (
-                                    <td key={c} style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700, borderTop: '2px solid var(--admin-border)', color: (totals[c] ?? 0) >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
-                                        {money(totals[c] ?? 0)}
+                                    <td key={c} style={{ ...tdSt, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700, borderTop: '2px solid var(--admin-border)', color: (filteredTotals[c] ?? 0) >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
+                                        {money(filteredTotals[c] ?? 0)}
                                     </td>
                                 ))}
                             </tr>
