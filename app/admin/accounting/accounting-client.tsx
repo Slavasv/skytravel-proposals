@@ -713,8 +713,12 @@ export default function AccountingClient({ invoices, transactions, bookings, rec
             {t('Reset', 'Сбросить')}
           </button>
         )}
+        <a href="/admin/accounting/analytics"
+          style={{ marginLeft: 'auto', padding: '9px 16px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: 'var(--admin-accent)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>
+          {t('Analytics', 'Аналитика')}
+        </a>
         <a href={exportUrl}
-          style={{ marginLeft: 'auto', padding: '9px 16px', fontSize: '13px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>
+          style={{ marginLeft: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>
           {t('Export to Excel', 'Выгрузить в Excel')}
         </a>
       </div>
