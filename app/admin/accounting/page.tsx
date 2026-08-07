@@ -150,6 +150,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
     const inv = one(r.supplier_invoices as unknown)
     const invPartner = inv ? one((inv as { partners?: unknown }).partners) : null
     const directPartner = one((r as { partner?: unknown }).partner)
+    const toAcc = one((r as { to_account?: unknown }).to_account)
     return {
       id: r.id,
       booking_id: r.booking_id,
@@ -168,6 +169,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       notes: r.notes,
       account_id: r.account_id ?? null,
       account_name: r.account_id ? (accountName.get(r.account_id) ?? null) : null,
+      to_account_id: (r as { to_account_id?: string | null }).to_account_id ?? null,
+      to_account_name: (toAcc as { name?: string | null } | null)?.name ?? null,
+      to_amount: (r as { to_amount?: number | null }).to_amount ?? null,
+      to_currency: (r as { to_currency?: string | null }).to_currency ?? null,
+      commission: Number((r as { commission?: number | null }).commission ?? 0),
+      commission_currency: (r as { commission_currency?: string | null }).commission_currency ?? null,
+      debit_amount: (r as { debit_amount?: number | null }).debit_amount ?? null,
+      debit_currency: (r as { debit_currency?: string | null }).debit_currency ?? null,
       allocations: allocByTx.get(r.id) ?? [],
     }
   })

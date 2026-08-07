@@ -57,11 +57,19 @@ export type ClientLite = { id: string; name: string }
 // ---- Платёж с разбивкой (аллокациями) ----
 export type PaymentAllocation = { booking_id: string | null; invoice_id: string | null; amount: number }
 export type NewPayment = {
-  kind: 'client' | 'supplier'
+  kind: 'client' | 'supplier' | 'exchange'
   client_id: string | null
   partner_id: string | null
-  currency: string
   account_id: string | null
+  currency: string
+  amount: number
+  to_account_id: string | null
+  to_amount: number | null
+  to_currency: string | null
+  commission: number
+  commission_currency: string | null
+  debit_amount: number | null
+  debit_currency: string | null
   paid_on: string | null
   notes: string | null
   allocations: PaymentAllocation[]
@@ -76,11 +84,42 @@ export async function addPayment(input: NewPayment): Promise<{ ok: boolean; erro
     companyId = me?.company_id ?? null
   }
 
+  const commission = input.commission > 0 ? input.commission : 0
+  const commissionCurrency = commission > 0 ? (input.commission_currency || input.currency) : null
+
+  // ОБМЕН ВАЛЮТ: перевод между счетами, без броней/инвойсов
+  if (input.kind === 'exchange') {
+    if (!input.account_id || !input.to_account_id) return { ok: false, error: 'Выберите оба счёта' }
+    if (!(input.amount > 0) || !(input.to_amount && input.to_amount > 0)) return { ok: false, error: 'Введите суммы обмена' }
+    const { error } = await supabase.from('transactions').insert({
+      company_id: companyId,
+      booking_id: null,
+      direction: 'out',
+      category: 'exchange',
+      client_id: null,
+      partner_id: null,
+      account_id: input.account_id,
+      amount: input.amount,
+      currency: input.currency,
+      to_account_id: input.to_account_id,
+      to_amount: input.to_amount,
+      to_currency: input.to_currency,
+      commission,
+      commission_currency: commissionCurrency,
+      paid_on: input.paid_on,
+      notes: input.notes,
+      created_by: user?.id ?? null,
+    })
+    if (error) return { ok: false, error: error.message }
+    revalidatePath('/admin/accounting')
+    return { ok: true }
+  }
+
+  // ОПЛАТА КЛИЕНТА / ПОСТАВЩИКУ
   const allocs = input.allocations.filter((a) => a.amount > 0 && (a.booking_id || a.invoice_id))
   if (allocs.length === 0) return { ok: false, error: 'Добавьте хотя бы одну строку с суммой' }
   const total = allocs.reduce((s, a) => s + a.amount, 0)
 
-  // для оплаты поставщику подтягиваем бронь из инвойса
   const invoiceIds = allocs.map((a) => a.invoice_id).filter((x): x is string => !!x)
   const invBooking = new Map<string, string | null>()
   if (invoiceIds.length) {
@@ -101,6 +140,10 @@ export async function addPayment(input: NewPayment): Promise<{ ok: boolean; erro
     amount: total,
     currency: input.currency,
     account_id: input.account_id,
+    debit_amount: input.debit_amount,
+    debit_currency: input.debit_amount != null ? (input.debit_currency || input.currency) : null,
+    commission,
+    commission_currency: commissionCurrency,
     paid_on: input.paid_on,
     notes: input.notes,
     created_by: user?.id ?? null,
