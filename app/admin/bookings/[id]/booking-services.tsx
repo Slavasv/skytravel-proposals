@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   addService, updateService, deleteService, duplicateService,
   type BookingService, type PartnerOption, type BookingTraveller,
@@ -50,6 +51,7 @@ function ServiceCard({
   onChange: (id: string, patch: Partial<BookingService>) => void
 }) {
   const t = useT()
+  const router = useRouter()
   const [form, setForm] = useState({
     service_type: service.service_type || 'Accomodation',
     partner_id: service.partner_id || '',
@@ -89,8 +91,11 @@ function ServiceCard({
     const created = await createLibraryHotel(newHotelName)
     if (!created) return
     set('description', created.title)
-    setServiceSourceBlock(service.id, created.block_id).catch(() => { })
+    // сразу сохраняем название и привязку, потом перекидываем в библиотеку — там агент заполнит всё
+    await updateService(service.id, { description: created.title })
+    await setServiceSourceBlock(service.id, created.block_id)
     setCreatingHotel(false); setNewHotelName('')
+    router.push(`/admin/library/${created.block_id}?returnTo=${encodeURIComponent(`/admin/bookings/${service.booking_id}`)}`)
   }
 
   useEffect(() => {
