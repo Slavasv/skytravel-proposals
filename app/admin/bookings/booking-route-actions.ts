@@ -3,7 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getUiLang } from '@/lib/get-profile'
 import { revalidatePath } from 'next/cache'
-import type { BookingService } from './actions'
+import type { BookingService, TransferDetails } from './actions'
 
 // Кандидат-услуга, собранная из маршрута предложения (для дропдауна в брони).
 export type RouteServiceCandidate = {
@@ -17,6 +17,7 @@ export type RouteServiceCandidate = {
   room_type: string | null
   meal_plan: string | null
   nights: string | null
+  transfer_details?: TransferDetails | null
   block_id: string | null
 }
 
@@ -79,7 +80,7 @@ export async function getRouteServices(bookingId: string): Promise<RouteServiceC
 
   const { data: daysRaw } = await supabase
     .from('days')
-    .select(`day_number, date, day_blocks ( sort_order, price, guests, selected_rooms, from_ru, from_en, to_ru, to_en, content_blocks ( id, type, title_ru, title_en, rooms ) )`)
+    .select(`day_number, date, day_blocks ( sort_order, price, guests, selected_rooms, time, from_ru, from_en, to_ru, to_en, content_blocks ( id, type, title_ru, title_en, vehicle_ru, vehicle_en, rooms ) )`)
     .eq('variant_id', variant.id)
     .order('day_number', { ascending: true })
 
@@ -143,10 +144,22 @@ export async function getRouteServices(bookingId: string): Promise<RouteServiceC
         const from = pick(lang, b.from_ru, b.from_en)
         const to = pick(lang, b.to_ru, b.to_en)
         const route = [from, to].filter(Boolean).join(' → ')
+        const vehicle = pick(lang, cb.vehicle_ru, cb.vehicle_en)
+        // из предложения тянем как One Way: дата/время/откуда/куда/транспорт.
+        // транспорт — текстом (в предложении это vehicle_ru/en), в брони агент при желании
+        // выберет из библиотеки. Партнёр/нетто/комиссию агент вписывает вручную.
+        const td: TransferDetails = {
+          type: 'one_way',
+          vehicle,
+          vehicle_block_id: null,
+          legs: [{ date: ci || '', time: str(b.time), from, to }],
+          rental_hours: '', pickup: '', end_other: false, dropoff: '', comments: '',
+        }
         out.push({
           key: `tr:${out.length}`, service_type: 'Transfer',
           description: [title, route].filter(Boolean).join(' · '), gross: (b.price as number) ?? null, currency,
           check_in: ci, check_out: null, room_type: null, meal_plan: null, nights: null,
+          transfer_details: td,
           block_id: str(cb.id) || null,
         })
       }
@@ -179,10 +192,12 @@ export async function addServiceFromRoute(
       room_type: c.room_type,
       meal_plan: c.meal_plan,
       nights: c.nights,
+      transfer_details: c.transfer_details ?? null,
       source_block_id: c.block_id,
       sort_order: nextOrder,
     })
     .select().single()
+
 
   if (error) return null
   revalidatePath(`/admin/bookings/${bookingId}`)
@@ -275,4 +290,86 @@ export async function createLibraryHotel(name: string): Promise<{ block_id: stri
     .select('id').single()
   if (error || !data) return null
   return { block_id: data.id as string, title: nm }
+}
+
+// ---- Транспорт из библиотеки (MODE OF TRANSPORT — как отели) ----
+
+export type LibraryVehicle = { block_id: string; title: string }
+
+export async function getLibraryVehicles(): Promise<LibraryVehicle[]> {
+  const supabase = await createSupabaseServer()
+  const lang = await getUiLang()
+  const { data } = await supabase
+    .from('content_blocks')
+    .select('id, title_ru, title_en, vehicle_ru, vehicle_en')
+    .eq('type', 'transfer')
+    .is('archived_at', null)
+    .order('title_ru', { ascending: true })
+  const rows = (data ?? []) as Record<string, unknown>[]
+  return rows.map((b) => ({
+    block_id: str(b.id),
+    title: pick(lang, b.vehicle_ru, b.vehicle_en) || pick(lang, b.title_ru, b.title_en) || '—',
+  }))
+}
+
+export async function createLibraryVehicle(name: string): Promise<LibraryVehicle | null> {
+  const supabase = await createSupabaseServer()
+  const nm = name.trim()
+  if (!nm) return null
+  const { data, error } = await supabase
+    .from('content_blocks')
+    .insert({ type: 'transfer', title_ru: nm, title_en: nm, vehicle_ru: nm, vehicle_en: nm, tags: [] })
+    .select('id').single()
+  if (error || !data) return null
+  return { block_id: data.id as string, title: nm }
+}
+
+// ---- Точки маршрута (для выпадашки FROM/TO в трансфере) ----
+// Собираем: все from/to из трансферных блоков предложения + названия отелей.
+
+export async function getRoutePoints(bookingId: string): Promise<string[]> {
+  const supabase = await createSupabaseServer()
+  const lang = await getUiLang()
+
+  const { proposalId } = await resolveProposalId(supabase, bookingId)
+  if (!proposalId) return []
+
+  const { data: variants } = await supabase
+    .from('proposal_variants').select('id, is_selected, sort_order')
+    .eq('proposal_id', proposalId).order('sort_order', { ascending: true })
+  const variant = (variants ?? []).find((v) => v.is_selected) ?? (variants ?? [])[0]
+  if (!variant) return []
+
+  const { data: daysRaw } = await supabase
+    .from('days')
+    .select(`day_blocks ( from_ru, from_en, to_ru, to_en, content_blocks ( type, title_ru, title_en ) )`)
+    .eq('variant_id', variant.id)
+
+  type DRow = { day_blocks: Record<string, unknown>[] | null }
+  const days = (daysRaw ?? []) as unknown as DRow[]
+
+  const points: string[] = []
+  for (const d of days) {
+    for (const b of d.day_blocks ?? []) {
+      const cb = (b.content_blocks as Record<string, unknown>) || {}
+      const type = str(cb.type)
+      if (type === 'transfer') {
+        const from = pick(lang, b.from_ru, b.from_en)
+        const to = pick(lang, b.to_ru, b.to_en)
+        if (from) points.push(from)
+        if (to) points.push(to)
+      } else if (type === 'hotel') {
+        const title = pick(lang, cb.title_ru, cb.title_en)
+        if (title) points.push(title)
+      }
+    }
+  }
+  // дедуп без учёта регистра, сохраняя первый вариант написания
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const p of points) {
+    const k = p.trim().toLowerCase()
+    if (k && !seen.has(k)) { seen.add(k); out.push(p.trim()) }
+  }
+  return out.sort((a, b) => a.localeCompare(b))
 }
