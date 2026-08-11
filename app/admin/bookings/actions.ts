@@ -14,6 +14,20 @@ export type BookingUpdate = {
   notes?: string | null
 }
 
+// Трансфер: плечо (одна связка дата/время + откуда/куда) и специфика в jsonb.
+export type TransferLeg = { date: string; time: string; from: string; to: string }
+export type TransferDetails = {
+  type: 'one_way' | 'round_trip' | 'hourly'
+  vehicle: string                 // MODE OF TRANSPORT — название (из библиотеки или вручную)
+  vehicle_block_id: string | null // ссылка на блок библиотеки транспорта, если выбран
+  legs: TransferLeg[]             // one_way: 1 плечо, round_trip: 2
+  rental_hours: string            // hourly — часы аренды
+  pickup: string                  // hourly — точка подачи
+  end_other: boolean              // hourly — «закончить в другом месте»
+  dropoff: string                 // hourly — точка высадки (если end_other)
+  comments: string
+}
+
 export type BookingService = {
   id: string
   booking_id: string
@@ -31,6 +45,7 @@ export type BookingService = {
   meal_plan: string | null
   nights: string | null
   guest_ids: string[] | null
+  transfer_details: TransferDetails | null
   sort_order: number
 }
 
@@ -49,6 +64,7 @@ export type ServiceUpdate = {
   meal_plan?: string | null
   nights?: string | null
   guest_ids?: string[] | null
+  transfer_details?: TransferDetails | null
 }
 
 // ============ Бронирование ============
@@ -251,6 +267,7 @@ export async function duplicateService(id: string): Promise<BookingService | nul
       meal_plan: original.meal_plan,
       nights: original.nights,
       source_block_id: original.source_block_id ?? null,
+      transfer_details: original.transfer_details ?? null,
       guest_ids: original.service_type === 'Accomodation' ? [] : (original.guest_ids ?? null),
       sort_order: original.sort_order + 1,
     })

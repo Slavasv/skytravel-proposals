@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import {
   addService, updateService, deleteService, duplicateService,
   type BookingService, type PartnerOption, type BookingTraveller,
+  type TransferDetails, type TransferLeg,
 } from '../actions'
-import { getRouteServices, addServiceFromRoute, getLibraryHotels, setServiceSourceBlock, createLibraryHotel, type RouteServiceCandidate, type LibraryHotel } from '../booking-route-actions'
+import { getRouteServices, addServiceFromRoute, getLibraryHotels, setServiceSourceBlock, createLibraryHotel, getLibraryVehicles, createLibraryVehicle, getRoutePoints, type RouteServiceCandidate, type LibraryHotel, type LibraryVehicle } from '../booking-route-actions'
 import PartnerPicker from '@/app/admin/_components/partner-picker'
 import { useT } from '@/lib/i18n-client'
 
@@ -39,13 +40,27 @@ function money(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
+const emptyLeg = (): TransferLeg => ({ date: '', time: '', from: '', to: '' })
+const defaultTransfer = (): TransferDetails => ({
+  type: 'one_way', vehicle: '', vehicle_block_id: null,
+  legs: [emptyLeg()], rental_hours: '', pickup: '', end_other: false, dropoff: '', comments: '',
+})
+
+const TRANSFER_TYPES: { value: TransferDetails['type']; label_en: string; label_ru: string }[] = [
+  { value: 'one_way', label_en: 'One Way', label_ru: 'В одну сторону' },
+  { value: 'round_trip', label_en: 'Round Trip', label_ru: 'Туда-обратно' },
+  { value: 'hourly', label_en: 'Hourly', label_ru: 'Почасовой' },
+]
+
 function ServiceCard({
-  service, partners, travellers, library, onRemove, onDuplicate, onChange,
+  service, partners, travellers, library, vehicles, routePoints, onRemove, onDuplicate, onChange,
 }: {
   service: BookingService
   partners: PartnerOption[]
   travellers: BookingTraveller[]
   library: LibraryHotel[]
+  vehicles: LibraryVehicle[]
+  routePoints: string[]
   onRemove: (id: string) => void
   onDuplicate: (id: string) => void
   onChange: (id: string, patch: Partial<BookingService>) => void
@@ -98,6 +113,48 @@ function ServiceCard({
     router.push(`/admin/library/${created.block_id}?returnTo=${encodeURIComponent(`/admin/bookings/${service.booking_id}`)}`)
   }
 
+  // ---- Трансфер ----
+  const [td, setTd] = useState<TransferDetails>(() => service.transfer_details ?? defaultTransfer())
+  const [creatingVehicle, setCreatingVehicle] = useState(false)
+  const [newVehicleName, setNewVehicleName] = useState('')
+
+  function patchTd(patch: Partial<TransferDetails>) {
+    setTd((p) => ({ ...p, ...patch }))
+    setSaved(false)
+  }
+  function patchLeg(i: number, patch: Partial<TransferLeg>) {
+    setTd((p) => ({ ...p, legs: p.legs.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) }))
+    setSaved(false)
+  }
+  function setTransferType(type: TransferDetails['type']) {
+    setTd((p) => {
+      if (type === 'round_trip') {
+        const first = p.legs[0] ?? emptyLeg()
+        // 2-е плечо по умолчанию зеркалит первое: пункт-2 → пункт-1
+        const second = p.legs[1] ?? { date: '', time: '', from: first.to, to: first.from }
+        return { ...p, type, legs: [first, second] }
+      }
+      if (type === 'one_way') return { ...p, type, legs: [p.legs[0] ?? emptyLeg()] }
+      return { ...p, type }
+    })
+    setSaved(false)
+  }
+  function applyVehicle(blockId: string) {
+    const v = vehicles.find((x) => x.block_id === blockId)
+    if (!v) return
+    patchTd({ vehicle: v.title, vehicle_block_id: v.block_id })
+  }
+  async function createVehicle() {
+    const created = await createLibraryVehicle(newVehicleName)
+    if (!created) return
+    const nextTd = { ...td, vehicle: created.title, vehicle_block_id: created.block_id }
+    setTd(nextTd)
+    // сохраняем привязку до редиректа, иначе она потеряется; потом уходим в редактор блока
+    await updateService(service.id, { service_type: 'Transfer', transfer_details: nextTd })
+    setCreatingVehicle(false); setNewVehicleName('')
+    router.push(`/admin/library/${created.block_id}?returnTo=${encodeURIComponent(`/admin/bookings/${service.booking_id}`)}`)
+  }
+
   useEffect(() => {
     if (first.current) { first.current = false; return }
     if (timer.current) clearTimeout(timer.current)
@@ -119,18 +176,20 @@ function ServiceCard({
         meal_plan: form.meal_plan || null,
         nights: form.nights || null,
         guest_ids: form.guest_ids,
+        transfer_details: form.service_type === 'Transfer' ? td : null,
       })
       onChange(service.id, { gross: grossNum, net: netNum, currency: form.currency })
       setSaved(true)
     }, 1200)
     return () => { if (timer.current) clearTimeout(timer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form])
+  }, [form, td])
 
   const gross = form.gross === '' ? 0 : Number(form.gross)
   const net = form.net === '' ? 0 : Number(form.net)
   const commission = gross - net
   const isHotel = form.service_type === 'Accomodation'
+  const isTransfer = form.service_type === 'Transfer'
 
 
   return (
@@ -233,6 +292,125 @@ function ServiceCard({
         </div>
       )}
 
+      {/* ТРАНСФЕР: тип, транспорт, плечи / почасовой, комментарий */}
+      {isTransfer && (
+        <div style={{ marginBottom: '10px', padding: '12px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-input)' }}>
+          <datalist id={`rp-${service.id}`}>
+            {routePoints.map((p) => <option key={p} value={p} />)}
+          </datalist>
+
+          {/* тип + транспорт */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '10px' }}>
+            <div>
+              <label style={labelSt}>{t('Type of transfer', 'Тип трансфера')}</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {TRANSFER_TYPES.map((tt) => {
+                  const on = td.type === tt.value
+                  return (
+                    <button key={tt.value} type="button" onClick={() => setTransferType(tt.value)}
+                      style={{
+                        fontSize: '12px', padding: '7px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1px solid ${on ? 'var(--admin-accent)' : 'var(--admin-border-card)'}`,
+                        background: on ? 'var(--admin-accent)' : 'transparent', color: on ? '#fff' : 'var(--admin-text)',
+                      }}>
+                      {t(tt.label_en, tt.label_ru)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={labelSt}>{t('Mode of transport', 'Транспорт')}</label>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <select value="" onChange={(e) => { const v = e.target.value; if (v === '__new__') setCreatingVehicle(true); else if (v) applyVehicle(v) }} style={{ ...inputSt, maxWidth: '220px' }}>
+                  <option value="">{td.vehicle || t('Pick vehicle from library…', 'Выбрать транспорт…')}</option>
+                  {vehicles.map((v) => <option key={v.block_id} value={v.block_id}>{v.title}</option>)}
+                  <option value="__new__">{t('+ Create new vehicle', '+ Создать транспорт')}</option>
+                </select>
+                {creatingVehicle && (
+                  <>
+                    <input type="text" value={newVehicleName} autoFocus onChange={(e) => setNewVehicleName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') createVehicle() }}
+                      placeholder={t('Mercedes V-Class, Seaplane…', 'Mercedes V-Class, гидроплан…')} style={{ ...inputSt, width: '180px' }} />
+                    <button type="button" onClick={createVehicle}
+                      style={{ padding: '6px 12px', fontSize: '12px', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {t('Create', 'Создать')}
+                    </button>
+                  </>
+                )}
+              </div>
+              {td.vehicle && !creatingVehicle && (
+                <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>{td.vehicle}</div>
+              )}
+            </div>
+          </div>
+
+          {/* плечи для one_way / round_trip */}
+          {td.type !== 'hourly' && td.legs.map((leg, i) => (
+            <div key={i} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px', alignItems: 'flex-end' }}>
+              {td.type === 'round_trip' && (
+                <div style={{ ...labelSt, width: '100%', marginBottom: 0 }}>{i === 0 ? t('Outbound', 'Туда') : t('Return', 'Обратно')}</div>
+              )}
+              <div style={{ width: '150px' }}>
+                <label style={labelSt}>{t('Date', 'Дата')}</label>
+                <input type="date" value={leg.date} onChange={(e) => patchLeg(i, { date: e.target.value })} style={inputSt} />
+              </div>
+              <div style={{ width: '110px' }}>
+                <label style={labelSt}>{t('Time', 'Время')}</label>
+                <input type="time" value={leg.time} onChange={(e) => patchLeg(i, { time: e.target.value })} style={inputSt} />
+              </div>
+              <div style={{ flex: 1, minWidth: '150px' }}>
+                <label style={labelSt}>{t('From', 'Откуда')}</label>
+                <input type="text" list={`rp-${service.id}`} value={leg.from} onChange={(e) => patchLeg(i, { from: e.target.value })} style={inputSt} placeholder={t('Airport, hotel…', 'Аэропорт, отель…')} />
+              </div>
+              <div style={{ flex: 1, minWidth: '150px' }}>
+                <label style={labelSt}>{t('To', 'Куда')}</label>
+                <input type="text" list={`rp-${service.id}`} value={leg.to} onChange={(e) => patchLeg(i, { to: e.target.value })} style={inputSt} placeholder={t('Airport, hotel…', 'Аэропорт, отель…')} />
+              </div>
+            </div>
+          ))}
+
+          {/* почасовой */}
+          {td.type === 'hourly' && (
+            <>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px', alignItems: 'flex-end' }}>
+                <div style={{ width: '150px' }}>
+                  <label style={labelSt}>{t('Rental hours', 'Часов аренды')}</label>
+                  <input type="text" value={td.rental_hours} onChange={(e) => patchTd({ rental_hours: e.target.value })} style={inputSt} placeholder="8" />
+                </div>
+                <div style={{ width: '150px' }}>
+                  <label style={labelSt}>{t('Date', 'Дата')}</label>
+                  <input type="date" value={td.legs[0]?.date ?? ''} onChange={(e) => patchLeg(0, { date: e.target.value })} style={inputSt} />
+                </div>
+                <div style={{ width: '110px' }}>
+                  <label style={labelSt}>{t('Start time', 'Начало')}</label>
+                  <input type="time" value={td.legs[0]?.time ?? ''} onChange={(e) => patchLeg(0, { time: e.target.value })} style={inputSt} />
+                </div>
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                  <label style={labelSt}>{t('Pick-up location', 'Точка подачи')}</label>
+                  <input type="text" list={`rp-${service.id}`} value={td.pickup} onChange={(e) => patchTd({ pickup: e.target.value })} style={inputSt} />
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--admin-text)', marginBottom: '8px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={td.end_other} onChange={(e) => patchTd({ end_other: e.target.checked })} />
+                {t('End at another location', 'Закончить в другом месте')}
+              </label>
+              {td.end_other && (
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={labelSt}>{t('Drop-off location', 'Точка высадки')}</label>
+                  <input type="text" list={`rp-${service.id}`} value={td.dropoff} onChange={(e) => patchTd({ dropoff: e.target.value })} style={inputSt} />
+                </div>
+              )}
+            </>
+          )}
+
+          <div>
+            <label style={labelSt}>{t('Comments', 'Комментарий')}</label>
+            <input type="text" value={td.comments} onChange={(e) => patchTd({ comments: e.target.value })} style={inputSt} placeholder={t('Flight no., meet & greet, luggage…', 'Номер рейса, встреча с табличкой, багаж…')} />
+          </div>
+        </div>
+      )}
+
       {/* гости в номере — если путешественников несколько и они по разным номерам */}
       {isHotel && travellers.length > 0 && (
         <div style={{ marginBottom: '10px' }}>
@@ -306,12 +484,16 @@ export default function BookingServices({
   const [routeOpen, setRouteOpen] = useState(false)
   const [pulling, setPulling] = useState(false)
   const [library, setLibrary] = useState<LibraryHotel[]>([])
+  const [vehicles, setVehicles] = useState<LibraryVehicle[]>([])
+  const [routePoints, setRoutePoints] = useState<string[]>([])
 
-  // подтягиваем услуги из маршрута предложения и отели из библиотеки (для дропдаунов)
+  // подтягиваем услуги из маршрута предложения, отели/транспорт из библиотеки и точки маршрута (для дропдаунов)
   useEffect(() => {
     let cancelled = false
     getRouteServices(bookingId).then((rows) => { if (!cancelled) setRoute(rows) }).catch(() => { })
     getLibraryHotels().then((rows) => { if (!cancelled) setLibrary(rows) }).catch(() => { })
+    getLibraryVehicles().then((rows) => { if (!cancelled) setVehicles(rows) }).catch(() => { })
+    getRoutePoints(bookingId).then((rows) => { if (!cancelled) setRoutePoints(rows) }).catch(() => { })
     return () => { cancelled = true }
   }, [bookingId])
 
@@ -376,6 +558,7 @@ export default function BookingServices({
         ) : (
           services.map((s) => (
             <ServiceCard key={s.id} service={s} partners={partners} travellers={travellers} library={library}
+              vehicles={vehicles} routePoints={routePoints}
               onRemove={handleRemove} onDuplicate={handleDuplicate} onChange={handleChange} />
           ))
         )}
