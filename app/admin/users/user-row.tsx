@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteUser, resetPassword, toggleRole } from './actions'
+import { deleteUser, resetPassword, toggleRole, updateUserName } from './actions'
 import { useT } from '@/lib/i18n-client'
 
 type User = {
   id: string
   email: string
+  name: string
   role: string
   created_at: string
   last_sign_in: string | null
@@ -24,6 +25,15 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
     setLoading(true)
     setMenuOpen(false)
     await toggleRole(user.id, role)
+    setLoading(false)
+  }
+
+  async function handleRename() {
+    const newName = prompt(t('Name for this user:', 'Имя сотрудника:'), user.name || '')
+    if (newName === null) return
+    setLoading(true)
+    setMenuOpen(false)
+    await updateUserName(user.id, newName)
     setLoading(false)
   }
 
@@ -61,11 +71,14 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '14px', color: 'var(--admin-text)' }}>{user.email}</span>
+          <span style={{ fontSize: '14px', color: 'var(--admin-text)' }}>{user.name || user.email}</span>
           {isSelf && (
             <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', letterSpacing: '0.06em' }}>{t('you', 'вы')}</span>
           )}
         </div>
+        {user.name && (
+          <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{user.email}</span>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{
             fontSize: '11px',
@@ -132,6 +145,14 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                     {t('Make', 'Назначить')} {r}
                   </button>
                 ))}
+                <button
+                  onClick={handleRename}
+                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                >
+                  {t('Rename', 'Переименовать')}
+                </button>
                 <button
                   onClick={handleResetPassword}
                   style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}

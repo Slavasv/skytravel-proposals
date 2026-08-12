@@ -6,7 +6,7 @@ import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { revalidatePath } from 'next/cache'
 
-export async function createUser(email: string, password: string, role: 'admin' | 'manager' | 'accountant') {
+export async function createUser(email: string, password: string, role: 'admin' | 'manager' | 'accountant', fullName?: string) {
   // Проверяем, что вызывающий — owner или admin, и узнаём его компанию
   const profile = await getProfile()
   const lang = profile?.ui_language ?? 'en'
@@ -42,9 +42,20 @@ export async function createUser(email: string, password: string, role: 'admin' 
   // Ставим роль И привязываем к компании создателя
   await admin
     .from('profiles')
-    .update({ role, company_id: creatorProfile.company_id })
+    .update({ role, company_id: creatorProfile.company_id, full_name: fullName?.trim() || null })
     .eq('id', data.user.id)
 
+  revalidatePath('/admin/users')
+}
+
+// Задать/изменить имя сотрудника (owner/admin, в своей компании).
+export async function updateUserName(id: string, fullName: string) {
+  const { admin } = await assertCanManageUser(id)
+  const { error } = await admin
+    .from('profiles')
+    .update({ full_name: fullName.trim() || null })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
   revalidatePath('/admin/users')
 }
 
