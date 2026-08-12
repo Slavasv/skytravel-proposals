@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n-client'
 export default function CreateUserForm() {
   const t = useT()
   const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'manager' | 'admin' | 'accountant'>('manager')
@@ -18,7 +19,8 @@ export default function CreateUserForm() {
     setError('')
     setLoading(true)
     try {
-      await createUser(email, password, role)
+      await createUser(email, password, role, name)
+      setName('')
       setEmail('')
       setPassword('')
       setRole('manager')
@@ -66,12 +68,28 @@ export default function CreateUserForm() {
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('Name (e.g. Sergey M.)', 'Имя (напр. Сергей М.)')}
+            autoFocus
+            style={{
+              padding: '10px 12px',
+              fontSize: '14px',
+              background: 'var(--admin-card)',
+              border: '1px solid var(--admin-border)',
+              borderRadius: '6px',
+              color: 'var(--admin-text)',
+              fontFamily: 'inherit',
+              outline: 'none',
+            }}
+          />
+          <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('Email', 'Email')}
             required
-            autoFocus
             style={{
               padding: '10px 12px',
               fontSize: '14px',

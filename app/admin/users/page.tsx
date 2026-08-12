@@ -29,7 +29,7 @@ export default async function UsersPage() {
   // Грузим только профили своей компании
   const { data: profiles } = await adminClient
     .from('profiles')
-    .select('id, email, role, created_at, company_id')
+    .select('id, email, role, created_at, company_id, full_name')
     .eq('company_id', meProfile.company_id)
 
   const ownIds = new Set((profiles ?? []).map((p) => p.id))
@@ -60,6 +60,7 @@ export default async function UsersPage() {
   const enriched = filteredUsers.map((u) => ({
     id: u.id,
     email: u.email ?? '',
+    name: profileMap[u.id]?.full_name ?? '',
     role: profileMap[u.id]?.role ?? 'manager',
     created_at: u.created_at,
     last_sign_in: u.last_sign_in_at ?? null,

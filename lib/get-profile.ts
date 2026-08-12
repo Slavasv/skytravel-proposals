@@ -4,6 +4,7 @@ import { normalizeLang, type UiLang } from './i18n'
 export type Profile = {
   id: string
   email: string
+  full_name: string | null
   role: 'superadmin' | 'owner' | 'admin' | 'manager' | 'accountant'
   company_name: string | null
   ui_language: UiLang
@@ -16,7 +17,7 @@ export async function getProfile(): Promise<Profile | null> {
 
   const { data } = await supabase
     .from('profiles')
-    .select('id, email, role, ui_language, companies(name)')
+    .select('id, email, full_name, role, ui_language, companies(name)')
     .eq('id', user.id)
     .single()
 
@@ -27,6 +28,7 @@ export async function getProfile(): Promise<Profile | null> {
   return {
     id: data.id,
     email: data.email,
+    full_name: data.full_name ?? null,
     role: data.role,
     company_name: company?.name ?? null,
     ui_language: normalizeLang(data.ui_language),
