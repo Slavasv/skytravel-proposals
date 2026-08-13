@@ -33,6 +33,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
         { href: '/admin/clients', label: t('Clients', 'Клиенты'), matchPrefix: '/admin/clients' },
         { href: '/admin/requests', label: t('Requests', 'Заявки'), matchPrefix: '/admin/requests' },
         { href: '/admin/bookings', label: t('Bookings', 'Брони'), matchPrefix: '/admin/bookings' },
+        { href: '/admin/tasks', label: t('Tasks', 'Задачи'), matchPrefix: '/admin/tasks' },
         ...(isAdmin ? [{ href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting' }] : []),
         { href: '/admin/partners', label: t('Partners', 'Партнёры'), matchPrefix: '/admin/partners' },
         { href: '/admin', label: t('Proposals', 'Предложения'), matchPrefix: '/admin/proposals' },
@@ -102,7 +103,7 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
             <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
           </button>
 
-          <GearMenu isAdmin={isAdmin} email={email} />
+        <GearMenu isAdmin={isAdmin} email={email} />
 
           {menuOpen && (
             <>
