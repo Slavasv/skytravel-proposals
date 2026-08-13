@@ -2,6 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getUiLang } from '@/lib/get-profile'
+import { sendPushToUser } from '@/lib/push'
 import { revalidatePath } from 'next/cache'
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
@@ -132,6 +133,19 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
         .single()
 
     if (error || !data) return { ok: false, error: error?.message }
+
+    // пуш исполнителю, если задачу назначили кому-то другому
+    const assignee = input.assignee_id || null
+    if (assignee && assignee !== user.id) {
+        const lang = await getUiLang()
+        await sendPushToUser(assignee, {
+            title: lang === 'ru' ? 'Новая задача' : 'New task',
+            body: title,
+            url: input.context_url || '/admin/tasks',
+            tag: `task-${data.id}`,
+        })
+    }
+
     revalidatePath('/admin/tasks')
     return { ok: true, id: data.id as string }
 }
