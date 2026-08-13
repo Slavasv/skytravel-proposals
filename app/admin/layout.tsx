@@ -1,4 +1,5 @@
 import AdminHeader from './admin-header'
+import TaskFab from './_components/task-fab'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { LangProvider } from '@/lib/i18n-client'
 
@@ -16,6 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <LangProvider lang={lang}>
         <AdminHeader isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} isAccountant={isAccountant} />
         {children}
+        {!isSuperadmin && !isAccountant && <TaskFab />}
       </LangProvider>
     </div>
   )
