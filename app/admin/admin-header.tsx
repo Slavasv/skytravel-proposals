@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-is-mobile'
 import { useT } from '@/lib/i18n-client'
 import GearMenu from './gear-menu'
+import TaskBell from './_components/task-bell'
 
 type Props = {
   isAdmin: boolean
@@ -101,8 +102,9 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
             <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
             <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
             <span style={{ display: 'block', height: '2px', background: 'var(--admin-text)', borderRadius: '1px' }} />
-          </button>
+        </button>
 
+        {!isSuperadmin && !isAccountant && <TaskBell />}
         <GearMenu isAdmin={isAdmin} email={email} />
 
           {menuOpen && (
@@ -167,8 +169,9 @@ export default function AdminHeader({ isAdmin, email, companyName, isSuperadmin,
             )
           })}
 
-          <GearMenu isAdmin={isAdmin} email={email} />
-        </div>
+        {!isSuperadmin && !isAccountant && <TaskBell />}
+        <GearMenu isAdmin={isAdmin} email={email} />
+      </div>
     </nav>
   )
 }

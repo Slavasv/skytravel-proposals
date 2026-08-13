@@ -259,6 +259,14 @@ export async function getEntityTasks(entityType: TaskEntityType, entityId: strin
     return getTasks({ scope: 'all', entity_type: entityType, entity_id: entityId })
 }
 
+// ---- Колокольчик: назначено мне И (просрочено или срок сегодня) И не закрыто ----
+export async function getMyBellTasks(): Promise<TaskRow[]> {
+    const rows = await getTasks({ scope: 'mine' })
+    const now = new Date()
+    const startTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    return rows.filter((r) => r.due_at && new Date(r.due_at) < startTomorrow)
+}
+
 // ---- Контекст сущности по id (для авто-подстановки в FAB: подпись, клиент, ссылка) ----
 export type EntityContext = { label: string | null; client_id: string | null; partner_id: string | null; url: string | null }
 

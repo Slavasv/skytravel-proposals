@@ -7,6 +7,7 @@ import { getBookingsForRequest } from '@/app/admin/bookings/actions'
 import { getUiLang } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import RequestForm from './request-form'
+import EntityTasks from '@/app/admin/_components/entity-tasks'
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -39,6 +40,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </div>
 
       <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} bookings={bookings} />
+
+      <EntityTasks entityType="request" entityId={id} />
     </div>
   )
 }
