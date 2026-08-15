@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
+import PushToggle from './push-toggle'
 import { getMyBellTasks, type TaskRow } from '@/app/admin/tasks/actions'
 
 export default function TaskBell() {
@@ -74,6 +75,7 @@ export default function TaskBell() {
                             style={{ display: 'block', padding: '10px 12px', marginTop: '4px', borderTop: '1px solid var(--admin-border-card)', fontSize: '12px', color: 'var(--admin-accent)', textDecoration: 'none' }}>
                             {t('All my tasks →', 'Все мои задачи →')}
                         </Link>
+                        <PushToggle />
                     </div>
                 </>
             )}
