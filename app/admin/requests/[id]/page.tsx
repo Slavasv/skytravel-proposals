@@ -4,7 +4,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getClientsForRequest, getLinkedProposals, getAvailableDestinations } from '../actions'
 import { getRequestDestinations } from '../destinations-actions'
 import { getBookingsForRequest } from '@/app/admin/bookings/actions'
-import { getUiLang } from '@/lib/get-profile'
+import { getUiLang, getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import RequestForm from './request-form'
 import EntityTasks from '@/app/admin/_components/entity-tasks'
@@ -12,6 +12,7 @@ import EntityTasks from '@/app/admin/_components/entity-tasks'
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const lang = await getUiLang()
+  const profile = await getProfile()
   const supabase = await createSupabaseServer()
 
   const { data: request, error } = await supabase
@@ -41,7 +42,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} bookings={bookings} />
 
-      <EntityTasks entityType="request" entityId={id} />
+      <EntityTasks entityType="request" entityId={id} currentUserId={profile?.id || ''} />
     </div>
   )
 }

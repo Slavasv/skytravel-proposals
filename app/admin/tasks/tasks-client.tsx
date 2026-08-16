@@ -33,17 +33,25 @@ const TYPE_LABEL: Record<TaskEntityType, [string, string]> = {
     library: ['Library', 'Библиотека'],
 }
 
+const STATUS_LABEL: Record<TaskStatus, [string, string]> = {
+    open: ['Open', 'Открыта'],
+    in_progress: ['In progress', 'В работе'],
+    done: ['Done', 'Выполнена'],
+    cancelled: ['Cancelled', 'Отменена'],
+}
+
 function initials(name: string | null): string {
     if (!name) return '—'
     const parts = name.trim().split(/\s+/).slice(0, 2)
     return parts.map((p) => p[0]?.toUpperCase() || '').join('') || '—'
 }
 
-export default function TasksClient({ initial, people, clients, partners }: {
+export default function TasksClient({ initial, people, clients, partners, currentUserId }: {
     initial: TaskRow[]
     people: PersonLite[]
     clients: ClientLite[]
     partners: PartnerLite[]
+    currentUserId: string
 }) {
     const t = useT()
     const [scope, setScope] = useState<Scope>('all')
@@ -210,14 +218,21 @@ export default function TasksClient({ initial, people, clients, partners }: {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {g.items.map((task) => {
                                 const isClosed = task.status === 'done' || task.status === 'cancelled'
+                                const editable = task.assignee_id === currentUserId || task.creator_id === currentUserId
                                 const due = fmtDue(task.due_at)
                                 return (
                                     <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '10px', padding: '12px 14px', opacity: isClosed ? 0.65 : 1 }}>
-                                        <button type="button" title={t('Mark done', 'Отметить выполненной')}
-                                            onClick={() => setStatus(task.id, task.status === 'done' ? 'open' : 'done')}
-                                            style={{ width: '20px', height: '20px', borderRadius: '50%', flex: 'none', cursor: 'pointer', border: `1.6px solid ${task.status === 'done' ? 'var(--admin-success)' : 'var(--admin-text-faint)'}`, background: task.status === 'done' ? 'var(--admin-success)' : 'transparent', color: '#12201a', fontSize: '12px', lineHeight: 1, fontFamily: 'inherit' }}>
-                                            {task.status === 'done' ? '✓' : ''}
-                                        </button>
+                                        {editable ? (
+                                            <button type="button" title={t('Mark done', 'Отметить выполненной')}
+                                                onClick={() => setStatus(task.id, task.status === 'done' ? 'open' : 'done')}
+                                                style={{ width: '20px', height: '20px', borderRadius: '50%', flex: 'none', cursor: 'pointer', border: `1.6px solid ${task.status === 'done' ? 'var(--admin-success)' : 'var(--admin-text-faint)'}`, background: task.status === 'done' ? 'var(--admin-success)' : 'transparent', color: '#12201a', fontSize: '12px', lineHeight: 1, fontFamily: 'inherit' }}>
+                                                {task.status === 'done' ? '✓' : ''}
+                                            </button>
+                                        ) : (
+                                            <span style={{ width: '20px', height: '20px', borderRadius: '50%', flex: 'none', border: `1.6px solid ${task.status === 'done' ? 'var(--admin-success)' : 'var(--admin-border-card)'}`, background: task.status === 'done' ? 'var(--admin-success)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#12201a', fontSize: '12px' }}>
+                                                {task.status === 'done' ? '✓' : ''}
+                                            </span>
+                                        )}
 
                                         <span style={{ width: '6px', height: '34px', borderRadius: '3px', flex: 'none', background: PRIO_COLOR[task.priority] }} />
 
@@ -245,13 +260,19 @@ export default function TasksClient({ initial, people, clients, partners }: {
                                             </span>
                                         )}
 
-                                        <select value={task.status} onChange={(e) => setStatus(task.id, e.target.value as TaskStatus)}
-                                            style={{ ...inputSt, fontSize: '12px', padding: '5px 8px' }}>
-                                            <option value="open">{t('Open', 'Открыта')}</option>
-                                            <option value="in_progress">{t('In progress', 'В работе')}</option>
-                                            <option value="done">{t('Done', 'Выполнена')}</option>
-                                            <option value="cancelled">{t('Cancelled', 'Отменена')}</option>
-                                        </select>
+                                        {editable ? (
+                                            <select value={task.status} onChange={(e) => setStatus(task.id, e.target.value as TaskStatus)}
+                                                style={{ ...inputSt, fontSize: '12px', padding: '5px 8px' }}>
+                                                <option value="open">{t('Open', 'Открыта')}</option>
+                                                <option value="in_progress">{t('In progress', 'В работе')}</option>
+                                                <option value="done">{t('Done', 'Выполнена')}</option>
+                                                <option value="cancelled">{t('Cancelled', 'Отменена')}</option>
+                                            </select>
+                                        ) : (
+                                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', padding: '4px 9px', whiteSpace: 'nowrap' }}>
+                                                {t(STATUS_LABEL[task.status][0], STATUS_LABEL[task.status][1])}
+                                            </span>
+                                        )}
 
                                         <div title={task.assignee_name || t('Unassigned', 'Не назначено')}
                                             style={{ width: '28px', height: '28px', borderRadius: '50%', flex: 'none', background: task.assignee_name ? 'var(--admin-input)' : 'transparent', border: task.assignee_name ? 'none' : '1px dashed var(--admin-text-faint)', color: 'var(--admin-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
