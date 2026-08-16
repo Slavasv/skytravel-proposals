@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getBookingServices, getPartnerOptions, getClientsForBooking, getBookingTravellers, getVouchersForBooking } from '../actions'
 import { getBookingInvoices } from '../invoice-actions'
-import { getUiLang } from '@/lib/get-profile'
+import { getUiLang, getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import BookingForm from './booking-form'
 import EntityTasks from '@/app/admin/_components/entity-tasks'
 export default async function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const lang = await getUiLang()
+  const profile = await getProfile()
   const supabase = await createSupabaseServer()
 
   const { data: booking, error } = await supabase
@@ -40,7 +41,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
 
       <BookingForm booking={booking} services={services} invoices={invoices} partners={partners} clients={clients} travellers={travellers} vouchers={vouchers} />
 
-      <EntityTasks entityType="booking" entityId={id} />
+      <EntityTasks entityType="booking" entityId={id} currentUserId={profile?.id || ''} />
     </div>
   )
 }

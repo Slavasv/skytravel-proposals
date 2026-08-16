@@ -20,9 +20,10 @@ function initials(name: string | null): string {
     return parts.map((p) => p[0]?.toUpperCase() || '').join('') || '—'
 }
 
-export default function EntityTasks({ entityType, entityId }: {
+export default function EntityTasks({ entityType, entityId, currentUserId }: {
     entityType: TaskEntityType
     entityId: string
+    currentUserId: string
 }) {
     const t = useT()
     const [tasks, setTasks] = useState<TaskRow[]>([])
@@ -75,12 +76,18 @@ export default function EntityTasks({ entityType, entityId }: {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {tasks.map((task) => {
-                        const due = fmtDue(task.due_at)
-                        return (
-                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-input)' }}>
-                                <button type="button" title={t('Mark done', 'Отметить выполненной')} onClick={() => complete(task.id)}
-                                    style={{ width: '18px', height: '18px', borderRadius: '50%', flex: 'none', cursor: 'pointer', border: '1.6px solid var(--admin-text-faint)', background: 'transparent', fontFamily: 'inherit' }} />
+                        {tasks.map((task) => {
+                            const due = fmtDue(task.due_at)
+                            const editable = task.assignee_id === currentUserId || task.creator_id === currentUserId
+                            return (
+                                <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-input)' }}>
+                                    {editable ? (
+                                        <button type="button" title={t('Mark done', 'Отметить выполненной')} onClick={() => complete(task.id)}
+                                            style={{ width: '18px', height: '18px', borderRadius: '50%', flex: 'none', cursor: 'pointer', border: '1.6px solid var(--admin-text-faint)', background: 'transparent', fontFamily: 'inherit' }} />
+                                    ) : (
+                                        <span style={{ width: '18px', height: '18px', borderRadius: '50%', flex: 'none', border: '1.6px solid var(--admin-border-card)', background: 'transparent' }} />
+                                    )}
+                        
                                 <span style={{ width: '5px', height: '24px', borderRadius: '3px', flex: 'none', background: PRIO_COLOR[task.priority] }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: '13px', color: 'var(--admin-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>

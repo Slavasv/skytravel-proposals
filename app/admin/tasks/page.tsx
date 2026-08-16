@@ -20,6 +20,7 @@ export default async function TasksPage() {
             people={dirs.people}
             clients={dirs.clients}
             partners={dirs.partners}
+            currentUserId={profile.id}
         />
     )
 }
