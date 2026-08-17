@@ -1,8 +1,10 @@
-import { getProfile } from '@/lib/get-profile'
+import { Suspense } from 'react'
+import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { tr } from '@/lib/i18n'
 import ChangePasswordForm from './change-password-form'
 import BrandSettingsForm from './brand-settings-form'
+import MicrosoftIntegration from './microsoft-integration'
 
 export default async function SettingsPage() {
   const profile = await getProfile()
@@ -51,7 +53,18 @@ export default async function SettingsPage() {
         </>
       )}
 
-      <div style={{ marginBottom: '8px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
+      {canManageBrand(profile?.role) && (
+        <>
+          <div style={{ marginBottom: '8px', marginTop: '28px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
+            {tr(lang, 'Microsoft integration', 'Интеграция Microsoft')}
+          </div>
+          <Suspense fallback={null}>
+            <MicrosoftIntegration />
+          </Suspense>
+        </>
+      )}
+
+      <div style={{ marginBottom: '8px', marginTop: '28px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
         {tr(lang, 'Change password', 'Смена пароля')}
       </div>
       <ChangePasswordForm />
