@@ -3,6 +3,7 @@
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getAccessTokenForCompany, graphFetch } from '@/lib/microsoft'
+import { pullPlannerForCompany } from '@/lib/microsoft-planner'
 
 async function myCompanyId(): Promise<string | null> {
     const profile = await getProfile()
@@ -82,6 +83,14 @@ export async function savePlan(planId: string): Promise<void> {
         .from('microsoft_integration')
         .update({ plan_id: planId || null, updated_at: new Date().toISOString() })
         .eq('company_id', companyId)
+}
+
+// Ручной запуск входящей синхронизации (Planner → наша система) из настроек.
+export async function syncNow(): Promise<{ ok: boolean; updated: number; created: number; error?: string }> {
+    const companyId = await myCompanyId()
+    if (!companyId) return { ok: false, updated: 0, created: 0, error: 'no access' }
+    const res = await pullPlannerForCompany(companyId)
+    return { ok: !res.error, updated: res.updated, created: res.created, error: res.error }
 }
 
 export async function disconnectMicrosoft(): Promise<void> {
