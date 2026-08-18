@@ -59,6 +59,30 @@ export async function updateUserName(id: string, fullName: string) {
   revalidatePath('/admin/users')
 }
 
+// Сменить email-логин пользователя (owner/admin, в своей компании; можно и себе).
+// Меняем и auth-логин, и profiles.email — последний читает синхронизация
+// исполнителя с Microsoft (resolveAzureUserId по email профиля).
+export async function updateUserEmail(id: string, newEmail: string) {
+  const { admin, lang } = await assertCanManageUser(id)
+  const email = newEmail.trim().toLowerCase()
+  if (!email || !email.includes('@')) {
+    throw new Error(tr(lang, 'Enter a valid email', 'Введите корректный email'))
+  }
+
+  // 1) сам логин входа (auth)
+  const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+    email,
+    email_confirm: true,
+  })
+  if (authErr) throw new Error(authErr.message)
+
+  // 2) держим profiles.email в синхроне (его читает пуш задач в Planner)
+  const { error: profErr } = await admin.from('profiles').update({ email }).eq('id', id)
+  if (profErr) throw new Error(profErr.message)
+
+  revalidatePath('/admin/users')
+}
+
 // Проверяет: вызывающий — owner/admin, и целевой юзер в ТОЙ ЖЕ компании.
 // Возвращает admin-клиент для дальнейших операций. Бросает ошибку, если нельзя.
 async function assertCanManageUser(targetId: string) {

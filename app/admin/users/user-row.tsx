@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteUser, resetPassword, toggleRole, updateUserName } from './actions'
+import { deleteUser, resetPassword, toggleRole, updateUserName, updateUserEmail } from './actions'
 import { useT } from '@/lib/i18n-client'
 
 type User = {
@@ -12,6 +12,12 @@ type User = {
   created_at: string
   last_sign_in: string | null
   proposal_count: number
+}
+
+const itemStyle: React.CSSProperties = {
+  width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none',
+  border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer',
+  borderRadius: '6px', fontFamily: 'inherit',
 }
 
 export default function UserRow({ user, currentUserId }: { user: User; currentUserId: string }) {
@@ -30,16 +36,30 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
 
   async function handleRename() {
     const newName = prompt(t('Name for this user:', 'Имя сотрудника:'), user.name || '')
-    if (newName === null) return
+    if (newName === null) { setMenuOpen(false); return }
     setLoading(true)
     setMenuOpen(false)
     await updateUserName(user.id, newName)
     setLoading(false)
   }
 
+  async function handleChangeEmail() {
+    const newEmail = prompt(t('New login email for this user:', 'Новый email-логин пользователя:'), user.email)
+    setMenuOpen(false)
+    if (newEmail === null || newEmail.trim() === '' || newEmail.trim().toLowerCase() === user.email.toLowerCase()) return
+    setLoading(true)
+    try {
+      await updateUserEmail(user.id, newEmail)
+      alert(t('Email updated.', 'Email обновлён.'))
+    } catch (e) {
+      alert((e as Error).message)
+    }
+    setLoading(false)
+  }
+
   async function handleResetPassword() {
     const newPassword = prompt(t(`New password for ${user.email}:`, `Новый пароль для ${user.email}:`))
-    if (!newPassword) return
+    if (!newPassword) { setMenuOpen(false); return }
     setLoading(true)
     setMenuOpen(false)
     await resetPassword(user.id, newPassword)
@@ -102,78 +122,93 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
         </div>
       </div>
 
-      {!isSelf && (
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--admin-text-muted)',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              fontSize: '16px',
-              fontFamily: 'inherit',
-            }}
-          >
-            ⋯
-          </button>
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--admin-text-muted)',
+            cursor: 'pointer',
+            padding: '4px 8px',
+            fontSize: '16px',
+            fontFamily: 'inherit',
+          }}
+        >
+          ⋯
+        </button>
 
-          {menuOpen && (
-            <>
-              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
-              <div style={{
-                position: 'absolute',
-                right: 0,
-                top: '100%',
-                zIndex: 20,
-                background: 'var(--admin-input)',
-                border: '1px solid var(--admin-border)',
-                borderRadius: '8px',
-                padding: '4px',
-                minWidth: '180px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-              }}>
-                {(['manager', 'admin', 'accountant'] as const).filter((r) => r !== user.role).map((r) => (
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: '100%',
+              zIndex: 20,
+              background: 'var(--admin-input)',
+              border: '1px solid var(--admin-border)',
+              borderRadius: '8px',
+              padding: '4px',
+              minWidth: '200px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            }}>
+              {/* смена роли — только для других (свою роль не трогаем) */}
+              {!isSelf && (['manager', 'admin', 'accountant'] as const).filter((r) => r !== user.role).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => handleSetRole(r)}
+                  style={itemStyle}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                >
+                  {t('Make', 'Назначить')} {r}
+                </button>
+              ))}
+
+              {/* имя и email — можно и себе */}
+              <button
+                onClick={handleRename}
+                style={itemStyle}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+              >
+                {t('Rename', 'Переименовать')}
+              </button>
+              <button
+                onClick={handleChangeEmail}
+                style={itemStyle}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+              >
+                {t('Change email / login', 'Сменить email / логин')}
+              </button>
+
+              {/* сброс пароля и удаление — только для других */}
+              {!isSelf && (
+                <>
                   <button
-                    key={r}
-                    onClick={() => handleSetRole(r)}
-                    style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
+                    onClick={handleResetPassword}
+                    style={itemStyle}
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
                   >
-                    {t('Make', 'Назначить')} {r}
+                    {t('Reset password', 'Сбросить пароль')}
                   </button>
-                ))}
-                <button
-                  onClick={handleRename}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                >
-                  {t('Rename', 'Переименовать')}
-                </button>
-                <button
-                  onClick={handleResetPassword}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-text)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                >
-                  {t('Reset password', 'Сбросить пароль')}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                >
-                  {t('Delete user', 'Удалить пользователя')}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                  <button
+                    onClick={handleDelete}
+                    style={{ ...itemStyle, color: 'var(--admin-danger)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                  >
+                    {t('Delete user', 'Удалить пользователя')}
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
