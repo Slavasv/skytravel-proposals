@@ -62,25 +62,30 @@ export async function updateUserName(id: string, fullName: string) {
 // Сменить email-логин пользователя (owner/admin, в своей компании; можно и себе).
 // Меняем и auth-логин, и profiles.email — последний читает синхронизация
 // исполнителя с Microsoft (resolveAzureUserId по email профиля).
-export async function updateUserEmail(id: string, newEmail: string) {
-  const { admin, lang } = await assertCanManageUser(id)
-  const email = newEmail.trim().toLowerCase()
-  if (!email || !email.includes('@')) {
-    throw new Error(tr(lang, 'Enter a valid email', 'Введите корректный email'))
+export async function updateUserEmail(id: string, newEmail: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { admin, lang } = await assertCanManageUser(id)
+    const email = newEmail.trim().toLowerCase()
+    if (!email || !email.includes('@')) {
+      return { ok: false, error: tr(lang, 'Enter a valid email', 'Введите корректный email') }
+    }
+
+    // 1) сам логин входа (auth)
+    const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+      email,
+      email_confirm: true,
+    })
+    if (authErr) return { ok: false, error: `auth: ${authErr.message}` }
+
+    // 2) держим profiles.email в синхроне (его читает пуш задач в Planner)
+    const { error: profErr } = await admin.from('profiles').update({ email }).eq('id', id)
+    if (profErr) return { ok: false, error: `profiles: ${profErr.message}` }
+
+    revalidatePath('/admin/users')
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
-
-  // 1) сам логин входа (auth)
-  const { error: authErr } = await admin.auth.admin.updateUserById(id, {
-    email,
-    email_confirm: true,
-  })
-  if (authErr) throw new Error(authErr.message)
-
-  // 2) держим profiles.email в синхроне (его читает пуш задач в Planner)
-  const { error: profErr } = await admin.from('profiles').update({ email }).eq('id', id)
-  if (profErr) throw new Error(profErr.message)
-
-  revalidatePath('/admin/users')
 }
 
 // Проверяет: вызывающий — owner/admin, и целевой юзер в ТОЙ ЖЕ компании.
