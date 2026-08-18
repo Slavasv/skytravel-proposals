@@ -86,8 +86,17 @@ export type TaskFilters = {
 // ---- Справочники для модалки (исполнители/клиенты/партнёры) ----
 export async function getTaskDirectories(): Promise<{ people: PersonLite[]; clients: ClientLite[]; partners: PartnerLite[] }> {
     const supabase = await createSupabaseServer()
+    // назначать задачи можно только на людей своей компании.
+    // RLS профилей пропускает admin/owner ко всем профилям (is_admin()),
+    // поэтому фильтруем по company_id явно — иначе в список лезут чужие компании и суперадмин.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { people: [], clients: [], partners: [] }
+    const { data: me } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
+    const companyId = me?.company_id as string | undefined
+    if (!companyId) return { people: [], clients: [], partners: [] }
+
     const [{ data: pr }, { data: cl }, { data: pt }] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email').order('full_name', { ascending: true }),
+        supabase.from('profiles').select('id, full_name, email').eq('company_id', companyId).order('full_name', { ascending: true }),
         supabase.from('clients').select('id, name').order('name', { ascending: true }),
         supabase.from('partners').select('id, name').order('name', { ascending: true }),
     ])
