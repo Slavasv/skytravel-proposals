@@ -70,17 +70,49 @@ export async function updateUserEmail(id: string, newEmail: string): Promise<{ o
       return { ok: false, error: tr(lang, 'Enter a valid email', 'Введите корректный email') }
     }
 
+    // Проверим, не занят ли этот email другим auth-аккаунтом (глобально, по всем компаниям).
+    // Supabase на такой конфликт отдаёт невнятное «Error updating user».
+    try {
+      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
+      const clash = list?.users?.find((u) => (u.email || '').toLowerCase() === email && u.id !== id)
+      if (clash) {
+        return { ok: false, error: tr(lang, `Email is already used by another account (id ${clash.id})`, `Email уже занят другим аккаунтом (id ${clash.id})`) }
+      }
+    } catch { /* проверка необязательна */ }
+
     // 1) сам логин входа (auth)
     const { error: authErr } = await admin.auth.admin.updateUserById(id, {
       email,
       email_confirm: true,
     })
-    if (authErr) return { ok: false, error: `auth: ${authErr.message}` }
+    if (authErr) {
+      const status = (authErr as { status?: number }).status
+      const code = (authErr as { code?: string }).code
+      return { ok: false, error: `auth: ${authErr.message}${status ? ` [${status}]` : ''}${code ? ` (${code})` : ''}` }
+    }
 
     // 2) держим profiles.email в синхроне (его читает пуш задач в Planner)
     const { error: profErr } = await admin.from('profiles').update({ email }).eq('id', id)
     if (profErr) return { ok: false, error: `profiles: ${profErr.message}` }
 
+    revalidatePath('/admin/users')
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+// Задать/очистить рабочий email для синхронизации с Microsoft (Azure/Planner).
+// Это НЕ логин входа — просто поле профиля, не обязано быть уникальным.
+export async function updateUserMsEmail(id: string, msEmail: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { admin } = await assertCanManageUser(id)
+    const email = msEmail.trim().toLowerCase()
+    if (email && !email.includes('@')) {
+      return { ok: false, error: 'Введите корректный email' }
+    }
+    const { error } = await admin.from('profiles').update({ ms_email: email || null }).eq('id', id)
+    if (error) return { ok: false, error: error.message }
     revalidatePath('/admin/users')
     return { ok: true }
   } catch (e) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteUser, resetPassword, toggleRole, updateUserName, updateUserEmail } from './actions'
+import { deleteUser, resetPassword, toggleRole, updateUserName, updateUserEmail, updateUserMsEmail } from './actions'
 import { useT } from '@/lib/i18n-client'
 
 type User = {
@@ -9,6 +9,7 @@ type User = {
   email: string
   name: string
   role: string
+  ms_email: string
   created_at: string
   last_sign_in: string | null
   proposal_count: number
@@ -53,6 +54,16 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
     alert(res.ok ? t('Email updated.', 'Email обновлён.') : `${t('Error', 'Ошибка')}: ${res.error || ''}`)
   }
 
+  async function handleMsEmail() {
+    const newMs = prompt(t('Microsoft email (for Planner sync, not a login):', 'Microsoft email (для синхронизации Planner, не логин):'), user.ms_email || '')
+    setMenuOpen(false)
+    if (newMs === null) return
+    setLoading(true)
+    const res = await updateUserMsEmail(user.id, newMs)
+    setLoading(false)
+    if (!res.ok) alert(`${t('Error', 'Ошибка')}: ${res.error || ''}`)
+  }
+
   async function handleResetPassword() {
     const newPassword = prompt(t(`New password for ${user.email}:`, `Новый пароль для ${user.email}:`))
     if (!newPassword) { setMenuOpen(false); return }
@@ -94,6 +105,9 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
         </div>
         {user.name && (
           <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{user.email}</span>
+        )}
+        {user.ms_email && (
+          <span style={{ fontSize: '11px', color: 'var(--admin-text-faint)' }}>MS: {user.ms_email}</span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{
@@ -178,6 +192,14 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
               >
                 {t('Change email / login', 'Сменить email / логин')}
+              </button>
+              <button
+                onClick={handleMsEmail}
+                style={itemStyle}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-border-card)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+              >
+                {t('Microsoft email (sync)', 'Microsoft email (синхронизация)')}
               </button>
 
               {/* сброс пароля и удаление — только для других */}
