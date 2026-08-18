@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail } from './microsoft-actions'
+import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail, getPlannerPlans, getSelectedPlan, savePlan } from './microsoft-actions'
 
 const btnDark: React.CSSProperties = {
     padding: '10px 16px', fontSize: '13px', fontWeight: 500,
@@ -23,6 +23,9 @@ export default function MicrosoftIntegration() {
     const [testTo, setTestTo] = useState('')
     const [testMsg, setTestMsg] = useState('')
     const [busy, setBusy] = useState(false)
+    const [plans, setPlans] = useState<{ id: string; title: string }[]>([])
+    const [planId, setPlanId] = useState('')
+    const [planSaved, setPlanSaved] = useState(false)
 
     const flag = params.get('ms') // connected | error | notconfigured
     const reason = params.get('reason')
@@ -30,8 +33,19 @@ export default function MicrosoftIntegration() {
     async function load() {
         const s = await getMicrosoftStatus()
         setStatus(s)
+        if (s.connected) {
+            const [pl, sel] = await Promise.all([getPlannerPlans(), getSelectedPlan()])
+            setPlans(pl)
+            setPlanId(sel || '')
+        }
     }
     useEffect(() => { load() }, [])
+
+    async function handlePlan(id: string) {
+        setPlanId(id); setPlanSaved(false)
+        await savePlan(id)
+        setPlanSaved(true)
+    }
 
     async function handleDisconnect() {
         if (!confirm(t('Disconnect Microsoft?', 'Отключить Microsoft?'))) return
@@ -63,6 +77,21 @@ export default function MicrosoftIntegration() {
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginBottom: '14px' }}>
                         {t('This account sends emails and syncs Planner.', 'От этого аккаунта уходят письма и синхронизация Planner.')}
+                    </div>
+
+                    <div style={{ marginBottom: '14px' }}>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>
+                            {t('Planner plan to sync', 'План Planner для синхронизации')}
+                        </label>
+                        <select value={planId} onChange={(e) => handlePlan(e.target.value)} style={{ ...inputSt, flex: 'none', width: '100%' }}>
+                            <option value="">{t('— not selected —', '— не выбран —')}</option>
+                            {plans.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                        </select>
+                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
+                            {plans.length === 0
+                                ? t('No plans visible yet — create a Planner plan and add this account as a member.', 'Планов пока не видно — создайте план Planner и добавьте этот аккаунт участником.')
+                                : planSaved ? t('Saved ✅', 'Сохранено ✅') : ''}
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
