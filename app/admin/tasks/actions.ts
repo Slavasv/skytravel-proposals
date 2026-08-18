@@ -3,6 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getUiLang } from '@/lib/get-profile'
 import { sendPushToUser } from '@/lib/push'
+import { pushTaskToPlanner } from '@/lib/microsoft-planner'
 import { revalidatePath } from 'next/cache'
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
@@ -146,6 +147,9 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
         })
     }
 
+    // зеркалим в Planner (best-effort; если синк выключен — тихо ничего не делает)
+    await pushTaskToPlanner(data.id as string)
+
     revalidatePath('/admin/tasks')
     return { ok: true, id: data.id as string }
 }
@@ -167,6 +171,10 @@ export async function updateTask(id: string, patch: TaskUpdate): Promise<{ ok: b
 
     const { error } = await supabase.from('tasks').update(upd).eq('id', id)
     if (error) return { ok: false, error: error.message }
+
+    // зеркалим изменения в Planner (best-effort)
+    await pushTaskToPlanner(id)
+
     revalidatePath('/admin/tasks')
     return { ok: true }
 }
