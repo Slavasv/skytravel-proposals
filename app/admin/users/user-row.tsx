@@ -48,13 +48,9 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
     setMenuOpen(false)
     if (newEmail === null || newEmail.trim() === '' || newEmail.trim().toLowerCase() === user.email.toLowerCase()) return
     setLoading(true)
-    try {
-      await updateUserEmail(user.id, newEmail)
-      alert(t('Email updated.', 'Email обновлён.'))
-    } catch (e) {
-      alert((e as Error).message)
-    }
+    const res = await updateUserEmail(user.id, newEmail)
     setLoading(false)
+    alert(res.ok ? t('Email updated.', 'Email обновлён.') : `${t('Error', 'Ошибка')}: ${res.error || ''}`)
   }
 
   async function handleResetPassword() {
