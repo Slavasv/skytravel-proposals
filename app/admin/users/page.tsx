@@ -9,7 +9,7 @@ export default async function UsersPage() {
   const profile = await getProfile()
   const lang = profile?.ui_language ?? 'en'
 
- if (!canManageBrand(profile?.role)) {
+  if (!canManageBrand(profile?.role)) {
     notFound()
   }
 
@@ -29,7 +29,7 @@ export default async function UsersPage() {
   // Грузим только профили своей компании
   const { data: profiles } = await adminClient
     .from('profiles')
-    .select('id, email, role, created_at, company_id, full_name')
+    .select('id, email, role, created_at, company_id, full_name, ms_email')
     .eq('company_id', meProfile.company_id)
 
   const ownIds = new Set((profiles ?? []).map((p) => p.id))
@@ -62,6 +62,7 @@ export default async function UsersPage() {
     email: u.email ?? '',
     name: profileMap[u.id]?.full_name ?? '',
     role: profileMap[u.id]?.role ?? 'manager',
+    ms_email: profileMap[u.id]?.ms_email ?? '',
     created_at: u.created_at,
     last_sign_in: u.last_sign_in_at ?? null,
     proposal_count: proposalCounts[u.id] ?? 0,

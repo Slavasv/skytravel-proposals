@@ -50,8 +50,10 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         // исполнитель → пользователь Azure (по email профиля)
         let assignments: Record<string, unknown> | undefined
         if (task.assignee_id) {
-            const { data: prof } = await admin.from('profiles').select('email').eq('id', task.assignee_id).single()
-            const azureId = await resolveAzureUserId(task.company_id, (prof?.email as string | null) ?? null)
+            const { data: prof } = await admin.from('profiles').select('email, ms_email').eq('id', task.assignee_id).single()
+            // рабочий email для Microsoft приоритетнее логина; если пусто — обычный email
+            const lookupEmail = ((prof?.ms_email as string | null) || (prof?.email as string | null)) ?? null
+            const azureId = await resolveAzureUserId(task.company_id, lookupEmail)
             if (azureId) {
                 assignments = {
                     [azureId]: { '@odata.type': '#microsoft.graph.plannerAssignment', orderHint: ' !' },
