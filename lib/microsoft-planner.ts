@@ -98,3 +98,127 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         /* синк — best-effort, ошибки глотаем */
     }
 }
+
+// ---------- ВХОДЯЩАЯ синхронизация: Planner → наша система ----------
+
+// % выполнения Planner → наш статус
+function percentToStatus(percent: number | undefined): 'open' | 'in_progress' | 'done' {
+    const p = typeof percent === 'number' ? percent : 0
+    if (p >= 100) return 'done'
+    if (p > 0) return 'in_progress'
+    return 'open'
+}
+
+type PlannerTask = {
+    id: string
+    title?: string
+    percentComplete?: number
+    dueDateTime?: string | null
+}
+
+// Сравниваем «то, что в Planner» с «тем, что у нас», и приводим наше к Planner.
+// Правило конфликта: любое НАШЕ изменение мгновенно уходит в Planner (pushTaskToPlanner),
+// поэтому если на опросе Planner отличается — значит правку сделали в Planner, берём её.
+export async function pullPlannerForCompany(companyId: string): Promise<{ updated: number; created: number; error?: string }> {
+    try {
+        const admin = createSupabaseAdmin()
+        const { data: integ } = await admin
+            .from('microsoft_integration')
+            .select('plan_id, refresh_token')
+            .eq('company_id', companyId)
+            .single()
+        if (!integ?.refresh_token || !integ.plan_id) return { updated: 0, created: 0, error: 'not_connected_or_no_plan' }
+
+        // все задачи выбранного плана
+        const res = await graphFetch(companyId, `/planner/plans/${integ.plan_id}/tasks`)
+        if (!res.ok) return { updated: 0, created: 0, error: `graph_${res.status}` }
+        const json = (await res.json()) as { value?: PlannerTask[] }
+        const plannerTasks = json.value ?? []
+
+        // наши задачи этой компании, уже связанные с Planner
+        const { data: ours } = await admin
+            .from('tasks')
+            .select('id, title, status, due_at, ms_task_id')
+            .eq('company_id', companyId)
+            .not('ms_task_id', 'is', null)
+        const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null }>()
+        for (const t of ours ?? []) {
+            if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null })
+        }
+
+        let updated = 0
+        let created = 0
+        const now = new Date().toISOString()
+
+        for (const pt of plannerTasks) {
+            if (!pt.id) continue
+            const nextStatus = percentToStatus(pt.percentComplete)
+            const nextTitle = (pt.title ?? '').trim() || '—'
+            const nextDue = pt.dueDateTime ? new Date(pt.dueDateTime).toISOString() : null
+
+            const mine = byMsId.get(pt.id)
+            if (mine) {
+                // сравниваем; due приводим к ISO с обеих сторон, чтобы не ловить ложные различия
+                const myDue = mine.due_at ? new Date(mine.due_at).toISOString() : null
+                const diff = mine.title !== nextTitle || mine.status !== nextStatus || myDue !== nextDue
+                if (diff) {
+                    const patch: Record<string, unknown> = {
+                        title: nextTitle,
+                        status: nextStatus,
+                        due_at: nextDue,
+                        ms_synced_at: now,
+                        updated_at: now,
+                    }
+                    // статус закрыт → проставим completed_at, открыт → снимем
+                    if (nextStatus === 'done') patch.completed_at = now
+                    else patch.completed_at = null
+                    await admin.from('tasks').update(patch).eq('id', mine.id)
+                    updated++
+                }
+            } else {
+                // задача создана прямо в Planner — заводим у нас
+                const insert: Record<string, unknown> = {
+                    company_id: companyId,
+                    title: nextTitle,
+                    status: nextStatus,
+                    priority: 'normal',
+                    entity_type: 'general',
+                    due_at: nextDue,
+                    ms_task_id: pt.id,
+                    ms_synced_at: now,
+                    external_source: 'planner',
+                }
+                if (nextStatus === 'done') insert.completed_at = now
+                await admin.from('tasks').insert(insert)
+                created++
+            }
+        }
+
+        return { updated, created }
+    } catch (e) {
+        return { updated: 0, created: 0, error: e instanceof Error ? e.message : 'unknown' }
+    }
+}
+
+// Пройтись по всем компаниям с подключённым планом (для крона).
+export async function pullPlannerAllCompanies(): Promise<{ companies: number; updated: number; created: number }> {
+    const admin = createSupabaseAdmin()
+    const { data: rows } = await admin
+        .from('microsoft_integration')
+        .select('company_id')
+        .not('plan_id', 'is', null)
+        .not('refresh_token', 'is', null)
+
+    let updated = 0
+    let created = 0
+    let companies = 0
+    for (const r of rows ?? []) {
+        const cid = r.company_id as string | undefined
+        if (!cid) continue
+        companies++
+        const res = await pullPlannerForCompany(cid)
+        updated += res.updated
+        created += res.created
+    }
+    return { companies, updated, created }
+}
