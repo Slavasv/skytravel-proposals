@@ -4,7 +4,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getUiLang } from '@/lib/get-profile'
 import { sendTaskAssignedEmail } from '@/lib/microsoft-mail'
 import { sendPushToUser } from '@/lib/push'
-import { pushTaskToPlanner } from '@/lib/microsoft-planner'
+import { pushTaskToPlanner, pullPlannerForCompany } from '@/lib/microsoft-planner'
 import { revalidatePath } from 'next/cache'
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
@@ -108,6 +108,18 @@ export async function getTaskDirectories(): Promise<{ people: PersonLite[]; clie
     const clients: ClientLite[] = (cl ?? []).map((c) => ({ id: c.id as string, name: (c.name as string | null) ?? '' }))
     const partners: PartnerLite[] = (pt ?? []).map((p) => ({ id: p.id as string, name: (p.name as string | null) ?? '' }))
     return { people, clients, partners }
+}
+
+// ---- Синхронизация из Planner (для страницы задач; доступна любому сотруднику компании) ----
+export async function syncPlannerNow(): Promise<{ ok: boolean; updated: number; created: number; error?: string }> {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ok: false, updated: 0, created: 0, error: 'Not authorized' }
+    const { data: me } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
+    if (!me?.company_id) return { ok: false, updated: 0, created: 0, error: 'Company not found' }
+    const res = await pullPlannerForCompany(me.company_id as string)
+    if (!res.error && (res.updated > 0 || res.created > 0)) revalidatePath('/admin/tasks')
+    return { ok: !res.error, updated: res.updated, created: res.created, error: res.error }
 }
 
 // ---- Создать задачу ----
