@@ -2,6 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getUiLang } from '@/lib/get-profile'
+import { sendTaskAssignedEmail } from '@/lib/microsoft-mail'
 import { sendPushToUser } from '@/lib/push'
 import { pushTaskToPlanner } from '@/lib/microsoft-planner'
 import { revalidatePath } from 'next/cache'
@@ -144,7 +145,7 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
 
     if (error || !data) return { ok: false, error: error?.message }
 
-    // пуш исполнителю, если задачу назначили кому-то другому
+    // пуш + письмо исполнителю, если задачу назначили кому-то другому
     const assignee = input.assignee_id || null
     if (assignee && assignee !== user.id) {
         const lang = await getUiLang()
@@ -153,6 +154,20 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
             body: title,
             url: input.context_url || '/admin/tasks',
             tag: `task-${data.id}`,
+        })
+
+        // письмо через Outlook (best-effort; если почта не подключена — тихо пропустит)
+        const base = process.env.APP_BASE_URL || 'https://travel-system-erp.vercel.app'
+        const path = input.context_url || '/admin/tasks'
+        const absUrl = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? '' : '/'}${path}`
+        await sendTaskAssignedEmail({
+            companyId: me.company_id,
+            assigneeId: assignee,
+            title,
+            description: input.description ?? null,
+            dueAt: input.due_at ?? null,
+            url: absUrl,
+            lang: lang === 'ru' ? 'ru' : 'en',
         })
     }
 
