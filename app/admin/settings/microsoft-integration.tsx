@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail, getPlannerPlans, getSelectedPlan, savePlan, syncNow } from './microsoft-actions'
+import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail, getPlannerPlans, getSelectedPlan, savePlan } from './microsoft-actions'
 
 const btnDark: React.CSSProperties = {
     padding: '10px 16px', fontSize: '13px', fontWeight: 500,
@@ -26,7 +26,6 @@ export default function MicrosoftIntegration() {
     const [plans, setPlans] = useState<{ id: string; title: string }[]>([])
     const [planId, setPlanId] = useState('')
     const [planSaved, setPlanSaved] = useState(false)
-    const [syncMsg, setSyncMsg] = useState('')
 
     const flag = params.get('ms') // connected | error | notconfigured
     const reason = params.get('reason')
@@ -46,15 +45,6 @@ export default function MicrosoftIntegration() {
         setPlanId(id); setPlanSaved(false)
         await savePlan(id)
         setPlanSaved(true)
-    }
-
-    async function handleSync() {
-        setSyncMsg(''); setBusy(true)
-        const res = await syncNow()
-        setBusy(false)
-        setSyncMsg(res.ok
-            ? t(`Synced ✅ (updated ${res.updated}, added ${res.created})`, `Синхронизировано ✅ (обновлено ${res.updated}, добавлено ${res.created})`)
-            : `${t('Error', 'Ошибка')}: ${res.error || ''}`)
     }
 
     async function handleDisconnect() {
@@ -102,13 +92,6 @@ export default function MicrosoftIntegration() {
                                 ? t('No plans visible yet — create a Planner plan and add this account as a member.', 'Планов пока не видно — создайте план Planner и добавьте этот аккаунт участником.')
                                 : planSaved ? t('Saved ✅', 'Сохранено ✅') : ''}
                         </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
-                        <button type="button" onClick={handleSync} disabled={busy || !planId} style={{ ...btnDark, opacity: busy || !planId ? 0.5 : 1, cursor: busy ? 'wait' : 'pointer' }}>
-                            {t('Sync from Planner now', 'Синхронизировать из Planner')}
-                        </button>
-                        {syncMsg && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{syncMsg}</span>}
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useT } from '@/lib/i18n-client'
 import CreateTaskButton from '@/app/admin/_components/create-task-button'
 import {
-    getTasks, updateTask,
+    getTasks, updateTask, syncPlannerNow,
     type TaskRow, type TaskFilters, type TaskStatus, type TaskPriority,
     type PersonLite, type ClientLite, type PartnerLite, type TaskEntityType,
 } from './actions'
@@ -89,6 +89,24 @@ export default function TasksClient({ initial, people, clients, partners, curren
         return () => clearTimeout(timer)
     }, [load])
 
+    // синхронизация из Planner: кнопка + один автозапуск при открытии страницы
+    const [syncing, setSyncing] = useState(false)
+    const [syncNote, setSyncNote] = useState('')
+    const doSync = useCallback(async (manual: boolean) => {
+        setSyncing(true)
+        if (manual) setSyncNote('')
+        const res = await syncPlannerNow()
+        setSyncing(false)
+        if (res.ok && (res.updated > 0 || res.created > 0)) {
+            await load()
+            setSyncNote(t(`Synced: +${res.created} new, ${res.updated} updated`, `Синхронизировано: +${res.created} новых, ${res.updated} обновлено`))
+        } else if (manual) {
+            setSyncNote(res.ok ? t('Up to date', 'Всё актуально') : `${t('Error', 'Ошибка')}: ${res.error || ''}`)
+        }
+    }, [load, t])
+
+    useEffect(() => { doSync(false) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
     async function setStatus(id: string, status: TaskStatus) {
         setTasks((p) => p.map((x) => (x.id === id ? { ...x, status } : x)))
         await updateTask(id, { status })
@@ -150,7 +168,14 @@ export default function TasksClient({ initial, people, clients, partners, curren
         <div style={{ maxWidth: '1060px', margin: '0 auto', padding: '26px 22px 60px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '18px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 600, margin: 0 }}>{t('Tasks', 'Задачи')}</h1>
-                <CreateTaskButton variant="button" onCreated={load} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {syncNote && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{syncNote}</span>}
+                    <button type="button" onClick={() => doSync(true)} disabled={syncing}
+                        style={{ ...inputSt, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.6 : 1 }}>
+                        {syncing ? t('Syncing…', 'Синхронизация…') : t('Sync from Planner', 'Синхронизировать')}
+                    </button>
+                    <CreateTaskButton variant="button" onCreated={load} />
+                </div>
             </div>
 
             {/* вкладки */}
