@@ -155,14 +155,15 @@ export default function RequestForm({
       setSavedAt(new Date())
       setSaveState('saved')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
-      // рассинхрон деплоя: бандл вкладки ссылается на старый серверный экшен,
-      // которого уже нет на сервере → перезагружаем страницу, чтобы взять свежий бандл
-      if (/Server Action|not be found|not found/i.test(msg) && typeof window !== 'undefined') {
+      const message = err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить')
+      // после деплоя старый бандл в вкладке ссылается на несуществующий
+      // Server Action — сохраняем данные локально и делаем hard reload,
+      // чтобы подхватить актуальный бандл, а не зацикливаться на ошибке
+      if (message.includes('Server Action') && message.includes('not found')) {
         window.location.reload()
         return
       }
-      setErrorMsg(msg || t('Save failed', 'Не удалось сохранить'))
+      setErrorMsg(message)
       setSaveState('error')
     }
   }
@@ -178,8 +179,12 @@ export default function RequestForm({
   useEffect(() => {
     if (pickedClient && pickedClient !== form.client_id) {
       set('client_id', pickedClient)
-      // убрать pickedClient из URL, чтобы автосейв не зацикливался при перезагрузке
-      router.replace(window.location.pathname, { scroll: false })
+      // убираем pickedClient из URL сразу после применения,
+      // иначе при рефреше/повторном падении автосейва эффект
+      // будет бесконечно пытаться применить его заново
+      const url = new URL(window.location.href)
+      url.searchParams.delete('pickedClient')
+      router.replace(`${url.pathname}${url.search}`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedClient])
