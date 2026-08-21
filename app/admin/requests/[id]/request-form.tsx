@@ -154,19 +154,47 @@ export default function RequestForm({
       }
       setSavedAt(new Date())
       setSaveState('saved')
+      // сохранилось — убираем метки восстановления
+      try {
+        sessionStorage.removeItem(`reqPendingClient:${request.id}`)
+        sessionStorage.removeItem(`reqPendingN:${request.id}`)
+      } catch { /* ignore */ }
     } catch (err) {
       const message = err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить')
-      // после деплоя старый бандл в вкладке ссылается на несуществующий
-      // Server Action — сохраняем данные локально и делаем hard reload,
-      // чтобы подхватить актуальный бандл, а не зацикливаться на ошибке
+      // после деплоя старый бандл вкладки ссылается на несуществующий Server Action.
+      // Запоминаем незаписанного клиента в sessionStorage и делаем hard reload —
+      // свежий бандл до-сохранит его. Гард: не больше 2 перезагрузок, иначе покажем ошибку.
       if (message.includes('Server Action') && message.includes('not found')) {
-        window.location.reload()
-        return
+        try {
+          const nKey = `reqPendingN:${request.id}`
+          const attempts = Number(sessionStorage.getItem(nKey) || '0')
+          if (attempts < 2) {
+            sessionStorage.setItem(`reqPendingClient:${request.id}`, current.client_id || '')
+            sessionStorage.setItem(nKey, String(attempts + 1))
+            window.location.reload()
+            return
+          }
+        } catch { /* sessionStorage недоступен — покажем ошибку ниже */ }
       }
       setErrorMsg(message)
       setSaveState('error')
     }
   }
+
+  // после hard reload из-за рассинхрона деплоя — восстановить незаписанного
+  // клиента и до-сохранить его уже свежим бандлом
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem(`reqPendingClient:${request.id}`)
+      if (pending && pending !== form.client_id) {
+        set('client_id', pending)
+      } else if (pending) {
+        sessionStorage.removeItem(`reqPendingClient:${request.id}`)
+        sessionStorage.removeItem(`reqPendingN:${request.id}`)
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (isInitial.current) { isInitial.current = false; return }
