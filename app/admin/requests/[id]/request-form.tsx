@@ -155,7 +155,14 @@ export default function RequestForm({
       setSavedAt(new Date())
       setSaveState('saved')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
+      const msg = err instanceof Error ? err.message : ''
+      // рассинхрон деплоя: бандл вкладки ссылается на старый серверный экшен,
+      // которого уже нет на сервере → перезагружаем страницу, чтобы взять свежий бандл
+      if (/Server Action|not be found|not found/i.test(msg) && typeof window !== 'undefined') {
+        window.location.reload()
+        return
+      }
+      setErrorMsg(msg || t('Save failed', 'Не удалось сохранить'))
       setSaveState('error')
     }
   }
@@ -171,6 +178,8 @@ export default function RequestForm({
   useEffect(() => {
     if (pickedClient && pickedClient !== form.client_id) {
       set('client_id', pickedClient)
+      // убрать pickedClient из URL, чтобы автосейв не зацикливался при перезагрузке
+      router.replace(window.location.pathname, { scroll: false })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedClient])
@@ -233,12 +242,12 @@ export default function RequestForm({
       </section>
 
 
-    {/* КТО ЕДЕТ */}
+      {/* КТО ЕДЕТ */}
       <section>
         <label style={labelStyle}>{t('Travellers', 'Путешественники')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
           {t("Who's going on this trip. You can change this later at any stage.",
-             'Кто едет в эту поездку. Состав можно изменить позже на любом этапе.')}
+            'Кто едет в эту поездку. Состав можно изменить позже на любом этапе.')}
         </p>
         <RequestTravellers
           requestId={request.id}
@@ -254,7 +263,7 @@ export default function RequestForm({
         <label style={labelStyle}>{t('Trip dates', 'Даты поездки')}</label>
         <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
           {t("When the client wants to travel. Approximate is fine — estimate if they're not sure.",
-             'Когда клиент хочет поехать. Ориентировочно тоже подойдёт — прикиньте, если он не уверен.')}
+            'Когда клиент хочет поехать. Ориентировочно тоже подойдёт — прикиньте, если он не уверен.')}
         </p>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ width: '170px' }}>
@@ -421,7 +430,7 @@ export default function RequestForm({
           <label style={labelStyle}>{t('Booking', 'Бронь')}</label>
           <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 12px' }}>
             {t('Record what you actually booked — hotels, transfers, partners and pricing.',
-               'Зафиксируйте, что вы реально забронировали — отели, трансферы, партнёры и цены.')}
+              'Зафиксируйте, что вы реально забронировали — отели, трансферы, партнёры и цены.')}
           </p>
           {bookings.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
