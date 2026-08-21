@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import {
-  updateRequest, createProposalFromRequest, detachProposalFromRequest,
+  createProposalFromRequest, detachProposalFromRequest,
   selectDestination, unselectDestination, approveProposal, unapproveProposal,
   type RequestClientOption, type LinkedProposal, type DestinationOption,
 } from '../actions'
@@ -132,21 +132,32 @@ export default function RequestForm({
     setSaveState('saving')
     setErrorMsg(null)
     try {
-      await updateRequest(request.id, {
-        client_id: current.client_id || null,
-        destination: current.destination || null,
-        details: current.details || null,
-        status: current.status,
-        priority: current.priority || null,
-        cancel_reason: current.status === 'cancelled' ? (current.cancel_reason || null) : null,
-        cancel_note: current.status === 'cancelled' ? (current.cancel_note || null) : null,
-        client_notes: current.client_notes || null,
-        agent_notes: current.agent_notes || null,
-        trip_rating: current.trip_rating > 0 ? current.trip_rating : null,
-        trip_feedback: current.trip_feedback || null,
-        trip_start: current.trip_start || null,
-        trip_end: current.trip_end || null,
+      // сохраняем через обычный API-роут (стабильный URL /api/requests/[id]),
+      // а НЕ через серверный экшен — у экшенов зашифрованные ID расходятся между
+      // сборками при деплое и дают «Server Action not found». У роута URL постоянный.
+      const res = await fetch(`/api/requests/${request.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: current.client_id || null,
+          destination: current.destination || null,
+          details: current.details || null,
+          status: current.status,
+          priority: current.priority || null,
+          cancel_reason: current.status === 'cancelled' ? (current.cancel_reason || null) : null,
+          cancel_note: current.status === 'cancelled' ? (current.cancel_note || null) : null,
+          client_notes: current.client_notes || null,
+          agent_notes: current.agent_notes || null,
+          trip_rating: current.trip_rating > 0 ? current.trip_rating : null,
+          trip_feedback: current.trip_feedback || null,
+          trip_start: current.trip_start || null,
+          trip_end: current.trip_end || null,
+        }),
       })
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(j?.error || `HTTP ${res.status}`)
+      }
       if (CLOSING.includes(current.status)) {
         setClosedAt((prev) => prev || new Date().toISOString())
       } else {
@@ -154,47 +165,11 @@ export default function RequestForm({
       }
       setSavedAt(new Date())
       setSaveState('saved')
-      // сохранилось — убираем метки восстановления
-      try {
-        sessionStorage.removeItem(`reqPendingClient:${request.id}`)
-        sessionStorage.removeItem(`reqPendingN:${request.id}`)
-      } catch { /* ignore */ }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить')
-      // после деплоя старый бандл вкладки ссылается на несуществующий Server Action.
-      // Запоминаем незаписанного клиента в sessionStorage и делаем hard reload —
-      // свежий бандл до-сохранит его. Гард: не больше 2 перезагрузок, иначе покажем ошибку.
-      if (message.includes('Server Action') && message.includes('not found')) {
-        try {
-          const nKey = `reqPendingN:${request.id}`
-          const attempts = Number(sessionStorage.getItem(nKey) || '0')
-          if (attempts < 2) {
-            sessionStorage.setItem(`reqPendingClient:${request.id}`, current.client_id || '')
-            sessionStorage.setItem(nKey, String(attempts + 1))
-            window.location.reload()
-            return
-          }
-        } catch { /* sessionStorage недоступен — покажем ошибку ниже */ }
-      }
-      setErrorMsg(message)
+      setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
       setSaveState('error')
     }
   }
-
-  // после hard reload из-за рассинхрона деплоя — восстановить незаписанного
-  // клиента и до-сохранить его уже свежим бандлом
-  useEffect(() => {
-    try {
-      const pending = sessionStorage.getItem(`reqPendingClient:${request.id}`)
-      if (pending && pending !== form.client_id) {
-        set('client_id', pending)
-      } else if (pending) {
-        sessionStorage.removeItem(`reqPendingClient:${request.id}`)
-        sessionStorage.removeItem(`reqPendingN:${request.id}`)
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   useEffect(() => {
     if (isInitial.current) { isInitial.current = false; return }
