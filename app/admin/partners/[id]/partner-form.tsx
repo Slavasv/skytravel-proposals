@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { goBackOrTo } from '@/lib/nav-back'
 import { updatePartner } from '../actions'
 import { useT } from '@/lib/i18n-client'
 
@@ -111,7 +112,7 @@ export default function PartnerForm({ partner, returnTo }: { partner: Partner; r
       const sep = returnTo.includes('?') ? '&' : '?'
       router.push(`${returnTo}${sep}pickedPartner=${partner.id}`)
     } else {
-      router.push('/admin/partners')
+      goBackOrTo(router, '/admin/partners')
     }
   }
 
