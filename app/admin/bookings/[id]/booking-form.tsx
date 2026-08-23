@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateBooking, checkBookingCodeExists, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
+import { checkBookingCodeExists, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
 import BookingInvoices from './booking-invoices'
 import BookingTravellers from './booking-travellers'
@@ -89,15 +89,23 @@ export default function BookingForm({
   async function saveNow(current: typeof form) {
     setSaveState('saving'); setErrorMsg(null)
     try {
-      await updateBooking(booking.id, {
-        booking_code: current.booking_code.trim() || null,
-        client_id: current.client_id || null,
-        start_date: current.start_date || null,
-        end_date: current.end_date || null,
-        destination: current.destination || null,
-        status: current.status,
-        notes: current.notes || null,
+      const res = await fetch(`/api/bookings/${booking.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_code: current.booking_code.trim() || null,
+          client_id: current.client_id || null,
+          start_date: current.start_date || null,
+          end_date: current.end_date || null,
+          destination: current.destination || null,
+          status: current.status,
+          notes: current.notes || null,
+        }),
       })
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(j?.error || `HTTP ${res.status}`)
+      }
       setSavedAt(new Date()); setSaveState('saved')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : t('Save failed', 'Не удалось сохранить'))
