@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useRef, useCallback } from 'react'
 import type { Day, DayBlock } from './edit-page-client'
-import { updateDayBlock, getProposalDays } from './block-actions'
+import { getProposalDays } from './block-actions'
+import { saveJson } from '@/lib/save-json'
 
 export type SelectedRoom = { uid: string; room_id: string; guests: number; price: number | null; meal?: string | null }
 
@@ -59,7 +60,7 @@ export function DaysProvider({
   const scheduleSave = useCallback((blockId: string, patch: Partial<DayBlock>) => {
     if (timers.current[blockId]) clearTimeout(timers.current[blockId])
     timers.current[blockId] = setTimeout(() => {
-      updateDayBlock(blockId, patch).catch(() => {})
+      saveJson(`/api/proposal-blocks/${blockId}`, patch).catch(() => { })
     }, 1000)
   }, [])
 
@@ -160,7 +161,7 @@ export function DaysProvider({
   }, [days, tripStart, tripEnd])
 
   return (
-<DaysContext.Provider value={{ days, variantId, tripStart, tripEnd, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>      {children}
+    <DaysContext.Provider value={{ days, variantId, tripStart, tripEnd, updateBlockRooms, updateRoomPrice, updateBlockPrice, getNights, refresh }}>      {children}
     </DaysContext.Provider>
   )
 }

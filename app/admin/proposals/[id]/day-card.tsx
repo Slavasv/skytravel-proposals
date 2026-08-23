@@ -19,7 +19,7 @@ import {
 import { useTransition } from 'react'
 import { reorderDayBlocks } from './block-actions'
 import { useDays } from './days-context'
-import { updateDay } from './day-actions'
+import { saveJson } from '@/lib/save-json'
 import DayBlockItem from './day-block-item'
 import AddBlockModal from './add-block-modal'
 import type { Day, Lang } from './edit-page-client'
@@ -124,7 +124,7 @@ export default function DayCard({ day, isPending, onDeleteRequest, lang, proposa
 
     const promise = (async () => {
       try {
-        await updateDay(day.id, {
+        await saveJson(`/api/proposal-days/${day.id}`, {
           title_ru: currentForm.title_ru || null,
           title_en: currentForm.title_en || null,
           intro_text_ru: currentForm.intro_text_ru || null,

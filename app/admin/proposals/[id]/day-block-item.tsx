@@ -6,8 +6,8 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   duplicateDayBlock,
   removeBlockFromDay,
-  updateDayBlock,
 } from './block-actions'
+import { saveJson } from '@/lib/save-json'
 import type { DayBlock, Lang } from './edit-page-client'
 import { normalizeRooms } from '@/app/admin/library/[id]/rooms-editor'
 import { useDays } from './days-context'
@@ -101,7 +101,7 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
 
     const promise = (async () => {
       try {
-        await updateDayBlock(dayBlock.id, {
+        await saveJson(`/api/proposal-blocks/${dayBlock.id}`, {
           time: currentForm.time || null,
           custom_note_ru: currentForm.custom_note_ru || null,
           custom_note_en: currentForm.custom_note_en || null,
@@ -289,176 +289,190 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
         </button>
 
         <div style={{ display: expanded ? 'block' : 'none', marginTop: '10px' }}>
-        {description && (
-          <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
-            {description}
-          </p>
-        )}
+          {description && (
+            <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--admin-text-muted)', margin: '0 0 10px' }}>
+              {description}
+            </p>
+          )}
 
-        {/* Время — общее для всех типов блоков (отель / активность / трансфер) */}
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('Time', 'Время')}</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={noteForm.time}
-            onChange={(e) => setField('time', formatTime(e.target.value))}
-            placeholder="11:00"
-            maxLength={5}
-            style={{ width: '120px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box' }}
-          />
-        </div>
+          {/* Время — общее для всех типов блоков (отель / активность / трансфер) */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('Time', 'Время')}</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={noteForm.time}
+              onChange={(e) => setField('time', formatTime(e.target.value))}
+              placeholder="11:00"
+              maxLength={5}
+              style={{ width: '120px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+          </div>
 
-        {block.type === 'hotel' && (() => {
-          const hotelRooms = normalizeRooms(block.rooms)
-          const inputStyle: React.CSSProperties = {
-            width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-            color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-            borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-          }
-          const labelSt: React.CSSProperties = {
-            fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
-          }
-          const selected = noteForm.room_ids
-          const isChecked = (id: string) => selected.length === 0 || selected.includes(id)
+          {block.type === 'hotel' && (() => {
+            const hotelRooms = normalizeRooms(block.rooms)
+            const inputStyle: React.CSSProperties = {
+              width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+              color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+              borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+            }
+            const labelSt: React.CSSProperties = {
+              fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px',
+            }
+            const selected = noteForm.room_ids
+            const isChecked = (id: string) => selected.length === 0 || selected.includes(id)
 
-          function toggleRoom(id: string) {
-            setNoteForm((prev) => {
-              const cur = prev.room_ids
-              const next = cur.length === 0
-                ? hotelRooms.filter((r) => r.id !== id).map((r) => r.id)
-                : cur.includes(id)
-                  ? cur.filter((x) => x !== id)
-                  : [...cur, id]
-              return { ...prev, room_ids: next }
-            })
-            setSaveState('editing')
-          }
+            function toggleRoom(id: string) {
+              setNoteForm((prev) => {
+                const cur = prev.room_ids
+                const next = cur.length === 0
+                  ? hotelRooms.filter((r) => r.id !== id).map((r) => r.id)
+                  : cur.includes(id)
+                    ? cur.filter((x) => x !== id)
+                    : [...cur, id]
+                return { ...prev, room_ids: next }
+              })
+              setSaveState('editing')
+            }
 
-          const actKey = lang === 'ru' ? 'activities_ru' : 'activities_en'
-          const libHref = `/admin/library/${block.id}?returnTo=${encodeURIComponent('/admin/proposals/' + (proposalId || ''))}`
+            const actKey = lang === 'ru' ? 'activities_ru' : 'activities_en'
+            const libHref = `/admin/library/${block.id}?returnTo=${encodeURIComponent('/admin/proposals/' + (proposalId || ''))}`
 
-          return (
-            <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {hotelRooms.length > 0 && (() => {
-                const picked = noteForm.selected_rooms
-                function addRoom() {
-                  const uid = Math.random().toString(36).slice(2, 10)
-                  const firstRoom = hotelRooms[0]
-                  const next = [...picked, { uid, room_id: firstRoom.id, guests: 2, price: null }]
-                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
-                  updateBlockRooms(dayBlock.id, next)
-                }
-                function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number; meal: string }>) {
-                  const next = picked.map((r) => r.uid === uid ? { ...r, ...patch } : r)
-                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
-                  updateBlockRooms(dayBlock.id, next)
-                }
-                function removeRoom(uid: string) {
-                  const next = picked.filter((r) => r.uid !== uid)
-                  setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
-                  updateBlockRooms(dayBlock.id, next)
-                }
-                return (
-                  <div>
-                    <label style={labelSt}>{t('Rooms', 'Номера')}</label>
-                    <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
-                      {t('Pick room types and how many guests in each. Prices are set later in Costs.', 'Выберите типы номеров и число гостей в каждом. Цены задаются позже в разделе «Стоимость».')}
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {picked.map((row) => (
-                        <div key={row.uid} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <select value={row.room_id} onChange={(e) => changeRoom(row.uid, { room_id: e.target.value })}
-                            style={{ ...inputStyle, flex: 1 }}>
-                            {hotelRooms.map((r) => {
-                              const rt = lang === 'ru' ? r.title_ru : r.title_en
-                              return <option key={r.id} value={r.id}>{rt || t('Room', 'Номер')}</option>
-                            })}
-                          </select>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('guests', 'гостей')}</span>
-                            <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
-                              style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
+            return (
+              <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {hotelRooms.length > 0 && (() => {
+                  const picked = noteForm.selected_rooms
+                  function addRoom() {
+                    const uid = Math.random().toString(36).slice(2, 10)
+                    const firstRoom = hotelRooms[0]
+                    const next = [...picked, { uid, room_id: firstRoom.id, guests: 2, price: null }]
+                    setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                    updateBlockRooms(dayBlock.id, next)
+                  }
+                  function changeRoom(uid: string, patch: Partial<{ room_id: string; guests: number; meal: string }>) {
+                    const next = picked.map((r) => r.uid === uid ? { ...r, ...patch } : r)
+                    setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                    updateBlockRooms(dayBlock.id, next)
+                  }
+                  function removeRoom(uid: string) {
+                    const next = picked.filter((r) => r.uid !== uid)
+                    setNoteForm((prev) => ({ ...prev, selected_rooms: next }))
+                    updateBlockRooms(dayBlock.id, next)
+                  }
+                  return (
+                    <div>
+                      <label style={labelSt}>{t('Rooms', 'Номера')}</label>
+                      <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '0 0 6px' }}>
+                        {t('Pick room types and how many guests in each. Prices are set later in Costs.', 'Выберите типы номеров и число гостей в каждом. Цены задаются позже в разделе «Стоимость».')}
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {picked.map((row) => (
+                          <div key={row.uid} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <select value={row.room_id} onChange={(e) => changeRoom(row.uid, { room_id: e.target.value })}
+                              style={{ ...inputStyle, flex: 1 }}>
+                              {hotelRooms.map((r) => {
+                                const rt = lang === 'ru' ? r.title_ru : r.title_en
+                                return <option key={r.id} value={r.id}>{rt || t('Room', 'Номер')}</option>
+                              })}
+                            </select>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('guests', 'гостей')}</span>
+                              <input type="number" min={1} value={row.guests} onChange={(e) => changeRoom(row.uid, { guests: Math.max(1, Number(e.target.value) || 1) })}
+                                style={{ ...inputStyle, width: '56px', textAlign: 'center' }} />
+                            </div>
+                            <input type="text" list="meal-plans" value={row.meal ?? ''} onChange={(e) => changeRoom(row.uid, { meal: e.target.value })}
+                              placeholder={t('Meal', 'Питание')} style={{ ...inputStyle, width: '130px' }} />
+                            <button type="button" onClick={() => removeRoom(row.uid)}
+                              style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
                           </div>
-                          <input type="text" list="meal-plans" value={row.meal ?? ''} onChange={(e) => changeRoom(row.uid, { meal: e.target.value })}
-                            placeholder={t('Meal', 'Питание')} style={{ ...inputStyle, width: '130px' }} />
-                          <button type="button" onClick={() => removeRoom(row.uid)}
-                            style={{ background: 'transparent', border: '1px solid var(--admin-border-card)', color: 'var(--admin-text-muted)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', padding: '6px 8px', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                      <button type="button" onClick={addRoom}
+                        style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {t('+ Add room', '+ Добавить номер')}
+                      </button>
+                      <datalist id="meal-plans">
+                        <option value="Room Only" />
+                        <option value="Breakfast" />
+                        <option value="Half Board" />
+                        <option value="Full Board" />
+                        <option value="All Inclusive" />
+                      </datalist>
                     </div>
-                    <button type="button" onClick={addRoom}
-                      style={{ marginTop: '6px', padding: '7px 12px', fontSize: '12px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {t('+ Add room', '+ Добавить номер')}
-                    </button>
-                    <datalist id="meal-plans">
-                      <option value="Room Only" />
-                      <option value="Breakfast" />
-                      <option value="Half Board" />
-                      <option value="Full Board" />
-                      <option value="All Inclusive" />
-                    </datalist>
-                  </div>
-                )
-              })()}
+                  )
+                })()}
 
-              <div>
-                <label style={labelSt}>{t('Hotel activities (optional)', 'Активности отеля (необязательно)')} · {lang.toUpperCase()}</label>
-                <textarea
-                  value={noteForm[actKey]}
-                  onChange={(e) => setField(actKey, e.target.value)}
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                  placeholder={lang === 'ru' ? 'Утренние выезды на сафари\nПешее сафари' : 'Morning game drives\nWalking safari'}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '4px 0 0' }}>
-                  {t('One activity per line.', 'По одной активности в строке.')}
-                </p>
+                <div>
+                  <label style={labelSt}>{t('Hotel activities (optional)', 'Активности отеля (необязательно)')} · {lang.toUpperCase()}</label>
+                  <textarea
+                    value={noteForm[actKey]}
+                    onChange={(e) => setField(actKey, e.target.value)}
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                    placeholder={lang === 'ru' ? 'Утренние выезды на сафари\nПешее сафари' : 'Morning game drives\nWalking safari'}
+                  />
+                  <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: '4px 0 0' }}>
+                    {t('One activity per line.', 'По одной активности в строке.')}
+                  </p>
+                </div>
+
+                {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>{t('Edit hotel →', 'Редактировать отель →')}</button> : null}
               </div>
+            )
+          })()}
 
-              {proposalId ? <button type="button" onClick={() => { window.location.href = libHref }} style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--admin-text)', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' }}>{t('Edit hotel →', 'Редактировать отель →')}</button> : null}
-            </div>
-          )
-        })()}
-
-        {block.type === 'transfer' && (
-          <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                  {t('From', 'Откуда')} · {lang.toUpperCase()}
-                </label>
+          {block.type === 'transfer' && (
+            <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                    {t('From', 'Откуда')} · {lang.toUpperCase()}
+                  </label>
+                  <input
+                    type="text"
+                    value={noteForm[fromKey]}
+                    onChange={(e) => setField(fromKey, e.target.value)}
+                    placeholder={t('Marseille Airport', 'Аэропорт Марселя')}
+                    style={{
+                      width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                      color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                      borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                    {t('To', 'Куда')} · {lang.toUpperCase()}
+                  </label>
+                  <input
+                    type="text"
+                    value={noteForm[toKey]}
+                    onChange={(e) => setField(toKey, e.target.value)}
+                    placeholder={t('Hotel in Gordes', 'Отель в Горде')}
+                    style={{
+                      width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
+                      color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
+                      borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
                 <input
-                  type="text"
-                  value={noteForm[fromKey]}
-                  onChange={(e) => setField(fromKey, e.target.value)}
-                  placeholder={t('Marseille Airport', 'Аэропорт Марселя')}
-                  style={{
-                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
-                  {t('To', 'Куда')} · {lang.toUpperCase()}
-                </label>
-                <input
-                  type="text"
-                  value={noteForm[toKey]}
-                  onChange={(e) => setField(toKey, e.target.value)}
-                  placeholder={t('Hotel in Gordes', 'Отель в Горде')}
-                  style={{
-                    width: '100%', padding: '8px 10px', fontSize: '12px', lineHeight: 1.5,
-                    color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-                    borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box',
-                  }}
+                  type="number" min={1}
+                  value={noteForm.guests ?? ''}
+                  onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
+                  placeholder="—"
+                  style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
                 />
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          )}
+
+          {block.type === 'activity' && (
+            <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
               <input
                 type="number" min={1}
@@ -468,93 +482,79 @@ export default function DayBlockItem({ dayBlock, lang, isDayPending, proposalId 
                 style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {block.type === 'activity' && (
-          <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{t('Guests', 'Гости')}</span>
-            <input
-              type="number" min={1}
-              value={noteForm.guests ?? ''}
-              onChange={(e) => setField('guests', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
-              placeholder="—"
-              style={{ width: '70px', padding: '8px 10px', fontSize: '12px', color: 'var(--admin-text)', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '4px', fontFamily: 'inherit', boxSizing: 'border-box', textAlign: 'center' }}
-            />
-          </div>
-        )}
-
-        {!noteEditorOpen ? (
-          <button
-            type="button"
-            onClick={() => setNoteEditorOpen(true)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              color: 'var(--admin-text-muted)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textDecoration: 'underline',
-              textUnderlineOffset: '3px',
-              textDecorationColor: 'var(--admin-border-hover)',
-            }}
-          >
-            {t('+ Add note for this trip', '+ Добавить заметку для этой поездки')}
-          </button>
-        ) : (
-          <div style={{ marginTop: '4px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '6px',
-            }}>
-              <label style={{
-                fontSize: '10px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--admin-text-muted)',
-                fontWeight: 500,
-              }}>
-                {t('Note for this trip', 'Заметка для этой поездки')} · {lang.toUpperCase()}
-              </label>
-              <span style={{ fontSize: '11px' }}>
-                {renderSaveIndicator()}
-              </span>
-            </div>
-            <textarea
-              value={currentNote}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-              placeholder={t('e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.', 'напр.: Выезд из отеля в 6:30. Гид встретит вас в лобби.')}
+          {!noteEditorOpen ? (
+            <button
+              type="button"
+              onClick={() => setNoteEditorOpen(true)}
               style={{
-                width: '100%',
-                padding: '8px 10px',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: 'var(--admin-text-muted)',
                 fontSize: '12px',
-                lineHeight: 1.5,
-                color: 'var(--admin-text)',
-                background: 'var(--admin-input)',
-                border: '1px solid var(--admin-border)',
-                borderRadius: '4px',
+                cursor: 'pointer',
                 fontFamily: 'inherit',
-                boxSizing: 'border-box',
-                outline: 'none',
-                resize: 'vertical',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+                textDecorationColor: 'var(--admin-border-hover)',
               }}
-            />
-            <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
-              {t('Visible to client on this trip only. The library block stays unchanged.', 'Видно клиенту только в этой поездке. Блок в библиотеке остаётся без изменений.')}
-            </p>
-            {errorMsg && (
-              <p style={{ fontSize: '11px', color: 'var(--admin-danger)', margin: '4px 0 0' }}>
-                {t('Error', 'Ошибка')}: {errorMsg}
+            >
+              {t('+ Add note for this trip', '+ Добавить заметку для этой поездки')}
+            </button>
+          ) : (
+            <div style={{ marginTop: '4px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '6px',
+              }}>
+                <label style={{
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--admin-text-muted)',
+                  fontWeight: 500,
+                }}>
+                  {t('Note for this trip', 'Заметка для этой поездки')} · {lang.toUpperCase()}
+                </label>
+                <span style={{ fontSize: '11px' }}>
+                  {renderSaveIndicator()}
+                </span>
+              </div>
+              <textarea
+                value={currentNote}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                placeholder={t('e.g.: Departure from the hotel at 6:30 AM. The guide will meet you in the lobby.', 'напр.: Выезд из отеля в 6:30. Гид встретит вас в лобби.')}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  fontSize: '12px',
+                  lineHeight: 1.5,
+                  color: 'var(--admin-text)',
+                  background: 'var(--admin-input)',
+                  border: '1px solid var(--admin-border)',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
+              <p style={{ fontSize: '10px', color: 'var(--admin-text-faint)', margin: '4px 0 0' }}>
+                {t('Visible to client on this trip only. The library block stays unchanged.', 'Видно клиенту только в этой поездке. Блок в библиотеке остаётся без изменений.')}
               </p>
-            )}
-          </div>
-        )}
-      </div>
+              {errorMsg && (
+                <p style={{ fontSize: '11px', color: 'var(--admin-danger)', margin: '4px 0 0' }}>
+                  {t('Error', 'Ошибка')}: {errorMsg}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Actions menu trigger */}
