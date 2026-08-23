@@ -46,9 +46,36 @@ async function deletePlannerTask(companyId: string, msTaskId: string): Promise<v
     } catch { /* best-effort */ }
 }
 
+// Записать заметку (description) в детали задачи Planner. Best-effort, свой etag.
+async function setPlannerTaskNotes(companyId: string, msTaskId: string, notes: string): Promise<void> {
+    try {
+        const getRes = await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`)
+        if (!getRes.ok) return
+        const cur = (await getRes.json()) as Record<string, unknown>
+        const etag = cur['@odata.etag'] as string | undefined
+        if (!etag) return
+        await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`, {
+            method: 'PATCH',
+            headers: { 'If-Match': etag },
+            body: JSON.stringify({ description: notes }),
+        })
+    } catch { /* best-effort */ }
+}
+
+// Снести зеркало задачи в Planner. Вызывать ПЕРЕД физическим удалением у нас,
+// иначе входящая синхра увидит «есть в Planner, нет у нас» и воскресит задачу.
+export async function deleteTaskFromPlanner(taskId: string): Promise<void> {
+    try {
+        const admin = createSupabaseAdmin()
+        const { data: task } = await admin.from('tasks').select('company_id, ms_task_id').eq('id', taskId).single()
+        if (!task?.company_id || !task.ms_task_id) return
+        await deletePlannerTask(task.company_id as string, task.ms_task_id as string)
+    } catch { /* best-effort */ }
+}
+
 // Отправить нашу задачу в Planner: создать (если ещё нет) или обновить.
 // Полностью терпима к ошибкам — синхронизация не должна ронять создание задачи.
-export async function pushTaskToPlanner(taskId: string): Promise<void> {
+export async function pushTaskToPlanner(taskId: string): Promise<void> { 
     try {
         const admin = createSupabaseAdmin()
         const { data: task } = await admin.from('tasks').select('*').eq('id', taskId).single()
@@ -62,15 +89,7 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         // синк выключен, если нет подключения или не выбран план
         if (!integ?.refresh_token || !integ.plan_id) return
 
-        // отменённую задачу зеркалим удалением — у Planner нет статуса «Отменена».
-        // ms_task_id чистим, чтобы входящая синхра не приняла это за «удалили в Planner».
-        if ((task.status as string) === 'cancelled') {
-            if (task.ms_task_id) {
-                await deletePlannerTask(task.company_id as string, task.ms_task_id as string)
-                await admin.from('tasks').update({ ms_task_id: null, ms_synced_at: new Date().toISOString() }).eq('id', taskId)
-            }
-            return
-        }
+        const isCancelled = (task.status as string) === 'cancelled'
 
         // исполнитель → пользователь Azure (по email профиля)
         let assignments: Record<string, unknown> | undefined
@@ -87,7 +106,8 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         }
 
         const fields: Record<string, unknown> = {
-            title: task.title,
+            // у Planner нет статуса «Отменена» — помечаем заголовком и ставим 100%
+            title: isCancelled ? `[Отменено] ${task.title}` : task.title,
             percentComplete: statusToPercent(task.status as string),
             priority: priorityToPlanner(task.priority as string),
         }
@@ -119,6 +139,10 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
             })
             if (patch.ok) {
                 await admin.from('tasks').update({ ms_synced_at: new Date().toISOString() }).eq('id', taskId)
+                // причину отмены — в заметки задачи Planner
+                if (isCancelled && task.cancel_reason) {
+                    await setPlannerTaskNotes(task.company_id as string, task.ms_task_id as string, `Отменено: ${task.cancel_reason as string}`)
+                }
             }
         }
     } catch {
@@ -185,7 +209,10 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
 
             const mine = byMsId.get(pt.id)
             if (mine) {
-                // сравниваем; due приводим к ISO с обеих сторон, чтобы не ловить ложные различия
+                // отменённую у нас не трогаем: в Planner она висит как 100%,
+                // иначе входящая синхра вернула бы ей статус «выполнена»
+                if (mine.status === 'cancelled') continue
+            // сравниваем; due приводим к ISO с обеих сторон, чтобы не ловить ложные различия
                 const myDue = mine.due_at ? new Date(mine.due_at).toISOString() : null
                 const diff = mine.title !== nextTitle || mine.status !== nextStatus || myDue !== nextDue
                 if (diff) {
