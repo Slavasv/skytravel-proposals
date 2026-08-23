@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { goBackOrTo } from '@/lib/nav-back'
 import { useT } from '@/lib/i18n-client'
 import { updateProposal } from '@/app/admin/actions'
 import ImageUploader from '@/app/admin/_components/image-uploader'
@@ -172,7 +173,7 @@ export default function DestinationForm({ proposal, sections }: { proposal: Prop
     if (inFlight.current) {
       await inFlight.current
     }
-    router.push('/admin/destinations')
+    goBackOrTo(router, '/admin/destinations')
   }
 
   function renderSaveIndicator() {

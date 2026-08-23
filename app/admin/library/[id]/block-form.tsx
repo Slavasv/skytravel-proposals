@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { goBackOrTo } from '@/lib/nav-back'
 import { updateBlock, type BlockType } from '../actions'
 import { addBlockToDay } from '@/app/admin/proposals/[id]/block-actions'
 import { attachBlockToSection } from '@/app/admin/destinations/[id]/destination-actions'
@@ -250,7 +251,8 @@ export default function BlockForm({ block }: { block: Block }) {
       }
     }
 
-    router.push(returnTo || '/admin/library')
+    if (returnTo) router.push(returnTo)
+    else goBackOrTo(router, '/admin/library')
   }
 
   // Keys для двуязычных полей в зависимости от выбранного языка
