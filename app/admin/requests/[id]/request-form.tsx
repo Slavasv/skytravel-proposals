@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
+import { goBackOrTo } from '@/lib/nav-back'
 import {
   createProposalFromRequest, detachProposalFromRequest,
   selectDestination, unselectDestination, approveProposal, unapproveProposal,
@@ -203,7 +204,7 @@ export default function RequestForm({
   async function handleDone() {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     if (saveState === 'editing' || saveState === 'error') await saveNow(form)
-    router.push('/admin/requests')
+    goBackOrTo(router, '/admin/requests')
   }
 
   const isConfirmed = form.status === 'confirmed'

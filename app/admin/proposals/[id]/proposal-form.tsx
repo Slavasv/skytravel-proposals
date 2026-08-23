@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { goBackOrTo } from '@/lib/nav-back'
 import { updateProposal, type ProposalClientOption } from '../../actions'
 import ClientPicker from '@/app/admin/_components/client-picker'
 import type { Lang } from './edit-page-client'
@@ -51,7 +52,7 @@ type Proposal = {
 
 type SaveState = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 
-const CURRENCIES = ['USD', 'EUR', 'AED', 'GBP' , 'UAH']
+const CURRENCIES = ['USD', 'EUR', 'AED', 'GBP', 'UAH']
 const STATUSES = [
   { value: 'draft', label: 'Draft' },
   { value: 'sent', label: 'Sent' },
@@ -244,7 +245,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
     if (inFlight.current) {
       await inFlight.current
     }
-    router.push('/admin')
+    goBackOrTo(router, '/admin', false)
   }
 
   const clientKey = lang === 'ru' ? 'client_name_ru' : 'client_name_en'
@@ -259,7 +260,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
   // Подсказки для строк тарифов: блоки из маршрута, сгруппированные по категории.
   // Дубли по названию убираем. transfer/activity маппятся 1:1, остальные типы (city и пр.) игнорируем.
-  
+
   const titlePlaceholder = lang === 'ru'
     ? 'Например: Путешествие в Прованс для семьи Алиевых'
     : 'e.g.: A Provence Journey for the Aliyev Family'
@@ -516,7 +517,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         itinerary
       )}
 
-      
+
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>
@@ -553,7 +554,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         </div>
       </section>
 
-      
+
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>{t('Total & status', 'Итого и статус')}</h2>

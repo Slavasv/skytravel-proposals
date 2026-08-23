@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { goBackOrTo } from '@/lib/nav-back'
 import { checkBookingCodeExists, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
 import BookingInvoices from './booking-invoices'
@@ -143,7 +144,7 @@ export default function BookingForm({
     if (timer.current) clearTimeout(timer.current)
     if (saveState === 'editing' || saveState === 'error') await saveNow(form)
     // пришли из запроса — возвращаемся туда
-    router.push(booking.request_id ? `/admin/requests/${booking.request_id}` : '/admin/bookings')
+    goBackOrTo(router, booking.request_id ? `/admin/requests/${booking.request_id}` : '/admin/bookings')
   }
 
   return (
