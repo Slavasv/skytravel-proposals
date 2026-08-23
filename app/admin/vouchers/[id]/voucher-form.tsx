@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  updateVoucher, getClientTravellers, saveGuestToClient,
+  getClientTravellers, saveGuestToClient,
   type Guest, type ClientOption, type TravellerOption,
 } from './voucher-actions'
 import VoucherHotels from './voucher-hotels'
@@ -243,16 +243,24 @@ export default function VoucherForm({
     setErrorMsg(null)
     const promise = (async () => {
       try {
-        await updateVoucher(voucher.id, {
-          issue_date: current.issue_date || null,
-          greeting_for: current.greeting_for || null,
-          guests: current.guests,
-          show_transfer: current.show_transfer,
-          show_greeting: current.show_greeting,
-          transfers: current.transfers,
-          notes: current.notes || null,
-          client_id: current.client_id || null,
+        const res = await fetch(`/api/vouchers/${voucher.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            issue_date: current.issue_date || null,
+            greeting_for: current.greeting_for || null,
+            guests: current.guests,
+            show_transfer: current.show_transfer,
+            show_greeting: current.show_greeting,
+            transfers: current.transfers,
+            notes: current.notes || null,
+            client_id: current.client_id || null,
+          }),
         })
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string }
+          throw new Error(j?.error || `HTTP ${res.status}`)
+        }
         setSavedAt(new Date())
         setSaveState('saved')
       } catch (err) {
