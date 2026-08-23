@@ -1,10 +1,11 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getUiLang } from '@/lib/get-profile'
 import { sendTaskAssignedEmail } from '@/lib/microsoft-mail'
 import { sendPushToUser } from '@/lib/push'
-import { pushTaskToPlanner, pullPlannerForCompany } from '@/lib/microsoft-planner'
+import { pushTaskToPlanner, pullPlannerForCompany, deleteTaskFromPlanner } from '@/lib/microsoft-planner'
 import { revalidatePath } from 'next/cache'
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
@@ -68,6 +69,7 @@ export type TaskUpdate = Partial<{
     entity_id: string | null
     context_label: string | null
     context_url: string | null
+    cancel_reason: string | null
 }>
 
 export type TaskFilters = {
@@ -210,6 +212,31 @@ export async function updateTask(id: string, patch: TaskUpdate): Promise<{ ok: b
 
     // зеркалим изменения в Planner (best-effort)
     await pushTaskToPlanner(id)
+
+    revalidatePath('/admin/tasks')
+    return { ok: true }
+}
+
+// ---- Физически удалить задачу («создал по ошибке»). Удаляет и зеркало в Planner. ----
+export async function deleteTask(id: string): Promise<{ ok: boolean; error?: string }> {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ok: false, error: 'Not authorized' }
+
+    // права: удалять может создатель задачи или owner/admin
+    const { data: me } = await supabase.from('profiles').select('company_id, role').eq('id', user.id).single()
+    const admin = createSupabaseAdmin()
+    const { data: task } = await admin.from('tasks').select('creator_id, company_id').eq('id', id).single()
+    if (!task) return { ok: false, error: 'Not found' }
+    if (task.company_id !== me?.company_id) return { ok: false, error: 'Forbidden' }
+    const isAdmin = me?.role === 'owner' || me?.role === 'admin'
+    if (task.creator_id !== user.id && !isAdmin) return { ok: false, error: 'Forbidden' }
+
+    // сначала сносим зеркало в Planner, иначе входящая синхра воскресит задачу
+    await deleteTaskFromPlanner(id)
+
+    const { error } = await admin.from('tasks').delete().eq('id', id)
+    if (error) return { ok: false, error: error.message }
 
     revalidatePath('/admin/tasks')
     return { ok: true }

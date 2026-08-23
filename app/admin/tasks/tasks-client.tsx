@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useT } from '@/lib/i18n-client'
 import CreateTaskButton from '@/app/admin/_components/create-task-button'
 import {
-    getTasks, updateTask, syncPlannerNow,
+    getTasks, updateTask, deleteTask, syncPlannerNow,
     type TaskRow, type TaskFilters, type TaskStatus, type TaskPriority,
     type PersonLite, type ClientLite, type PartnerLite, type TaskEntityType,
 } from './actions'
@@ -107,9 +107,26 @@ export default function TasksClient({ initial, people, clients, partners, curren
 
     useEffect(() => { doSync(false) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+    const [menuFor, setMenuFor] = useState<string | null>(null)
+
     async function setStatus(id: string, status: TaskStatus) {
+        // при отмене — спрашиваем причину (сохраняем и показываем в Planner-заметке)
+        let cancel_reason: string | undefined
+        if (status === 'cancelled') {
+            const r = prompt(t('Reason for cancellation:', 'Причина отмены:'), '')
+            if (r === null) return // передумал — статус не меняем
+            cancel_reason = r.trim()
+        }
         setTasks((p) => p.map((x) => (x.id === id ? { ...x, status } : x)))
-        await updateTask(id, { status })
+        await updateTask(id, cancel_reason !== undefined ? { status, cancel_reason } : { status })
+        load()
+    }
+
+    async function handleDelete(id: string) {
+        setMenuFor(null)
+        if (!confirm(t('Delete this task? This cannot be undone.', 'Удалить задачу? Действие необратимо.'))) return
+        setTasks((p) => p.filter((x) => x.id !== id))
+        await deleteTask(id)
         load()
     }
 
@@ -303,6 +320,24 @@ export default function TasksClient({ initial, people, clients, partners, curren
                                             style={{ width: '28px', height: '28px', borderRadius: '50%', flex: 'none', background: task.assignee_name ? 'var(--admin-input)' : 'transparent', border: task.assignee_name ? 'none' : '1px dashed var(--admin-text-faint)', color: 'var(--admin-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
                                             {task.assignee_name ? initials(task.assignee_name) : '?'}
                                         </div>
+
+                                        {task.creator_id === currentUserId && (
+                                            <div style={{ position: 'relative', flex: 'none' }}>
+                                                <button type="button" onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', padding: '2px 6px', fontSize: '18px', lineHeight: 1, fontFamily: 'inherit' }}>⋯</button>
+                                                {menuFor === task.id && (
+                                                    <>
+                                                        <div onClick={() => setMenuFor(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                                                        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 20, background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '4px', minWidth: '150px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                                                            <button type="button" onClick={() => handleDelete(task.id)}
+                                                                style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', fontFamily: 'inherit' }}>
+                                                                {t('Delete', 'Удалить')}
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}
