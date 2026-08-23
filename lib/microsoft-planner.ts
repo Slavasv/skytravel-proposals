@@ -31,6 +31,21 @@ async function resolveAzureUserId(companyId: string, email: string | null): Prom
     }
 }
 
+// Удалить задачу в Planner (нужен If-Match с текущим etag). Best-effort.
+async function deletePlannerTask(companyId: string, msTaskId: string): Promise<void> {
+    try {
+        const getRes = await graphFetch(companyId, `/planner/tasks/${msTaskId}`)
+        if (!getRes.ok) return
+        const cur = (await getRes.json()) as Record<string, unknown>
+        const etag = cur['@odata.etag'] as string | undefined
+        if (!etag) return
+        await graphFetch(companyId, `/planner/tasks/${msTaskId}`, {
+            method: 'DELETE',
+            headers: { 'If-Match': etag },
+        })
+    } catch { /* best-effort */ }
+}
+
 // Отправить нашу задачу в Planner: создать (если ещё нет) или обновить.
 // Полностью терпима к ошибкам — синхронизация не должна ронять создание задачи.
 export async function pushTaskToPlanner(taskId: string): Promise<void> {
@@ -46,6 +61,16 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
             .single()
         // синк выключен, если нет подключения или не выбран план
         if (!integ?.refresh_token || !integ.plan_id) return
+
+        // отменённую задачу зеркалим удалением — у Planner нет статуса «Отменена».
+        // ms_task_id чистим, чтобы входящая синхра не приняла это за «удалили в Planner».
+        if ((task.status as string) === 'cancelled') {
+            if (task.ms_task_id) {
+                await deletePlannerTask(task.company_id as string, task.ms_task_id as string)
+                await admin.from('tasks').update({ ms_task_id: null, ms_synced_at: new Date().toISOString() }).eq('id', taskId)
+            }
+            return
+        }
 
         // исполнитель → пользователь Azure (по email профиля)
         let assignments: Record<string, unknown> | undefined
@@ -193,6 +218,16 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                 if (nextStatus === 'done') insert.completed_at = now
                 await admin.from('tasks').insert(insert)
                 created++
+            }
+        }
+
+        // удалили в Planner → удаляем и у нас (Planner для связанных задач — зеркало).
+        // считаем удаления как изменения, чтобы список обновился и синхра отметилась.
+        const plannerIds = new Set(plannerTasks.map((p) => p.id).filter(Boolean))
+        for (const [msId, mine] of byMsId) {
+            if (!plannerIds.has(msId)) {
+                await admin.from('tasks').delete().eq('id', mine.id)
+                updated++
             }
         }
 
