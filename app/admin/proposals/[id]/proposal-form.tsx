@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { goBackOrTo } from '@/lib/nav-back'
-import { updateProposal, type ProposalClientOption } from '../../actions'
+import { type ProposalClientOption } from '../../actions'
+import { saveJson } from '@/lib/save-json'
 import ClientPicker from '@/app/admin/_components/client-picker'
 import type { Lang } from './edit-page-client'
 import ImageUploader from '@/app/admin/_components/image-uploader'
@@ -157,7 +158,7 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
 
     const promise = (async () => {
       try {
-        await updateProposal(proposal.id, {
+        await saveJson(`/api/proposals/${proposal.id}`, {
           slug: currentForm.slug,
           client_name_ru: currentForm.client_name_ru || null,
           client_name_en: currentForm.client_name_en || null,
