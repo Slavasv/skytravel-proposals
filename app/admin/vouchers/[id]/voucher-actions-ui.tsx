@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateVoucherSlug } from './voucher-actions'
 import { useT } from '@/lib/i18n-client'
+import { goBackOrTo } from '@/lib/nav-back'
 
 // живая чистка слага (дублирует серверную для мгновенного отклика)
 function cleanSlugLive(raw: string): string {
@@ -108,7 +109,7 @@ export default function VoucherActions({ voucherId, initialSlug }: { voucherId: 
         <div style={{ flex: 1 }} />
         <button
           type="button"
-          onClick={() => router.push('/admin/vouchers')}
+          onClick={() => goBackOrTo(router, '/admin/vouchers')}
           style={{
             padding: '10px 24px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em',
             background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)',
