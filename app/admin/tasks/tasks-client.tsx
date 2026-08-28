@@ -112,6 +112,7 @@ export default function TasksClient({ initial, people, clients, partners, curren
     useEffect(() => { doSync(false) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const [menuFor, setMenuFor] = useState<string | null>(null)
+    const [editing, setEditing] = useState<TaskRow | null>(null)
 
     async function setStatus(id: string, status: TaskStatus) {
         // при отмене — спрашиваем причину (сохраняем и показываем в Planner-заметке)
@@ -284,7 +285,10 @@ export default function TasksClient({ initial, people, clients, partners, curren
                                         <span style={{ width: '6px', height: '34px', borderRadius: '3px', flex: 'none', background: PRIO_COLOR[task.priority] }} />
 
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: '14px', color: 'var(--admin-text)', textDecoration: isClosed ? 'line-through' : 'none' }}>{task.title}</div>
+                                            <button type="button" onClick={() => setEditing(task)}
+                                                style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontSize: '14px', color: 'var(--admin-text)', textDecoration: isClosed ? 'line-through' : 'none', fontFamily: 'inherit' }}>
+                                                {task.title}
+                                            </button>
                                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '5px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
                                                 {task.context_url ? (
                                                     <Link href={task.context_url} style={{ color: 'var(--admin-blue, #5b8def)', textDecoration: 'none' }}>
@@ -349,6 +353,15 @@ export default function TasksClient({ initial, people, clients, partners, curren
                         </div>
                     </div>
                 ))
+            )}
+
+            {editing && (
+                <CreateTaskButton
+                    editTask={editing}
+                    canEdit={editing.assignee_id === currentUserId || editing.creator_id === currentUserId}
+                    onClose={() => setEditing(null)}
+                    onSaved={() => { setEditing(null); load() }}
+                />
             )}
         </div>
     )
