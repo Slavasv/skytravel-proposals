@@ -30,6 +30,7 @@ export type EditTask = {
     client_id: string | null
     partner_id: string | null
     status: TaskStatus
+    creator_name?: string | null
 }
 
 const inputSt: React.CSSProperties = {
@@ -255,6 +256,12 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                     <div onClick={close} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 90 }} />
                     <div style={{ position: 'fixed', zIndex: 91, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '20px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
                         <h2 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 16px' }}>{heading}</h2>
+
+                        {isEdit && editTask?.creator_name && (
+                            <div style={{ marginBottom: '14px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+                                {t('Created by', 'Автор')}: {editTask.creator_name}
+                            </div>
+                        )}
 
                         {context?.label && !isEdit && (
                             <div style={{ marginBottom: '14px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
