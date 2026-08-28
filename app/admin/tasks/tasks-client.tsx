@@ -299,6 +299,7 @@ export default function TasksClient({ initial, people, clients, partners, curren
                                                 ) : null}
                                                 {task.client_name && <span>· {task.client_name}</span>}
                                                 {task.partner_name && <span>· {task.partner_name}</span>}
+                                                {task.creator_name && <span>· {t('by', 'от')} {task.creator_name}</span>}
                                                 {task.status === 'done' && task.completed_by_name && (
                                                     <span>· {t('done by', 'закрыл(а)')} {task.completed_by_name}</span>
                                                 )}
@@ -330,7 +331,7 @@ export default function TasksClient({ initial, people, clients, partners, curren
                                             {task.assignee_name ? initials(task.assignee_name) : '?'}
                                         </div>
 
-                                        {task.creator_id === currentUserId && (
+                                        {(task.creator_id === currentUserId || task.assignee_id === currentUserId) && (
                                             <div style={{ position: 'relative', flex: 'none' }}>
                                                 <button type="button" onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
                                                     style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', padding: '2px 6px', fontSize: '18px', lineHeight: 1, fontFamily: 'inherit' }}>⋯</button>

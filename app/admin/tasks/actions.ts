@@ -226,11 +226,11 @@ export async function deleteTask(id: string): Promise<{ ok: boolean; error?: str
     // права: удалять может создатель задачи или owner/admin
     const { data: me } = await supabase.from('profiles').select('company_id, role').eq('id', user.id).single()
     const admin = createSupabaseAdmin()
-    const { data: task } = await admin.from('tasks').select('creator_id, company_id').eq('id', id).single()
+    const { data: task } = await admin.from('tasks').select('creator_id, assignee_id, company_id').eq('id', id).single()
     if (!task) return { ok: false, error: 'Not found' }
     if (task.company_id !== me?.company_id) return { ok: false, error: 'Forbidden' }
     const isAdmin = me?.role === 'owner' || me?.role === 'admin'
-    if (task.creator_id !== user.id && !isAdmin) return { ok: false, error: 'Forbidden' }
+    if (task.creator_id !== user.id && task.assignee_id !== user.id && !isAdmin) return { ok: false, error: 'Forbidden' }
 
     // сначала сносим зеркало в Planner, иначе входящая синхра воскресит задачу
     await deleteTaskFromPlanner(id)
