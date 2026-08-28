@@ -9,8 +9,8 @@ import { pushTaskToPlanner, pullPlannerForCompany, deleteTaskFromPlanner } from 
 import { revalidatePath } from 'next/cache'
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
-export type TaskPriority = 'low' | 'normal' | 'high'
-export type TaskEntityType = 'general' | 'request' | 'proposal' | 'booking' | 'voucher' | 'library'
+export type TaskPriority = 'urgent' | 'important' | 'medium' | 'low'
+export type TaskEntityType = 'general' | 'request' | 'proposal' | 'booking' | 'voucher' | 'hotel' | 'transfer' | 'activity' | 'city'
 
 export type PersonLite = { id: string; name: string }
 export type ClientLite = { id: string; name: string }
@@ -142,7 +142,7 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
             company_id: me.company_id,
             title,
             description: input.description?.trim() || null,
-            priority: input.priority ?? 'normal',
+            priority: input.priority ?? 'medium',
             assignee_id: input.assignee_id || null,
             creator_id: user.id,
             due_at: input.due_at || null,
@@ -398,12 +398,12 @@ export async function getEntityContext(entityType: TaskEntityType, entityId: str
             client_id: null, partner_id: null, url: `/admin/vouchers/${entityId}`,
         }
     }
-    if (entityType === 'library') {
+    if (['hotel', 'transfer', 'activity', 'city'].includes(entityType)) {
         const { data } = await supabase.from('content_blocks').select('title_ru, title_en').eq('id', entityId).single()
         if (!data) return none
         const title = (lang === 'ru' ? data.title_ru : data.title_en) || data.title_ru || data.title_en || ''
         return {
-            label: title ? `${L('Library', 'Библиотека')} · ${title}` : L('Library', 'Библиотека'),
+            label: title || L('Library item', 'Элемент библиотеки'),
             client_id: null, partner_id: null, url: `/admin/library/${entityId}`,
         }
     }

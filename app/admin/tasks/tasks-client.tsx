@@ -19,8 +19,9 @@ const inputSt: React.CSSProperties = {
 }
 
 const PRIO_COLOR: Record<TaskPriority, string> = {
-    high: 'var(--admin-danger)',
-    normal: 'var(--admin-warn, #e0a944)',
+    urgent: 'var(--admin-danger)',
+    important: 'var(--admin-warn, #e0a944)',
+    medium: 'var(--admin-blue, #5b8def)',
     low: 'var(--admin-text-faint)',
 }
 
@@ -30,7 +31,10 @@ const TYPE_LABEL: Record<TaskEntityType, [string, string]> = {
     proposal: ['Proposal', 'Предложение'],
     booking: ['Booking', 'Бронь'],
     voucher: ['Voucher', 'Ваучер'],
-    library: ['Library', 'Библиотека'],
+    hotel: ['Hotel', 'Отель'],
+    transfer: ['Transfer', 'Трансфер'],
+    activity: ['Activity', 'Активность'],
+    city: ['City', 'Город'],
 }
 
 const STATUS_LABEL: Record<TaskStatus, [string, string]> = {
@@ -218,9 +222,10 @@ export default function TasksClient({ initial, people, clients, partners, curren
                 </select>
                 <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority | '')} style={inputSt}>
                     <option value="">{t('Any priority', 'Любой приоритет')}</option>
-                    <option value="high">{t('High', 'Высокий')}</option>
-                    <option value="normal">{t('Normal', 'Обычный')}</option>
-                    <option value="low">{t('Low', 'Низкий')}</option>
+                    <option value="urgent">{t('Urgent', 'Срочно')}</option>
+                    <option value="important">{t('Important', 'Важно')}</option>
+                    <option value="medium">{t('Medium', 'Средне')}</option>
+                    <option value="low">{t('Low', 'Низко')}</option>
                 </select>
                 <select value={assignee} onChange={(e) => setAssignee(e.target.value)} style={inputSt}>
                     <option value="">{t('Any assignee', 'Любой исполнитель')}</option>

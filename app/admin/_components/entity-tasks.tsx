@@ -9,8 +9,9 @@ import {
 } from '@/app/admin/tasks/actions'
 
 const PRIO_COLOR: Record<TaskPriority, string> = {
-    high: 'var(--admin-danger)',
-    normal: 'var(--admin-warn, #e0a944)',
+    urgent: 'var(--admin-danger)',
+    important: 'var(--admin-warn, #e0a944)',
+    medium: 'var(--admin-blue, #5b8def)',
     low: 'var(--admin-text-faint)',
 }
 
