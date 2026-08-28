@@ -18,6 +18,40 @@ function priorityToPlanner(p: string): number {
     return 5 // medium
 }
 
+// тип задачи ↔ название сегмента (бакета) Planner
+const TYPE_TO_SEGMENT: Record<string, string> = {
+    general: 'Общая', request: 'Заявка', proposal: 'Предложение', booking: 'Бронь',
+    voucher: 'Ваучер', hotel: 'Отель', transfer: 'Трансфер', activity: 'Активность', city: 'Город',
+}
+const SEGMENT_TO_TYPE: Record<string, string> = Object.fromEntries(
+    Object.entries(TYPE_TO_SEGMENT).map(([k, v]) => [v, k]),
+)
+
+// приоритет Planner (0..10) → наш (4 уровня)
+function plannerPriorityToOurs(p: number | undefined): 'urgent' | 'important' | 'medium' | 'low' {
+    const n = typeof p === 'number' ? p : 5
+    if (n <= 1) return 'urgent'
+    if (n <= 4) return 'important'
+    if (n <= 6) return 'medium'
+    return 'low'
+}
+
+// карты бакетов плана: name→id и id→name
+async function getPlanBuckets(companyId: string, planId: string): Promise<{ byName: Map<string, string>; byId: Map<string, string> }> {
+    const byName = new Map<string, string>()
+    const byId = new Map<string, string>()
+    try {
+        const r = await graphFetch(companyId, `/planner/plans/${planId}/buckets`)
+        if (r.ok) {
+            const j = (await r.json()) as { value?: { id?: string; name?: string }[] }
+            for (const b of j.value ?? []) {
+                if (b.id && b.name) { byName.set(b.name, b.id); byId.set(b.id, b.name) }
+            }
+        }
+    } catch { /* ignore */ }
+    return { byName, byId }
+}
+
 // найти пользователя Azure по email (mail или UPN); null — если не нашли
 async function resolveAzureUserId(companyId: string, email: string | null): Promise<string | null> {
     if (!email) return null
@@ -96,6 +130,19 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         if (task.due_at) fields.dueDateTime = task.due_at
         if (assignments) fields.assignments = assignments
 
+        // сегмент (бакет) по типу задачи
+        const segName = TYPE_TO_SEGMENT[task.entity_type as string]
+        if (segName) {
+            const { byName } = await getPlanBuckets(task.company_id, integ.plan_id as string)
+            const bucketId = byName.get(segName)
+            if (bucketId) fields.bucketId = bucketId
+        }
+        // метки: Клиент (category1) / Партнёр (category2)
+        fields.appliedCategories = {
+            category1: !!task.client_id,
+            category2: !!task.partner_id,
+        }
+
         if (!task.ms_task_id) {
             // создать
             const res = await graphFetch(task.company_id, '/planner/tasks', {
@@ -143,6 +190,8 @@ type PlannerTask = {
     title?: string
     percentComplete?: number
     dueDateTime?: string | null
+    priority?: number
+    bucketId?: string | null
 }
 
 // Сравниваем «то, что в Planner» с «тем, что у нас», и приводим наше к Planner.
@@ -163,16 +212,17 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
         if (!res.ok) return { updated: 0, created: 0, error: `graph_${res.status}` }
         const json = (await res.json()) as { value?: PlannerTask[] }
         const plannerTasks = json.value ?? []
+        const { byId: bucketNameById } = await getPlanBuckets(companyId, integ.plan_id as string)
 
         // наши задачи этой компании, уже связанные с Planner
         const { data: ours } = await admin
             .from('tasks')
-            .select('id, title, status, due_at, ms_task_id')
+            .select('id, title, status, due_at, priority, entity_type, ms_task_id')
             .eq('company_id', companyId)
             .not('ms_task_id', 'is', null)
-        const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null }>()
+        const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null; priority: string; entity_type: string }>()
         for (const t of ours ?? []) {
-            if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null })
+            if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null, priority: (t.priority as string) ?? 'medium', entity_type: (t.entity_type as string) ?? 'general' })
         }
 
         let updated = 0
@@ -184,6 +234,9 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
             const nextStatus = percentToStatus(pt.percentComplete)
             const nextTitle = (pt.title ?? '').trim() || '—'
             const nextDue = pt.dueDateTime ? new Date(pt.dueDateTime).toISOString() : null
+            const nextPriority = plannerPriorityToOurs(pt.priority)
+            const bucketName = pt.bucketId ? bucketNameById.get(pt.bucketId) : undefined
+            const nextType = bucketName ? SEGMENT_TO_TYPE[bucketName] : undefined
 
             const mine = byMsId.get(pt.id)
             if (mine) {
@@ -192,15 +245,19 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                 if (mine.status === 'cancelled') continue
                 // сравниваем; due приводим к ISO с обеих сторон, чтобы не ловить ложные различия
                 const myDue = mine.due_at ? new Date(mine.due_at).toISOString() : null
+                const typeChanged = !!nextType && nextType !== mine.entity_type
                 const diff = mine.title !== nextTitle || mine.status !== nextStatus || myDue !== nextDue
+                    || mine.priority !== nextPriority || typeChanged
                 if (diff) {
                     const patch: Record<string, unknown> = {
                         title: nextTitle,
                         status: nextStatus,
                         due_at: nextDue,
+                        priority: nextPriority,
                         ms_synced_at: now,
                         updated_at: now,
                     }
+                    if (nextType) patch.entity_type = nextType
                     // статус закрыт → проставим completed_at, открыт → снимем
                     if (nextStatus === 'done') patch.completed_at = now
                     else patch.completed_at = null
@@ -213,8 +270,8 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                     company_id: companyId,
                     title: nextTitle,
                     status: nextStatus,
-                    priority: 'medium',
-                    entity_type: 'general',
+                    priority: nextPriority,
+                    entity_type: nextType || 'general',
                     due_at: nextDue,
                     ms_task_id: pt.id,
                     ms_synced_at: now,
