@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
-import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail, getPlannerPlans, getSelectedPlan, savePlan } from './microsoft-actions'
+import { getMicrosoftStatus, disconnectMicrosoft, sendTestEmail, getPlannerPlans, getSelectedPlan, savePlan, setupPlannerStructure } from './microsoft-actions'
 
 const btnDark: React.CSSProperties = {
     padding: '10px 16px', fontSize: '13px', fontWeight: 500,
@@ -26,6 +26,7 @@ export default function MicrosoftIntegration() {
     const [plans, setPlans] = useState<{ id: string; title: string }[]>([])
     const [planId, setPlanId] = useState('')
     const [planSaved, setPlanSaved] = useState(false)
+    const [setupMsg, setSetupMsg] = useState('')
 
     const flag = params.get('ms') // connected | error | notconfigured
     const reason = params.get('reason')
@@ -45,6 +46,15 @@ export default function MicrosoftIntegration() {
         setPlanId(id); setPlanSaved(false)
         await savePlan(id)
         setPlanSaved(true)
+    }
+
+    async function handleSetup() {
+        setSetupMsg(''); setBusy(true)
+        const res = await setupPlannerStructure()
+        setBusy(false)
+        setSetupMsg(res.ok
+            ? t(`Done ✅ (segments added: ${res.bucketsCreated ?? 0})`, `Готово ✅ (сегментов добавлено: ${res.bucketsCreated ?? 0})`)
+            : `${t('Error', 'Ошибка')}: ${res.error || ''}`)
     }
 
     async function handleDisconnect() {
@@ -92,10 +102,21 @@ export default function MicrosoftIntegration() {
                                 ? t('No plans visible yet — create a Planner plan and add this account as a member.', 'Планов пока не видно — создайте план Planner и добавьте этот аккаунт участником.')
                                 : planSaved ? t('Saved ✅', 'Сохранено ✅') : ''}
                         </div>
-                    </div>
+                        </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
-                        <input type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
+                            <button type="button" onClick={handleSetup} disabled={busy || !planId}
+                                style={{ ...btnDark, opacity: busy || !planId ? 0.5 : 1, cursor: busy ? 'wait' : 'pointer' }}>
+                                {t('Set up Planner structure', 'Настроить структуру Planner')}
+                            </button>
+                            {setupMsg && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{setupMsg}</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '-8px', marginBottom: '14px' }}>
+                            {t('Creates segments (task types) and renames labels (Client / Partner) in the selected plan.', 'Создаёт сегменты (типы задач) и переименовывает метки (Клиент / Партнёр) в выбранном плане.')}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
+                            <input type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)}
                             placeholder={t('Email for a test message', 'Email для тестового письма')} style={inputSt} />
                         <button type="button" onClick={handleTest} disabled={busy || !testTo} style={{ ...btnDark, opacity: busy || !testTo ? 0.5 : 1, cursor: busy ? 'wait' : 'pointer' }}>
                             {t('Send test', 'Отправить тест')}

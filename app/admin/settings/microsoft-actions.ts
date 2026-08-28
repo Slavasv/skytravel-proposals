@@ -93,6 +93,60 @@ export async function syncNow(): Promise<{ ok: boolean; updated: number; created
     return { ok: !res.error, updated: res.updated, created: res.created, error: res.error }
 }
 
+// Разовая настройка структуры плана Planner: сегменты (бакеты) по типам задач
+// и метки (категории) под наши флаги. Идемпотентно — существующее не дублирует.
+const PLANNER_SEGMENTS = ['Общая', 'Заявка', 'Предложение', 'Бронь', 'Ваучер', 'Отель', 'Трансфер', 'Активность', 'Город']
+const PLANNER_LABELS: Record<string, string> = { category1: 'Клиент', category2: 'Партнёр' }
+
+export async function setupPlannerStructure(): Promise<{ ok: boolean; error?: string; bucketsCreated?: number }> {
+    const companyId = await myCompanyId()
+    if (!companyId) return { ok: false, error: 'no access' }
+    const admin = createSupabaseAdmin()
+    const { data: integ } = await admin.from('microsoft_integration').select('plan_id').eq('company_id', companyId).single()
+    const planId = integ?.plan_id as string | undefined
+    if (!planId) return { ok: false, error: 'Не выбран план Planner' }
+
+    // 1) сегменты (бакеты) — создаём недостающие по названию
+    let existing: string[] = []
+    try {
+        const r = await graphFetch(companyId, `/planner/plans/${planId}/buckets`)
+        if (r.ok) {
+            const j = (await r.json()) as { value?: { name?: string }[] }
+            existing = (j.value ?? []).map((b) => b.name || '')
+        }
+    } catch { /* ignore */ }
+
+    let bucketsCreated = 0
+    for (const name of PLANNER_SEGMENTS) {
+        if (existing.includes(name)) continue
+        try {
+            const cr = await graphFetch(companyId, '/planner/buckets', {
+                method: 'POST',
+                body: JSON.stringify({ name, planId, orderHint: ' !' }),
+            })
+            if (cr.ok) bucketsCreated++
+        } catch { /* ignore */ }
+    }
+
+    // 2) метки (категории плана) — переименовываем через детали плана (свой etag)
+    try {
+        const g = await graphFetch(companyId, `/planner/plans/${planId}/details`)
+        if (g.ok) {
+            const cur = (await g.json()) as Record<string, unknown>
+            const etag = cur['@odata.etag'] as string | undefined
+            if (etag) {
+                await graphFetch(companyId, `/planner/plans/${planId}/details`, {
+                    method: 'PATCH',
+                    headers: { 'If-Match': etag },
+                    body: JSON.stringify({ categoryDescriptions: PLANNER_LABELS }),
+                })
+            }
+        }
+    } catch { /* ignore */ }
+
+    return { ok: true, bucketsCreated }
+}
+
 export async function disconnectMicrosoft(): Promise<void> {
     const companyId = await myCompanyId()
     if (!companyId) return
