@@ -34,7 +34,10 @@ const TYPES: { value: TaskEntityType; en: string; ru: string }[] = [
     { value: 'proposal', en: 'Proposal', ru: 'Предложение' },
     { value: 'booking', en: 'Booking', ru: 'Бронь' },
     { value: 'voucher', en: 'Voucher', ru: 'Ваучер' },
-    { value: 'library', en: 'Library', ru: 'Библиотека' },
+    { value: 'hotel', en: 'Hotel', ru: 'Отель' },
+    { value: 'transfer', en: 'Transfer', ru: 'Трансфер' },
+    { value: 'activity', en: 'Activity', ru: 'Активность' },
+    { value: 'city', en: 'City', ru: 'Город' },
 ]
 
 // лёгкий поисковый селект (исполнитель/клиент/партнёр)
@@ -107,7 +110,7 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
     const [description, setDescription] = useState('')
     const [entityType, setEntityType] = useState<TaskEntityType>(context?.entityType ?? 'general')
     const [assignee, setAssignee] = useState('')
-    const [priority, setPriority] = useState<TaskPriority>('normal')
+    const [priority, setPriority] = useState<TaskPriority>('medium')
     const [dueDate, setDueDate] = useState('')
     const [dueTime, setDueTime] = useState('')
     const [clientId, setClientId] = useState(context?.clientId ?? '')
@@ -121,7 +124,7 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
 
     function resetAndClose() {
         setOpen(false)
-        setTitle(''); setDescription(''); setAssignee(''); setPriority('normal')
+        setTitle(''); setDescription(''); setAssignee(''); setPriority('medium')
         setDueDate(''); setDueTime(''); setError('')
         setEntityType(context?.entityType ?? 'general')
         setClientId(context?.clientId ?? ''); setPartnerId(context?.partnerId ?? '')
@@ -145,9 +148,10 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
     }
 
     const priorities: { value: TaskPriority; en: string; ru: string; color: string }[] = [
-        { value: 'low', en: 'Low', ru: 'Низкий', color: 'var(--admin-text-faint)' },
-        { value: 'normal', en: 'Normal', ru: 'Обычный', color: 'var(--admin-warn, #e0a944)' },
-        { value: 'high', en: 'High', ru: 'Высокий', color: 'var(--admin-danger)' },
+        { value: 'urgent', en: 'Urgent', ru: 'Срочно', color: 'var(--admin-danger)' },
+        { value: 'important', en: 'Important', ru: 'Важно', color: 'var(--admin-warn, #e0a944)' },
+        { value: 'medium', en: 'Medium', ru: 'Средне', color: 'var(--admin-blue, #5b8def)' },
+        { value: 'low', en: 'Low', ru: 'Низко', color: 'var(--admin-text-faint)' },
     ]
 
     const trigger = variant === 'fab' ? (

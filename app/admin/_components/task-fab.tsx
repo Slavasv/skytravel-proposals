@@ -11,7 +11,7 @@ const BASE_TO_TYPE: Record<string, TaskEntityType> = {
     bookings: 'booking',
     proposals: 'proposal',
     vouchers: 'voucher',
-    library: 'library',
+    // библиотека разбита на hotel/transfer/activity/city — тип выбирается вручную в модалке
 }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
