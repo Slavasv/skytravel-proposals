@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import {
-    createTask, getTaskDirectories,
+    createTask, updateTask, getTaskDirectories,
     type PersonLite, type ClientLite, type PartnerLite,
-    type TaskEntityType, type TaskPriority,
+    type TaskEntityType, type TaskPriority, type TaskStatus,
 } from '@/app/admin/tasks/actions'
 
 export type TaskContext = {
@@ -16,6 +16,20 @@ export type TaskContext = {
     url?: string | null
     clientId?: string | null
     partnerId?: string | null
+}
+
+// задача для режима просмотра/редактирования
+export type EditTask = {
+    id: string
+    title: string
+    description: string | null
+    entity_type: TaskEntityType
+    assignee_id: string | null
+    priority: TaskPriority
+    due_at: string | null
+    client_id: string | null
+    partner_id: string | null
+    status: TaskStatus
 }
 
 const inputSt: React.CSSProperties = {
@@ -40,12 +54,29 @@ const TYPES: { value: TaskEntityType; en: string; ru: string }[] = [
     { value: 'city', en: 'City', ru: 'Город' },
 ]
 
+const STATUSES: { value: TaskStatus; en: string; ru: string }[] = [
+    { value: 'open', en: 'Open', ru: 'Открыта' },
+    { value: 'in_progress', en: 'In progress', ru: 'В работе' },
+    { value: 'done', en: 'Done', ru: 'Выполнена' },
+    { value: 'cancelled', en: 'Cancelled', ru: 'Отменена' },
+]
+
+function toDateInput(d: Date): string {
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+function toTimeInput(d: Date): string {
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 // лёгкий поисковый селект (исполнитель/клиент/партнёр)
-function PickSelect({ options, value, onChange, placeholder }: {
+function PickSelect({ options, value, onChange, placeholder, disabled }: {
     options: { id: string; name: string }[]
     value: string
     onChange: (id: string) => void
     placeholder: string
+    disabled?: boolean
 }) {
     const [open, setOpen] = useState(false)
     const [q, setQ] = useState('')
@@ -66,14 +97,14 @@ function PickSelect({ options, value, onChange, placeholder }: {
 
     return (
         <div ref={boxRef} style={{ position: 'relative' }}>
-            <button type="button" onClick={() => setOpen((v) => !v)}
-                style={{ ...inputSt, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+            <button type="button" onClick={() => { if (!disabled) setOpen((v) => !v) }}
+                style={{ ...inputSt, textAlign: 'left', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.7 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: selected ? 'var(--admin-text)' : 'var(--admin-text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selected ? selected.name : placeholder}
                 </span>
-                <span style={{ color: 'var(--admin-text-faint)', fontSize: '11px' }}>▾</span>
+                {!disabled && <span style={{ color: 'var(--admin-text-faint)', fontSize: '11px' }}>▾</span>}
             </button>
-            {open && (
+            {open && !disabled && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30, background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', padding: '6px', maxHeight: '240px', overflowY: 'auto' }}>
                     <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="…" style={{ ...inputSt, marginBottom: '6px' }} />
                     <button type="button" onClick={() => { onChange(''); setOpen(false); setQ('') }}
@@ -93,28 +124,38 @@ function PickSelect({ options, value, onChange, placeholder }: {
     )
 }
 
-export default function CreateTaskButton({ context, variant = 'button', label, onCreated }: {
+export default function CreateTaskButton({ context, variant = 'button', label, onCreated, editTask, canEdit = false, onClose, onSaved }: {
     context?: TaskContext
     variant?: 'button' | 'plus' | 'inline' | 'fab'
     label?: string
     onCreated?: () => void
+    // режим просмотра/редактирования существующей задачи
+    editTask?: EditTask
+    canEdit?: boolean
+    onClose?: () => void
+    onSaved?: () => void
 }) {
     const t = useT()
     const router = useRouter()
-    const [open, setOpen] = useState(false)
+    const isEdit = !!editTask
+    const readOnly = isEdit && !canEdit
+
+    const [open, setOpen] = useState(isEdit)
     const [dirs, setDirs] = useState<{ people: PersonLite[]; clients: ClientLite[]; partners: PartnerLite[] } | null>(null)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    const [title, setTitle] = useState('')
-    const [description, setDescription] = useState('')
-    const [entityType, setEntityType] = useState<TaskEntityType>(context?.entityType ?? 'general')
-    const [assignee, setAssignee] = useState('')
-    const [priority, setPriority] = useState<TaskPriority>('medium')
-    const [dueDate, setDueDate] = useState('')
-    const [dueTime, setDueTime] = useState('')
-    const [clientId, setClientId] = useState(context?.clientId ?? '')
-    const [partnerId, setPartnerId] = useState(context?.partnerId ?? '')
+    const initDue = editTask?.due_at ? new Date(editTask.due_at) : null
+    const [title, setTitle] = useState(editTask?.title ?? '')
+    const [description, setDescription] = useState(editTask?.description ?? '')
+    const [entityType, setEntityType] = useState<TaskEntityType>(editTask?.entity_type ?? context?.entityType ?? 'general')
+    const [assignee, setAssignee] = useState(editTask?.assignee_id ?? '')
+    const [priority, setPriority] = useState<TaskPriority>(editTask?.priority ?? 'medium')
+    const [dueDate, setDueDate] = useState(initDue ? toDateInput(initDue) : '')
+    const [dueTime, setDueTime] = useState(initDue ? toTimeInput(initDue) : '')
+    const [clientId, setClientId] = useState(editTask?.client_id ?? context?.clientId ?? '')
+    const [partnerId, setPartnerId] = useState(editTask?.partner_id ?? context?.partnerId ?? '')
+    const [status, setStatus] = useState<TaskStatus>(editTask?.status ?? 'open')
 
     useEffect(() => {
         if (open && !dirs) {
@@ -122,7 +163,8 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
         }
     }, [open, dirs])
 
-    function resetAndClose() {
+    function close() {
+        if (isEdit) { onClose?.(); return }
         setOpen(false)
         setTitle(''); setDescription(''); setAssignee(''); setPriority('medium')
         setDueDate(''); setDueTime(''); setError('')
@@ -133,8 +175,32 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
     async function submit() {
         const ttl = title.trim()
         if (!ttl) { setError(t('Title required', 'Нужно название')); return }
-        setSaving(true); setError('')
         const due_at = dueDate ? new Date(`${dueDate}T${dueTime || '09:00'}`).toISOString() : null
+
+        if (isEdit) {
+            // причину спрашиваем только при НОВОЙ отмене
+            let cancel_reason: string | undefined
+            if (status === 'cancelled' && editTask!.status !== 'cancelled') {
+                const r = prompt(t('Reason for cancellation:', 'Причина отмены:'), '')
+                if (r === null) return
+                cancel_reason = r.trim()
+            }
+            setSaving(true); setError('')
+            const patch: Record<string, unknown> = {
+                title: ttl, description: description || null, priority,
+                assignee_id: assignee || null, due_at,
+                client_id: clientId || null, partner_id: partnerId || null,
+                entity_type: entityType, status,
+            }
+            if (cancel_reason !== undefined) patch.cancel_reason = cancel_reason
+            const res = await updateTask(editTask!.id, patch)
+            setSaving(false)
+            if (!res.ok) { setError(res.error || t('Error', 'Ошибка')); return }
+            onSaved?.(); close()
+            return
+        }
+
+        setSaving(true); setError('')
         const res = await createTask({
             title: ttl, description: description || null, priority,
             assignee_id: assignee || null, due_at,
@@ -144,7 +210,7 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
         })
         setSaving(false)
         if (!res.ok) { setError(res.error || t('Error', 'Ошибка')); return }
-        resetAndClose(); router.refresh(); onCreated?.()
+        close(); router.refresh(); onCreated?.()
     }
 
     const priorities: { value: TaskPriority; en: string; ru: string; color: string }[] = [
@@ -177,16 +243,20 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
         </button>
     )
 
+    const heading = isEdit
+        ? (readOnly ? t('Task', 'Задача') : t('Edit task', 'Редактирование задачи'))
+        : t('New task', 'Новая задача')
+
     return (
         <>
-            {trigger}
+            {!isEdit && trigger}
             {open && (
                 <>
-                    <div onClick={resetAndClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 90 }} />
+                    <div onClick={close} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 90 }} />
                     <div style={{ position: 'fixed', zIndex: 91, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '20px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-                        <h2 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 16px' }}>{t('New task', 'Новая задача')}</h2>
+                        <h2 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 16px' }}>{heading}</h2>
 
-                        {context?.label && (
+                        {context?.label && !isEdit && (
                             <div style={{ marginBottom: '14px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
                                 <span style={{ background: 'var(--admin-input)', border: '1px solid var(--admin-border-card)', borderRadius: '6px', padding: '4px 9px' }}>
                                     🔗 {context.label}
@@ -196,38 +266,47 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
 
                         <div style={{ marginBottom: '12px' }}>
                             <label style={labelSt}>{t('Task', 'Задача')}</label>
-                            <input autoFocus type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                            <input autoFocus={!readOnly} type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={readOnly}
                                 placeholder={t('What needs to be done?', 'Что нужно сделать?')} style={inputSt} />
                         </div>
 
                         <div style={{ marginBottom: '12px' }}>
-                            <label style={labelSt}>{t('Details', 'Детали')}</label>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                            <label style={labelSt}>{t('Details', 'Описание')}</label>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={readOnly}
                                 placeholder={t('Optional', 'Необязательно')} style={{ ...inputSt, resize: 'vertical' }} />
                         </div>
 
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <label style={labelSt}>{t('Type', 'Тип')}</label>
-                                <select value={entityType} onChange={(e) => setEntityType(e.target.value as TaskEntityType)} style={inputSt}>
+                                <select value={entityType} onChange={(e) => setEntityType(e.target.value as TaskEntityType)} disabled={readOnly} style={inputSt}>
                                     {TYPES.map((ty) => <option key={ty.value} value={ty.value}>{t(ty.en, ty.ru)}</option>)}
                                 </select>
                             </div>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <label style={labelSt}>{t('Assignee', 'Исполнитель')}</label>
-                                <PickSelect options={dirs?.people ?? []} value={assignee} onChange={setAssignee}
+                                <PickSelect options={dirs?.people ?? []} value={assignee} onChange={setAssignee} disabled={readOnly}
                                     placeholder={t('Anyone / choose…', 'Любой / выбрать…')} />
                             </div>
                         </div>
 
+                        {isEdit && (
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={labelSt}>{t('Status', 'Статус')}</label>
+                                <select value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)} disabled={readOnly} style={inputSt}>
+                                    {STATUSES.map((st) => <option key={st.value} value={st.value}>{t(st.en, st.ru)}</option>)}
+                                </select>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px', alignItems: 'flex-end' }}>
                             <div style={{ width: '150px' }}>
                                 <label style={labelSt}>{t('Due date', 'Срок')}</label>
-                                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputSt} />
+                                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={readOnly} style={inputSt} />
                             </div>
                             <div style={{ width: '110px' }}>
                                 <label style={labelSt}>{t('Time', 'Время')}</label>
-                                <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} style={inputSt} />
+                                <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} disabled={readOnly} style={inputSt} />
                             </div>
                             <div style={{ flex: 1, minWidth: '160px' }}>
                                 <label style={labelSt}>{t('Priority', 'Приоритет')}</label>
@@ -235,8 +314,8 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                                     {priorities.map((p) => {
                                         const on = priority === p.value
                                         return (
-                                            <button key={p.value} type="button" onClick={() => setPriority(p.value)}
-                                                style={{ flex: 1, fontSize: '12px', padding: '8px 6px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${on ? p.color : 'var(--admin-border-card)'}`, background: on ? p.color : 'transparent', color: on ? '#20242c' : 'var(--admin-text)' }}>
+                                            <button key={p.value} type="button" onClick={() => { if (!readOnly) setPriority(p.value) }}
+                                                style={{ flex: 1, fontSize: '12px', padding: '8px 6px', borderRadius: '6px', cursor: readOnly ? 'default' : 'pointer', fontFamily: 'inherit', border: `1px solid ${on ? p.color : 'var(--admin-border-card)'}`, background: on ? p.color : 'transparent', color: on ? '#20242c' : 'var(--admin-text)' }}>
                                                 {t(p.en, p.ru)}
                                             </button>
                                         )
@@ -248,12 +327,12 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px' }}>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <label style={labelSt}>{t('Client', 'Клиент')}</label>
-                                <PickSelect options={dirs?.clients ?? []} value={clientId} onChange={setClientId}
+                                <PickSelect options={dirs?.clients ?? []} value={clientId} onChange={setClientId} disabled={readOnly}
                                     placeholder={t('Attach client…', 'Привязать клиента…')} />
                             </div>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <label style={labelSt}>{t('Partner', 'Партнёр')}</label>
-                                <PickSelect options={dirs?.partners ?? []} value={partnerId} onChange={setPartnerId}
+                                <PickSelect options={dirs?.partners ?? []} value={partnerId} onChange={setPartnerId} disabled={readOnly}
                                     placeholder={t('Attach partner…', 'Привязать партнёра…')} />
                             </div>
                         </div>
@@ -261,14 +340,16 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                         {error && <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
 
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button type="button" onClick={resetAndClose}
+                            <button type="button" onClick={close}
                                 style={{ padding: '10px 16px', fontSize: '13px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                                {t('Cancel', 'Отмена')}
+                                {readOnly ? t('Close', 'Закрыть') : t('Cancel', 'Отмена')}
                             </button>
-                            <button type="button" onClick={submit} disabled={saving || !title.trim()}
-                                style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: saving ? 'wait' : 'pointer', opacity: saving || !title.trim() ? 0.4 : 1, fontFamily: 'inherit' }}>
-                                {saving ? t('Creating…', 'Создание…') : t('Create task', 'Создать задачу')}
-                            </button>
+                            {!readOnly && (
+                                <button type="button" onClick={submit} disabled={saving || !title.trim()}
+                                    style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: saving ? 'wait' : 'pointer', opacity: saving || !title.trim() ? 0.4 : 1, fontFamily: 'inherit' }}>
+                                    {saving ? t('Saving…', 'Сохранение…') : isEdit ? t('Save', 'Сохранить') : t('Create task', 'Создать задачу')}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </>
