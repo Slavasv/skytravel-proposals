@@ -52,6 +52,53 @@ async function getPlanBuckets(companyId: string, planId: string): Promise<{ byNa
     return { byName, byId }
 }
 
+// записать описание в детали задачи Planner (свой etag); не меняем зря
+async function setPlannerTaskDescription(companyId: string, msTaskId: string, description: string): Promise<void> {
+    try {
+        const g = await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`)
+        if (!g.ok) return
+        const cur = (await g.json()) as Record<string, unknown>
+        const etag = cur['@odata.etag'] as string | undefined
+        if (!etag) return
+        if (((cur.description as string | undefined) ?? '') === description) return
+        await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`, {
+            method: 'PATCH',
+            headers: { 'If-Match': etag },
+            body: JSON.stringify({ description }),
+        })
+    } catch { /* best-effort */ }
+}
+
+// прочитать описание из деталей задачи Planner
+async function getPlannerTaskDescription(companyId: string, msTaskId: string): Promise<string> {
+    try {
+        const g = await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`)
+        if (!g.ok) return ''
+        const cur = (await g.json()) as { description?: string }
+        return (cur.description ?? '').trim()
+    } catch {
+        return ''
+    }
+}
+
+// azure-user-id → id нашего профиля в компании (по ms_email/email). null — не нашли
+async function resolveProfileByAzureId(companyId: string, azureId: string): Promise<string | null> {
+    try {
+        const r = await graphFetch(companyId, `/users/${azureId}?$select=mail,userPrincipalName`)
+        if (!r.ok) return null
+        const u = (await r.json()) as { mail?: string; userPrincipalName?: string }
+        const email = (u.mail || u.userPrincipalName || '').toLowerCase()
+        if (!email) return null
+        const admin = createSupabaseAdmin()
+        const byMs = await admin.from('profiles').select('id').eq('company_id', companyId).eq('ms_email', email).limit(1).maybeSingle()
+        if (byMs.data?.id) return byMs.data.id as string
+        const byEmail = await admin.from('profiles').select('id').eq('company_id', companyId).eq('email', email).limit(1).maybeSingle()
+        return (byEmail.data?.id as string | undefined) ?? null
+    } catch {
+        return null
+    }
+}
+
 // найти пользователя Azure по email (mail или UPN); null — если не нашли
 async function resolveAzureUserId(companyId: string, email: string | null): Promise<string | null> {
     if (!email) return null
@@ -153,6 +200,7 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
             const created = (await res.json()) as { id?: string }
             if (created.id) {
                 await admin.from('tasks').update({ ms_task_id: created.id, ms_synced_at: new Date().toISOString() }).eq('id', taskId)
+                await setPlannerTaskDescription(task.company_id, created.id, (task.description as string) || '')
             }
         } else {
             // обновить — Planner требует If-Match с текущим etag
@@ -168,6 +216,7 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
             })
             if (patch.ok) {
                 await admin.from('tasks').update({ ms_synced_at: new Date().toISOString() }).eq('id', taskId)
+                await setPlannerTaskDescription(task.company_id, task.ms_task_id as string, (task.description as string) || '')
             }
         }
     } catch {
@@ -192,6 +241,8 @@ type PlannerTask = {
     dueDateTime?: string | null
     priority?: number
     bucketId?: string | null
+    hasDescription?: boolean
+    assignments?: Record<string, unknown>
 }
 
 // Сравниваем «то, что в Planner» с «тем, что у нас», и приводим наше к Planner.
@@ -217,12 +268,12 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
         // наши задачи этой компании, уже связанные с Planner
         const { data: ours } = await admin
             .from('tasks')
-            .select('id, title, status, due_at, priority, entity_type, ms_task_id')
+            .select('id, title, status, due_at, priority, entity_type, description, assignee_id, ms_task_id')
             .eq('company_id', companyId)
             .not('ms_task_id', 'is', null)
-        const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null; priority: string; entity_type: string }>()
+        const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null; priority: string; entity_type: string; description: string; assignee_id: string | null }>()
         for (const t of ours ?? []) {
-            if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null, priority: (t.priority as string) ?? 'medium', entity_type: (t.entity_type as string) ?? 'general' })
+            if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null, priority: (t.priority as string) ?? 'medium', entity_type: (t.entity_type as string) ?? 'general', description: (t.description as string | null) ?? '', assignee_id: (t.assignee_id as string | null) ?? null })
         }
 
         let updated = 0
@@ -239,15 +290,23 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
             const nextType = bucketName ? SEGMENT_TO_TYPE[bucketName] : undefined
 
             const mine = byMsId.get(pt.id)
+            // отменённую у нас не трогаем: в Planner она висит как 100%
+            if (mine && mine.status === 'cancelled') continue
+
+            // описание — только если в Planner оно есть; исполнитель — только если назначен и распознан
+            const nextDescription = pt.hasDescription ? await getPlannerTaskDescription(companyId, pt.id) : ''
+            let nextAssignee: string | null = null
+            const azureIds = pt.assignments ? Object.keys(pt.assignments) : []
+            if (azureIds.length > 0) nextAssignee = await resolveProfileByAzureId(companyId, azureIds[0])
+
             if (mine) {
-                // отменённую у нас не трогаем: в Planner она висит как 100%,
-                // иначе входящая синхра вернула бы ей статус «выполнена»
-                if (mine.status === 'cancelled') continue
-                // сравниваем; due приводим к ISO с обеих сторон, чтобы не ловить ложные различия
                 const myDue = mine.due_at ? new Date(mine.due_at).toISOString() : null
                 const typeChanged = !!nextType && nextType !== mine.entity_type
+                const descChanged = (mine.description ?? '') !== nextDescription
+                // исполнителя только адоптируем (никогда не чистим: у исполнителя может не быть MS-аккаунта)
+                const assigneeChanged = !!nextAssignee && nextAssignee !== mine.assignee_id
                 const diff = mine.title !== nextTitle || mine.status !== nextStatus || myDue !== nextDue
-                    || mine.priority !== nextPriority || typeChanged
+                    || mine.priority !== nextPriority || typeChanged || descChanged || assigneeChanged
                 if (diff) {
                     const patch: Record<string, unknown> = {
                         title: nextTitle,
@@ -258,6 +317,8 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                         updated_at: now,
                     }
                     if (nextType) patch.entity_type = nextType
+                    if (descChanged) patch.description = nextDescription || null
+                    if (assigneeChanged) patch.assignee_id = nextAssignee
                     // статус закрыт → проставим completed_at, открыт → снимем
                     if (nextStatus === 'done') patch.completed_at = now
                     else patch.completed_at = null
@@ -277,6 +338,8 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                     ms_synced_at: now,
                     external_source: 'planner',
                 }
+                if (nextDescription) insert.description = nextDescription
+                if (nextAssignee) insert.assignee_id = nextAssignee
                 if (nextStatus === 'done') insert.completed_at = now
                 await admin.from('tasks').insert(insert)
                 created++
