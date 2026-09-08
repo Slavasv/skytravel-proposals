@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useT } from '@/lib/i18n-client'
 import { birthdayInTripWindow } from '@/lib/birthday'
-import {
-  getClientTravellers, setRequestTravellers, createTravellerQuick,
-  type TravellerBrief,
-} from '../travellers-actions'
+import { type TravellerBrief } from '../travellers-actions'
 
 const TITLES = ['Mr', 'Mrs', 'Miss', 'Mstr', 'Chd', 'Inf']
 const CHILD_TITLES = new Set(['Miss', 'Mstr', 'Chd', 'Inf'])
@@ -69,11 +66,14 @@ export default function RequestTravellers({
     let cancelled = false
     if (!clientId) { setAll([]); return }
     setLoading(true)
-    getClientTravellers(clientId).then((rows) => {
-      if (cancelled) return
-      setAll(rows)
-      setLoading(false)
-    })
+    fetch(`/api/clients/${clientId}/travellers`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return
+        setAll(Array.isArray(j?.travellers) ? j.travellers : [])
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [clientId])
 
@@ -87,19 +87,37 @@ export default function RequestTravellers({
   const firstRun = useRef(true)
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return }
-    setRequestTravellers(requestId, selected).catch(() => {})
+    fetch(`/api/requests/${requestId}/travellers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ travellerIds: selected }),
+    }).catch(() => { })
   }, [selected, requestId])
 
   async function handleCreate() {
     if (!newName.trim() || !clientId) return
     setBusy(true)
-    const created = await createTravellerQuick(clientId, newName, newTitle, newDob || null)
+    let created: TravellerBrief | null = null
+    try {
+      const res = await fetch('/api/travellers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, name: newName, title: newTitle, dateOfBirth: newDob || null }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (res.ok && j?.traveller) created = j.traveller as TravellerBrief
+    } catch { /* ignore */ }
     setBusy(false)
     if (!created) return
-    setAll((p) => [...p, created])
-    const next = [...selected, created.id]
+    const createdTrav = created
+    setAll((p) => [...p, createdTrav])
+    const next = [...selected, createdTrav.id]
     setSelected(next)
-    await setRequestTravellers(requestId, next)
+    await fetch(`/api/requests/${requestId}/travellers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ travellerIds: next }),
+    }).catch(() => { })
     setNewName('')
     setNewTitle('Mr')
     setNewDob('')

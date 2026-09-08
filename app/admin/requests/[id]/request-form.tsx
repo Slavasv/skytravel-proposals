@@ -9,7 +9,7 @@ import {
   selectDestination, unselectDestination, approveProposal, unapproveProposal,
   type RequestClientOption, type LinkedProposal, type DestinationOption,
 } from '../actions'
-import { createBookingFromRequest, type RequestBooking } from '@/app/admin/bookings/actions'
+import { type RequestBooking } from '@/app/admin/bookings/actions'
 import RequestTravellers from './request-travellers'
 import AttachDestination from './attach-destination'
 import ClientPicker from '@/app/admin/_components/client-picker'
@@ -92,6 +92,7 @@ export default function RequestForm({
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [closedAt, setClosedAt] = useState<string | null>(request.closed_at)
+  const [creatingBooking, setCreatingBooking] = useState(false)
 
   const [form, setForm] = useState({
     client_id: request.client_id || '',
@@ -199,6 +200,20 @@ export default function RequestForm({
     if (saveState === 'editing') return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('Editing...', 'Редактирование...')}</span>
     if (saveState === 'saved' && savedAt) return <span style={{ color: 'var(--admin-success)' }}>● {t('Saved at', 'Сохранено в')} {savedAt.toLocaleTimeString()}</span>
     return <span style={{ color: 'var(--admin-text-muted)' }}>● {t('All changes saved', 'Все изменения сохранены')}</span>
+  }
+
+  async function handleCreateBooking() {
+    setCreatingBooking(true)
+    try {
+      const res = await fetch(`/api/requests/${request.id}/create-booking`, { method: 'POST' })
+      const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
+      if (res.ok && j?.url) { router.push(j.url); return }
+      alert(t('Could not create booking', 'Не удалось создать бронь') + (j?.error ? `: ${j.error}` : ''))
+    } catch {
+      alert(t('Could not create booking', 'Не удалось создать бронь'))
+    } finally {
+      setCreatingBooking(false)
+    }
   }
 
   async function handleDone() {
@@ -479,12 +494,10 @@ export default function RequestForm({
             </div>
           )}
 
-          <form action={createBookingFromRequest.bind(null, request.id)}>
-            <button type="submit"
-              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              {t('+ Create booking', '+ Создать бронь')}
-            </button>
-          </form>
+          <button type="button" onClick={handleCreateBooking} disabled={creatingBooking}
+            style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: creatingBooking ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: creatingBooking ? 0.6 : 1 }}>
+            {creatingBooking ? t('Creating…', 'Создаём…') : t('+ Create booking', '+ Создать бронь')}
+          </button>
         </section>
       )}
 
