@@ -91,7 +91,7 @@ export default function RequestTravellers({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ travellerIds: selected }),
-    }).catch(() => { })
+    }).catch(() => {})
   }, [selected, requestId])
 
   async function handleCreate() {
@@ -117,7 +117,7 @@ export default function RequestTravellers({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ travellerIds: next }),
-    }).catch(() => { })
+    }).catch(() => {})
     setNewName('')
     setNewTitle('Mr')
     setNewDob('')
