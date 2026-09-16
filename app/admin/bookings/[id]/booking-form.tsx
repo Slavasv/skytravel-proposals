@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { goBackOrTo } from '@/lib/nav-back'
-import { checkBookingCodeExists, createAccommodationVoucher, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
+import { checkBookingCodeExists, createAccommodationVoucher, createFlightVoucherFromBooking, type BookingService, type PartnerOption, type BookingClientOption, type BookingTraveller, type BookingVoucher } from '../actions'
 import BookingServices from './booking-services'
 import BookingInvoices from './booking-invoices'
 import BookingTravellers from './booking-travellers'
@@ -269,12 +269,20 @@ export default function BookingForm({
           </div>
         )}
 
-        <form action={createAccommodationVoucher.bind(null, booking.id)}>
-          <button type="submit"
-            style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            {t('+ Accommodation voucher', '+ Ваучер на проживание')}
-          </button>
-        </form>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <form action={createAccommodationVoucher.bind(null, booking.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Accommodation voucher', '+ Ваучер на проживание')}
+            </button>
+          </form>
+          <form action={createFlightVoucherFromBooking.bind(null, booking.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Flight voucher', '+ Авиаваучер')}
+            </button>
+          </form>
+        </div>
       </section>
 
       {/* ЗАМЕТКИ */}

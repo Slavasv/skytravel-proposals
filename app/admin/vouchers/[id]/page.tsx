@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import VoucherForm from './voucher-form'
+import FlightVoucherForm from './flight-voucher-form'
 import { getHotels, getClientOptions } from './voucher-actions'
 import { syncVoucherFromBooking } from '@/app/admin/bookings/actions'
 import { tr } from '@/lib/i18n'
@@ -31,6 +32,29 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
 
   if (error || !voucher) {
     notFound()
+  }
+
+  // Авиаваучер — отдельный редактор (без отелей/синка брони)
+  if (voucher.voucher_type === 'flight') {
+    const clients = await getClientOptions()
+    return (
+      <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
+        <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginBottom: '16px' }}>
+          <Link href="/admin/vouchers" style={{ color: 'var(--admin-text-muted)', textDecoration: 'none' }}>
+            {tr(lang, '← Back to vouchers', '← Назад к ваучерам')}
+          </Link>
+        </div>
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 500, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+            {tr(lang, 'Flight voucher', 'Авиаваучер')}
+          </h1>
+          <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
+            {tr(lang, 'Booking confirmation (English only)', 'Подтверждение брони (только на английском)')}
+          </p>
+        </div>
+        <FlightVoucherForm voucher={voucher} clients={clients} />
+      </div>
+    )
   }
 
   // подтягиваем актуальное из брони: название отеля, conf#, даты, ночи, гости

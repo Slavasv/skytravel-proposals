@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { type Hotel } from './templates/shared'
 import Design1 from './templates/design-1'
 import Design2 from './templates/design-2'
+import FlightTemplate from './templates/flight'
 
 type Params = { slug: string }
 
@@ -18,6 +19,11 @@ export default async function VoucherPage({ params, searchParams }: { params: Pr
     .from('companies')
     .select('name, logo_url, accent_color, tagline, greeting_message, contact_email, contact_phone, website_url, office_address, footer_note, voucher_template, voucher_bg_url')
     .eq('id', voucher.company_id).single()
+
+  // Авиаваучер — отдельный шаблон, отели не нужны
+  if (voucher.voucher_type === 'flight') {
+    return <FlightTemplate voucher={voucher} company={company} isPrint={isPrint} />
+  }
 
   const { data: hotelsRaw } = await supabase
     .from('voucher_hotels').select('*').eq('voucher_id', voucher.id).order('sort_order', { ascending: true })

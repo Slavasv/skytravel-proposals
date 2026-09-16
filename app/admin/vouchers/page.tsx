@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
-import { createVoucher } from '../actions'
+import { createVoucher, createFlightVoucher } from '../actions'
 import VouchersList, { type VoucherRow } from './vouchers-list'
 
 type SearchParams = { view?: string }
@@ -23,7 +23,7 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
 
   let query = supabase
     .from('vouchers')
-    .select('id, slug, voucher_no, booking_ref, issue_date, updated_at, owner_id, guests, voucher_hotels(name, city, country, check_in, check_out, sort_order), profiles(email)')
+    .select('id, slug, voucher_no, booking_ref, issue_date, updated_at, owner_id, voucher_type, flight_data, guests, voucher_hotels(name, city, country, check_in, check_out, sort_order), profiles(email)')
     .order('updated_at', { ascending: false })
 
   if (isAdmin && !showAll) {
@@ -55,6 +55,11 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
               <a href="/admin/vouchers?view=all" style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, borderRadius: '6px', textDecoration: 'none', letterSpacing: '0.03em', background: showAll ? 'var(--admin-text-on-dark)' : 'transparent', color: showAll ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)' }}>{tr(lang, 'All', 'Все')}</a>
             </div>
           )}
+          <form action={createFlightVoucher}>
+            <button type="submit" style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'transparent', color: 'var(--admin-text)', border: '1px solid var(--admin-border)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {tr(lang, '+ Flight', '+ Авиаваучер')}
+            </button>
+          </form>
           <form action={createVoucher}>
             <button type="submit" style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 500, letterSpacing: '0.03em', background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
               {tr(lang, '+ New voucher', '+ Новый ваучер')}
