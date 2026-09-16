@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import chromium from '@sparticuz/chromium-min'
 import puppeteer from 'puppeteer-core'
 import { PDFDocument } from 'pdf-lib'
+import { normalizeFlightData } from '@/lib/flight-voucher'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -158,11 +159,29 @@ async function buildFileName(slug: string): Promise<string> {
 
     const { data: voucher } = await supabase
       .from('vouchers')
-      .select('id, guests')
+      .select('id, guests, voucher_type, flight_data')
       .eq('slug', slug)
       .single()
 
     if (!voucher) return slug
+
+    // Авиаваучер: имя из первого пассажира + маршрут (SCQ - NAP)
+    if (voucher.voucher_type === 'flight') {
+      const f = normalizeFlightData(voucher.flight_data)
+      const fparts: string[] = []
+      const paxName = f.passengers.find((p) => p.name)?.name?.trim()
+      if (paxName) fparts.push(paxName)
+      const codes: string[] = []
+      for (const s of f.outbound) {
+        if (s.from && !codes.includes(s.from)) codes.push(s.from)
+        if (s.to) codes.push(s.to)
+      }
+      const route = [codes[0], codes[codes.length - 1]].filter(Boolean).join(' - ')
+      if (route) fparts.push(route)
+      if (f.airline) fparts.push(f.airline)
+      const fname = fparts.join(' _ ')
+      return fname ? safeFileName(fname) : slug
+    }
 
     const { data: hotels } = await supabase
       .from('voucher_hotels')

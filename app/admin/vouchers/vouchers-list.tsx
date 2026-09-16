@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition } from 'react'
 import Link from 'next/link'
 import { deleteVoucher, duplicateVoucher } from '../actions'
 import { useT } from '@/lib/i18n-client'
+import { normalizeFlightData } from '@/lib/flight-voucher'
 
 type Guest = { name?: string; title?: string }
 type Hotel = { name?: string | null; city?: string | null; country?: string | null; check_in?: string | null; check_out?: string | null; sort_order?: number }
@@ -16,9 +17,22 @@ export type VoucherRow = {
   issue_date: string | null
   updated_at: string
   owner_id: string | null
+  voucher_type?: string | null
+  flight_data?: unknown
   guests: unknown
   voucher_hotels?: Hotel[] | null
   profiles?: { email: string } | { email: string }[] | null
+}
+
+// краткая строка маршрута для авиаваучера: SCQ → BCN → NAP
+function flightRoute(flightData: unknown): string {
+  const f = normalizeFlightData(flightData)
+  const codes: string[] = []
+  for (const s of f.outbound) {
+    if (s.from && !codes.includes(s.from)) codes.push(s.from)
+    if (s.to) codes.push(s.to)
+  }
+  return codes.join(' → ')
 }
 
 function guestNames(guests: unknown): string[] {
@@ -56,9 +70,15 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
   const [pdfBusy, setPdfBusy] = useState(false)
 
   const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
-  const mainName = firstGuestName(v.guests) || t('Untitled voucher', 'Ваучер без названия')
-  const hotelLine = firstHotelLine(v.voucher_hotels)
-  const guestCount = guestNames(v.guests).length
+  const isFlight = v.voucher_type === 'flight'
+  const flight = isFlight ? normalizeFlightData(v.flight_data) : null
+  const mainName = isFlight
+    ? (flight!.passengers[0]?.name || t('Flight voucher', 'Авиаваучер'))
+    : (firstGuestName(v.guests) || t('Untitled voucher', 'Ваучер без названия'))
+  const hotelLine = isFlight
+    ? [flight!.airline, flightRoute(v.flight_data), flight!.pnr].filter(Boolean).join(' · ')
+    : firstHotelLine(v.voucher_hotels)
+  const guestCount = isFlight ? flight!.passengers.length : guestNames(v.guests).length
 
   function toggleMenu(e: React.MouseEvent) {
     e.preventDefault()
@@ -127,11 +147,12 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
       }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
+            {isFlight && <span title={t('Flight voucher', 'Авиаваучер')}>✈ </span>}
             {mainName}
             {guestCount > 1 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> +{guestCount - 1}</span>}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--admin-text)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>{t('No hotel yet', 'Отель ещё не указан')}</span>}
+            {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>{isFlight ? t('Flight details not filled yet', 'Данные перелёта ещё не заполнены') : t('No hotel yet', 'Отель ещё не указан')}</span>}
           </div>
           {showOwner && ownerEmail && (
             <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
@@ -199,15 +220,25 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
   const t = useT()
   const safeVouchers = Array.isArray(vouchers) ? vouchers : []
   const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'hotel' | 'flight'>('all')
+
+  const flightCount = safeVouchers.filter((v) => v.voucher_type === 'flight').length
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return safeVouchers
     return safeVouchers.filter((v) => {
-      const names = guestNames(v.guests).join(' ').toLowerCase()
-      return names.includes(q)
+      const isFlight = v.voucher_type === 'flight'
+      if (typeFilter === 'flight' && !isFlight) return false
+      if (typeFilter === 'hotel' && isFlight) return false
+      if (!q) return true
+      let hay = guestNames(v.guests).join(' ')
+      if (isFlight) {
+        const f = normalizeFlightData(v.flight_data)
+        hay += ' ' + f.passengers.map((p) => p.name).join(' ') + ' ' + f.pnr + ' ' + f.airline
+      }
+      return hay.toLowerCase().includes(q)
     })
-  }, [safeVouchers, search])
+  }, [safeVouchers, search, typeFilter])
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
@@ -216,8 +247,22 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
     marginBottom: '16px',
   }
 
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 14px', fontSize: '12px', fontWeight: 500, borderRadius: '6px',
+    cursor: 'pointer', letterSpacing: '0.03em', border: 'none', fontFamily: 'inherit',
+    background: active ? 'var(--admin-text-on-dark)' : 'transparent',
+    color: active ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+  })
+
   return (
     <div>
+      {flightCount > 0 && (
+        <div style={{ display: 'inline-flex', gap: '2px', background: 'var(--admin-border-card)', borderRadius: '8px', padding: '3px', marginBottom: '12px' }}>
+          <button type="button" onClick={() => setTypeFilter('all')} style={tabStyle(typeFilter === 'all')}>{t('All', 'Все')}</button>
+          <button type="button" onClick={() => setTypeFilter('hotel')} style={tabStyle(typeFilter === 'hotel')}>{t('Hotel', 'Гостиничные')}</button>
+          <button type="button" onClick={() => setTypeFilter('flight')} style={tabStyle(typeFilter === 'flight')}>✈ {t('Flight', 'Авиа')}</button>
+        </div>
+      )}
       <input
         type="text"
         value={search}

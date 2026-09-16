@@ -3,6 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { emptyFlightData, blankPassenger } from '@/lib/flight-voucher'
 
 export type BookingUpdate = {
   booking_code?: string | null
@@ -559,6 +560,66 @@ export async function createAccommodationVoucher(bookingId: string) {
       })
     )
   }
+
+  revalidatePath(`/admin/bookings/${bookingId}`)
+  redirect(`/admin/vouchers/${voucher.id}`)
+}
+
+// Авиаваучер из брони: пассажиры берутся из состава поездки (request.traveller_ids),
+// остальное (рейсы, багаж, места) агент заполняет вручную в редакторе.
+export async function createFlightVoucherFromBooking(bookingId: string) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('client_id, request_id, company_id')
+    .eq('id', bookingId)
+    .single()
+  if (!booking) throw new Error('Booking not found')
+
+  // пассажиры из состава поездки
+  let passengers: ReturnType<typeof blankPassenger>[] = []
+  if (booking.request_id) {
+    const { data: req } = await supabase
+      .from('requests').select('traveller_ids').eq('id', booking.request_id).single()
+    const ids = Array.isArray(req?.traveller_ids) ? req.traveller_ids : []
+    if (ids.length > 0) {
+      const { data: trav } = await supabase
+        .from('travellers')
+        .select('id, name, title, sort_order')
+        .in('id', ids)
+        .order('sort_order', { ascending: true })
+      passengers = (trav ?? []).map((p) => ({
+        ...blankPassenger(),
+        name: [p.title, p.name].filter(Boolean).join(' ').trim(),
+      }))
+    }
+  }
+
+  const flightData = emptyFlightData()
+  flightData.passengers = passengers
+
+  const slug = `flight-${Math.random().toString(36).slice(2, 10)}`
+  const today = new Date()
+  const issueDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
+
+  const { data: voucher, error } = await supabase
+    .from('vouchers')
+    .insert({
+      slug,
+      booking_id: bookingId,
+      client_id: booking.client_id,
+      company_id: booking.company_id,
+      owner_id: user?.id ?? null,
+      voucher_type: 'flight',
+      issue_date: issueDate,
+      guests: [],
+      flight_data: flightData,
+    })
+    .select().single()
+
+  if (error || !voucher) throw new Error(error?.message || 'Failed to create flight voucher')
 
   revalidatePath(`/admin/bookings/${bookingId}`)
   redirect(`/admin/vouchers/${voucher.id}`)

@@ -3,6 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { emptyFlightData } from '@/lib/flight-voucher'
 
 type ProposalUpdate = {
   client_name_ru?: string | null
@@ -271,6 +272,41 @@ export async function createVoucher() {
   redirect(`/admin/vouchers/${data.id}`)
 }
 
+export async function createFlightVoucher() {
+  const slug = `flight-${Date.now().toString(36)}`
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let companyId: string | null = null
+  if (user) {
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    companyId = me?.company_id ?? null
+  }
+
+  const { data, error } = await supabase
+    .from('vouchers')
+    .insert({
+      slug,
+      company_id: companyId,
+      owner_id: user?.id ?? null,
+      voucher_type: 'flight',
+      issue_date: null,
+      guests: [],
+      flight_data: emptyFlightData(),
+    })
+    .select()
+    .single()
+
+  if (error || !data) throw new Error(error?.message || 'Failed to create flight voucher')
+
+  revalidatePath('/admin/vouchers')
+  redirect(`/admin/vouchers/${data.id}`)
+}
+
 export async function deleteVoucher(id: string) {
   const supabase = await createSupabaseServer()
   const { error } = await supabase
@@ -338,6 +374,8 @@ export async function duplicateVoucher(id: string) {
       transfers: original.transfers,
       notes: original.notes,
       client_id: original.client_id,
+      voucher_type: original.voucher_type,
+      flight_data: original.flight_data,
     })
     .select()
     .single()

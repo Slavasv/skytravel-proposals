@@ -14,6 +14,7 @@ type Body = {
     transfers?: unknown
     notes?: string | null
     client_id?: string | null
+    flight_data?: unknown
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
