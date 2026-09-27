@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
-import Link from 'next/link'
+import { useState, useMemo, useTransition, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { deleteBooking } from './actions'
 import { useT } from '@/lib/i18n-client'
 
@@ -17,15 +17,13 @@ export type BookingRow = {
   booking_services?: { gross: number | null; net: number | null; currency: string | null }[] | null
 }
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  draft:     { label: 'Draft',     color: 'var(--admin-text-muted)' },
-  confirmed: { label: 'Confirmed', color: 'var(--admin-success)' },
-  cancelled: { label: 'Cancelled', color: 'var(--admin-danger)' },
+type Tone = 'work' | 'mid' | 'done' | 'cancel' | 'info' | 'high' | 'low'
+const STATUS_META: Record<string, { tone: Tone }> = {
+  draft:     { tone: 'low' },
+  confirmed: { tone: 'done' },
+  cancelled: { tone: 'cancel' },
 }
-
-function money(n: number): string {
-  return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
+const STATUS_ORDER = ['draft', 'confirmed', 'cancelled']
 
 function statusLabel(status: string | null | undefined, t: (en: string, ru: string) => string): string {
   switch (status) {
@@ -35,13 +33,33 @@ function statusLabel(status: string | null | undefined, t: (en: string, ru: stri
   }
 }
 
-function BookingItem({ b }: { b: BookingRow }) {
+function money(n: number): string {
+  return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function parseISO(s: string | null): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function BookingRowItem({ b, tripText, createdText, onOpen }: {
+  b: BookingRow
+  tripText: string
+  createdText: string
+  onOpen: () => void
+}) {
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const client = Array.isArray(b.clients) ? b.clients[0] : b.clients
-  const meta = STATUS_META[b.status || 'draft'] || STATUS_META.draft
+  const tone = STATUS_META[b.status || 'draft']?.tone ?? 'low'
 
   // комиссия по валютам
   const totals = (b.booking_services ?? []).reduce((acc, s) => {
@@ -54,65 +72,54 @@ function BookingItem({ b }: { b: BookingRow }) {
     .map(([cur, v]) => `${money(v)} ${cur}`)
     .join(' · ')
 
-  const dates = [b.start_date, b.end_date].filter(Boolean).join(' → ')
-  const subline = [b.destination, dates].filter(Boolean).join(' · ')
+  function openMenu() {
+    const rect = btnRef.current?.getBoundingClientRect()
+    if (rect) setMenuPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - 160) })
+    setMenuOpen(true)
+  }
+  const stop = (e: React.MouseEvent) => e.stopPropagation()
 
   function handleDelete(e: React.MouseEvent) {
-    e.preventDefault(); e.stopPropagation(); setMenuOpen(false)
+    e.stopPropagation(); setMenuOpen(false)
     if (!confirm(t('Delete this booking?\n\nAll services inside will be deleted too.', 'Удалить это бронирование?\n\nВсе услуги внутри также будут удалены.'))) return
     startTransition(async () => { await deleteBooking(b.id) })
   }
 
   return (
-    <li style={{ position: 'relative', opacity: isPending ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-      <Link href={`/admin/bookings/${b.id}`} style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-        padding: '16px 18px', paddingRight: '56px', border: '1px solid var(--admin-border-card)',
-        borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit',
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
-              {client?.name || t('No client', 'Без клиента')}
-            </span>
-            {b.booking_code && <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{b.booking_code}</span>}
-            <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: meta.color, border: `1px solid ${meta.color}`, borderRadius: '4px', padding: '1px 6px' }}>
-              {statusLabel(b.status, t)}
-            </span>
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {subline || t('No details yet', 'Пока нет деталей')}
-          </div>
-        </div>
-        {commissionLine && (
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-success)', flexShrink: 0 }}>
-            {commissionLine}
-          </span>
+    <tr className="adm-row" onClick={onOpen} style={{ opacity: isPending ? 0.4 : 1 }}>
+      <td>
+        <span className="adm-cell-strong">{client?.name || t('No client', 'Без клиента')}</span>
+        {b.booking_code && <div className="adm-cell-code">{b.booking_code}</div>}
+      </td>
+      <td style={{ color: b.destination ? undefined : '#9C988E' }}>{b.destination || '—'}</td>
+      <td className="adm-cell-muted" style={{ whiteSpace: 'nowrap', color: tripText ? undefined : '#9C988E' }}>{tripText || '—'}</td>
+      <td>
+        <span className={`adm-pill adm-tone-${tone}`}>{statusLabel(b.status, t)}</span>
+      </td>
+      <td style={{ whiteSpace: 'nowrap', color: commissionLine ? 'var(--admin-success)' : '#9C988E', fontWeight: commissionLine ? 600 : undefined }}>{commissionLine || '—'}</td>
+      <td className="adm-cell-muted" style={{ whiteSpace: 'nowrap' }}>{createdText}</td>
+      <td className="adm-right" onClick={stop}>
+        <button ref={btnRef} className="adm-dots" disabled={isPending} aria-label={t('Actions', 'Действия')}
+          onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}>⋯</button>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div className="adm-menu" style={{ top: menuPos.top, left: menuPos.left }}>
+              <button className="adm-menu-item danger" onClick={handleDelete}>{t('Delete', 'Удалить')}</button>
+            </div>
+          </>
         )}
-      </Link>
-
-      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen) }} disabled={isPending} aria-label={t('Actions', 'Действия')}
-        style={{ position: 'absolute', top: '50%', right: '14px', transform: 'translateY(-50%)', background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', color: 'var(--admin-text-muted)', fontSize: '18px', lineHeight: 1, borderRadius: '6px', fontFamily: 'inherit' }}>
-        ⋯
-      </button>
-
-      {menuOpen && (
-        <>
-          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-          <div style={{ position: 'absolute', top: '50%', right: '14px', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '4px', minWidth: '140px', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.4)' }}>
-            <button onClick={handleDelete}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>
-              {t('Delete', 'Удалить')}
-            </button>
-          </div>
-        </>
-      )}
-    </li>
+      </td>
+    </tr>
   )
 }
 
 export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
   const t = useT()
+  const router = useRouter()
+  const isRu = t('en', 'ru') === 'ru'
+  const MONTHS = isRu ? MONTHS_RU : MONTHS_EN
+
   const safe = Array.isArray(bookings) ? bookings : []
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -128,30 +135,65 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
     })
   }, [safe, search, statusFilter])
 
-  const inputStyle: React.CSSProperties = {
-    padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
-    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-    borderRadius: '8px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  function fmtDay(d: Date) { return `${d.getDate()} ${MONTHS[d.getMonth()]}` }
+  function tripRange(b: BookingRow): string {
+    const s = parseISO(b.start_date), e = parseISO(b.end_date)
+    if (!s && !e) return ''
+    if (s && e) {
+      if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) return `${s.getDate()}–${e.getDate()} ${MONTHS[e.getMonth()]}`
+      return `${fmtDay(s)}–${fmtDay(e)}`
+    }
+    return fmtDay((s || e)!)
+  }
+  function createdText(b: BookingRow): string {
+    const d = parseISO(b.created_at)
+    return d ? fmtDay(d) : ''
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by client, code, destination…', 'Поиск по клиенту, коду, направлению…')} style={{ ...inputStyle, flex: 1, minWidth: '200px' }} />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...inputStyle, width: '180px' }}>
+      <div className="adm-toolbar">
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('Search by client, code, destination…', 'Поиск по клиенту, коду, направлению…')}
+          className="adm-field adm-field-search" />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="adm-field" style={{ minWidth: '180px' }}>
           <option value="">{t('All statuses', 'Все статусы')}</option>
-          {Object.entries(STATUS_META).map(([v]) => <option key={v} value={v}>{statusLabel(v, t)}</option>)}
+          {STATUS_ORDER.map((v) => <option key={v} value={v}>{statusLabel(v, t)}</option>)}
         </select>
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+        <div className="adm-empty">
           {safe.length === 0 ? t('No bookings yet.', 'Пока нет бронирований.') : t('Nothing matches your filters.', 'Ничего не найдено по вашим фильтрам.')}
         </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map((b) => <BookingItem key={b.id} b={b} />)}
-        </ul>
+        <div className="adm-tcard">
+          <div className="adm-tscroll">
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>{t('Client', 'Клиент')}</th>
+                  <th>{t('Destination', 'Направление')}</th>
+                  <th>{t('Trip dates', 'Даты поездки')}</th>
+                  <th>{t('Status', 'Статус')}</th>
+                  <th>{t('Commission', 'Комиссия')}</th>
+                  <th>{t('Created', 'Создано')}</th>
+                  <th> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((b) => (
+                  <BookingRowItem
+                    key={b.id} b={b}
+                    tripText={tripRange(b)}
+                    createdText={createdText(b)}
+                    onOpen={() => router.push(`/admin/bookings/${b.id}`)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )

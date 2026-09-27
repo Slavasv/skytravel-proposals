@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
-import Link from 'next/link'
+import { useState, useMemo, useTransition, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { deleteVoucher, duplicateVoucher } from '../actions'
 import { useT } from '@/lib/i18n-client'
 import { normalizeFlightData } from '@/lib/flight-voucher'
@@ -22,6 +22,14 @@ export type VoucherRow = {
   guests: unknown
   voucher_hotels?: Hotel[] | null
   profiles?: { email: string } | { email: string }[] | null
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function fmtDate(s: string | null): string {
+  if (!s) return ''
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return ''
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
 // краткая строка маршрута для авиаваучера: SCQ → BCN → NAP
@@ -63,11 +71,13 @@ function firstHotelLine(hotels: Hotel[] | null | undefined): string {
   return parts.join(' · ')
 }
 
-function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
+function VoucherRowItem({ v, showOwner, onOpen }: { v: VoucherRow; showOwner: boolean; onOpen: () => void }) {
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [pdfBusy, setPdfBusy] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
   const isFlight = v.voucher_type === 'flight'
@@ -75,19 +85,20 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
   const mainName = isFlight
     ? (flight!.passengers[0]?.name || t('Flight voucher', 'Авиаваучер'))
     : (firstGuestName(v.guests) || t('Untitled voucher', 'Ваучер без названия'))
-  const hotelLine = isFlight
+  const detailLine = isFlight
     ? [flight!.airline, flightRoute(v.flight_data), flight!.pnr].filter(Boolean).join(' · ')
     : firstHotelLine(v.voucher_hotels)
   const guestCount = isFlight ? flight!.passengers.length : guestNames(v.guests).length
+  const code = v.voucher_no || v.booking_ref || ''
 
-  function toggleMenu(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    setMenuOpen(!menuOpen)
+  function openMenu() {
+    const rect = btnRef.current?.getBoundingClientRect()
+    if (rect) setMenuPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - 160) })
+    setMenuOpen(true)
   }
+  const stop = (e: React.MouseEvent) => e.stopPropagation()
 
   async function handlePdf(e: React.MouseEvent) {
-    e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
     if (!v.slug) { alert(t('This voucher has no link yet.', 'У этого ваучера пока нет ссылки.')); return }
@@ -124,14 +135,12 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
   }
 
   function handleDuplicate(e: React.MouseEvent) {
-    e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
     startTransition(async () => { await duplicateVoucher(v.id) })
   }
 
   function handleDelete(e: React.MouseEvent) {
-    e.preventDefault()
     e.stopPropagation()
     setMenuOpen(false)
     if (!confirm(t(`Delete voucher for "${mainName}"?\n\nThis cannot be undone.`, `Удалить ваучер для «${mainName}»?\n\nЭто действие необратимо.`))) return
@@ -139,85 +148,49 @@ function VoucherItem({ v, showOwner }: { v: VoucherRow; showOwner: boolean }) {
   }
 
   return (
-    <li style={{ position: 'relative', opacity: isPending ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-      <Link href={`/admin/vouchers/${v.id}`} style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-        padding: '16px 18px', paddingRight: '56px', border: '1px solid var(--admin-border-card)', borderRadius: '8px',
-        background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit',
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
-            {isFlight && <span title={t('Flight voucher', 'Авиаваучер')}>✈ </span>}
-            {mainName}
-            {guestCount > 1 && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> +{guestCount - 1}</span>}
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--admin-text)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {hotelLine || <span style={{ color: 'var(--admin-text-muted)' }}>{isFlight ? t('Flight details not filled yet', 'Данные перелёта ещё не заполнены') : t('No hotel yet', 'Отель ещё не указан')}</span>}
-          </div>
-          {showOwner && ownerEmail && (
-            <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
-              {ownerEmail}
-            </div>
+    <tr className="adm-row" onClick={onOpen} style={{ opacity: isPending ? 0.4 : 1 }}>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span className="adm-cell-strong">{mainName}</span>
+          {guestCount > 1 && (
+            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>+{guestCount - 1}</span>
           )}
         </div>
-      </Link>
-
-      <button
-        onClick={toggleMenu}
-        disabled={isPending}
-        aria-label={t('Actions', 'Действия')}
-        style={{
-          position: 'absolute', top: '50%', right: '14px', transform: 'translateY(-50%)',
-          background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer',
-          color: 'var(--admin-text-muted)', fontSize: '18px', lineHeight: 1, borderRadius: '6px', fontFamily: 'inherit',
-        }}
-      >
-        ⋯
-      </button>
-
-      {menuOpen && (
-        <>
-          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-          <div style={{
-            position: 'absolute', top: '50%', right: '14px',
-            background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-            borderRadius: '8px', padding: '4px', minWidth: '140px', zIndex: 2,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-          }}>
-            <button
-              onClick={handlePdf}
-              disabled={pdfBusy}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: pdfBusy ? 'wait' : 'pointer', borderRadius: '4px', fontFamily: 'inherit', opacity: pdfBusy ? 0.6 : 1 }}
-              onMouseEnter={(e) => { if (!pdfBusy) e.currentTarget.style.background = 'var(--admin-card)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {pdfBusy ? t('Generating…', 'Формирование…') : t('Download PDF', 'Скачать PDF')}
-            </button>
-            <button
-              onClick={handleDuplicate}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {t('Duplicate', 'Дублировать')}
-            </button>
-            <button
-              onClick={handleDelete}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {t('Delete', 'Удалить')}
-            </button>
-          </div>
-        </>
-      )}
-    </li>
+        {code && <div className="adm-cell-code">{code}</div>}
+      </td>
+      <td>
+        {isFlight
+          ? <span className="adm-pill adm-tone-mid">{t('Flight', 'Авиа')}</span>
+          : <span className="adm-pill adm-tone-info">{t('Accommodation', 'Гостиница')}</span>}
+      </td>
+      <td style={{ color: detailLine ? undefined : '#9C988E' }}>
+        {detailLine || (isFlight ? t('Flight details not filled yet', 'Данные перелёта ещё не заполнены') : t('No hotel yet', 'Отель ещё не указан'))}
+      </td>
+      {showOwner && <td className="adm-cell-muted">{ownerEmail || '—'}</td>}
+      <td className="adm-cell-muted" style={{ whiteSpace: 'nowrap' }}>{fmtDate(v.updated_at)}</td>
+      <td className="adm-right" onClick={stop}>
+        <button ref={btnRef} className="adm-dots" disabled={isPending} aria-label={t('Actions', 'Действия')}
+          onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}>⋯</button>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div className="adm-menu" style={{ top: menuPos.top, left: menuPos.left }}>
+              <button className="adm-menu-item" onClick={handlePdf} disabled={pdfBusy}>
+                {pdfBusy ? t('Generating…', 'Формирование…') : t('Download PDF', 'Скачать PDF')}
+              </button>
+              <button className="adm-menu-item" onClick={handleDuplicate}>{t('Duplicate', 'Дублировать')}</button>
+              <button className="adm-menu-item danger" onClick={handleDelete}>{t('Delete', 'Удалить')}</button>
+            </div>
+          </>
+        )}
+      </td>
+    </tr>
   )
 }
 
 export default function VouchersList({ vouchers, showOwner }: { vouchers: VoucherRow[]; showOwner: boolean }) {
   const t = useT()
+  const router = useRouter()
   const safeVouchers = Array.isArray(vouchers) ? vouchers : []
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'hotel' | 'flight'>('all')
@@ -240,13 +213,6 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
     })
   }, [safeVouchers, search, typeFilter])
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
-    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-    borderRadius: '8px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
-    marginBottom: '16px',
-  }
-
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 14px', fontSize: '12px', fontWeight: 500, borderRadius: '6px',
     cursor: 'pointer', letterSpacing: '0.03em', border: 'none', fontFamily: 'inherit',
@@ -263,24 +229,44 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
           <button type="button" onClick={() => setTypeFilter('flight')} style={tabStyle(typeFilter === 'flight')}>✈ {t('Flight', 'Авиа')}</button>
         </div>
       )}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder={t('Search by guest name…', 'Поиск по имени гостя…')}
-        style={inputStyle}
-      />
+
+      <div className="adm-toolbar">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('Search by guest name…', 'Поиск по имени гостя…')}
+          className="adm-field adm-field-search"
+        />
+      </div>
 
       {filtered.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+        <div className="adm-empty">
           {safeVouchers.length === 0 ? t('No vouchers yet. Click + New voucher to create one.', 'Ваучеров пока нет. Нажмите «+ Новый ваучер», чтобы создать.') : t('Nothing matches your search.', 'Ничего не найдено по вашему запросу.')}
         </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map((v) => (
-            <VoucherItem key={v.id} v={v} showOwner={showOwner} />
-          ))}
-        </ul>
+        <div className="adm-tcard">
+          <div className="adm-tscroll">
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>{t('Guest / Booking', 'Гость / Бронь')}</th>
+                  <th>{t('Type', 'Тип')}</th>
+                  <th>{t('Details', 'Детали')}</th>
+                  {showOwner && <th>{t('Owner', 'Владелец')}</th>}
+                  <th>{t('Updated', 'Обновлён')}</th>
+                  <th> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((v) => (
+                  <VoucherRowItem key={v.id} v={v} showOwner={showOwner}
+                    onOpen={() => router.push(`/admin/vouchers/${v.id}`)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )

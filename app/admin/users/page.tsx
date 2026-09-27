@@ -81,10 +81,32 @@ export default async function UsersPage() {
 
       <CreateUserForm />
 
-      <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {enriched.map((u) => (
-          <UserRow key={u.id} user={u} currentUserId={profile!.id} />
-        ))}
+      <div style={{ marginTop: '32px' }}>
+        {enriched.length === 0 ? (
+          <div className="adm-empty">{tr(lang, 'No users yet.', 'Пользователей пока нет.')}</div>
+        ) : (
+          <div className="adm-tcard">
+            <div className="adm-tscroll">
+              <table className="adm-table">
+                <thead>
+                  <tr>
+                    <th>{tr(lang, 'User', 'Пользователь')}</th>
+                    <th>{tr(lang, 'Role', 'Роль')}</th>
+                    <th>{tr(lang, 'Proposals', 'Предложения')}</th>
+                    <th>{tr(lang, 'Joined', 'Создан')}</th>
+                    <th>{tr(lang, 'Last login', 'Последний вход')}</th>
+                    <th> </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enriched.map((u) => (
+                    <UserRow key={u.id} user={u} currentUserId={profile!.id} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

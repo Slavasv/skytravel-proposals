@@ -175,3 +175,45 @@ body {
   font-weight: 600 !important;
   letter-spacing: normal !important;
 }
+
+/* ============================================================
+   ЕДИНЫЙ ТАБЛИЧНЫЙ ВИД РАЗДЕЛОВ (как в «Заявках»)
+   Общий набор классов: тулбар, карточка-таблица, строки, пилюли,
+   выпадающее меню действий. Один источник правды для всех списков.
+   ============================================================ */
+.adm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.adm-field { padding: 9px 12px; font-size: 13px; color: var(--admin-text); background: var(--admin-input); border: 1px solid #C7BCA8; border-radius: 8px; outline: none; font-family: inherit; }
+.adm-field-search { flex: 1; min-width: 220px; }
+
+.adm-tcard { border: 1px solid #C7BCA8; border-radius: 10px; overflow: hidden; background: var(--admin-card); }
+.adm-tscroll { overflow-x: auto; }
+.adm-table { width: 100%; border-collapse: collapse; }
+.adm-table thead th { background: #EAE3D6; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #6F6C64; padding: 11px 14px; border-bottom: 1px solid #C7BCA8; white-space: nowrap; }
+.adm-table tbody td { padding: 11px 14px; border-bottom: 1px solid #D8D0C2; font-size: 13.5px; color: var(--admin-text); vertical-align: middle; }
+.adm-table tbody tr:last-child td { border-bottom: none; }
+.adm-table tbody tr.adm-row { cursor: pointer; transition: background 0.15s; }
+.adm-table tbody tr.adm-row:hover { background: #F5EFE4; }
+
+.adm-cell-strong { font-weight: 600; color: var(--admin-text); }
+.adm-cell-code { font-size: 11px; color: #9C988E; margin-top: 2px; }
+.adm-cell-muted { color: #6F6C64; font-size: 12.5px; }
+.adm-cell-faint { color: #9C988E; }
+.adm-right { text-align: right; }
+
+.adm-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid; letter-spacing: 0.02em; white-space: nowrap; }
+.adm-tone-work   { background: #F7EFDD; border-color: #E4CF9E; color: #7A5B12; }
+.adm-tone-mid    { background: #FBE9CE; border-color: #E9C98D; color: #8A5A12; }
+.adm-tone-done   { background: #E2EFDD; border-color: #AFCFA4; color: #356B2C; }
+.adm-tone-cancel { background: #EDE7DC; border-color: #D3C9B8; color: #7A6F66; }
+.adm-tone-info   { background: #EDF1F5; border-color: #D5DEE7; color: #4B5A6B; }
+.adm-tone-high   { background: #F6E2DF; border-color: #E6C9C4; color: #B24A42; }
+.adm-tone-low    { background: #ECE6DA; border-color: #DDD3C3; color: #6F6C64; }
+
+.adm-empty { padding: 40px; text-align: center; color: #6F6C64; border: 1px dashed #C7BCA8; border-radius: 10px; font-size: 14px; }
+
+.adm-dots { background: transparent; border: none; color: #6F6C64; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 8px; border-radius: 6px; font-family: inherit; }
+.adm-menu { position: fixed; width: 160px; background: var(--admin-input); border: 1px solid #C7BCA8; border-radius: 8px; padding: 4px; z-index: 41; box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+.adm-menu-item { display: block; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--admin-text); font-size: 13px; cursor: pointer; border-radius: 4px; font-family: inherit; }
+.adm-menu-item:hover { background: #F5EFE4; }
+.adm-menu-item.danger { color: var(--admin-danger); }
+.adm-menu-item.danger:hover { background: rgba(178,74,66,0.1); }

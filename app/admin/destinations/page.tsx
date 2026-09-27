@@ -3,7 +3,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { createDestination } from '../actions'
-import ProposalCard from '../proposal-card'
+import DestinationsTable, { type DestinationRow } from './destinations-table'
 
 type SearchParams = { view?: string }
 
@@ -104,26 +104,16 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
         </div>
       </div>
 
-      {destinations.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
-          {tr(lang, 'No destinations yet. Click + New destination to create one.', 'Пока нет направлений. Нажмите + Новое направление, чтобы создать.')}
-        </div>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {destinations.map((p) => {
-            const ownerEmail = Array.isArray(p.profiles)
-              ? p.profiles[0]?.email
-              : (p.profiles as { email: string } | null)?.email
-            return (
-              <ProposalCard
-                key={p.id}
-                proposal={{ ...p, owner_email: ownerEmail ?? null }}
-                showOwner={showAll}
-              />
-            )
-          })}
-        </ul>
-      )}
+      <DestinationsTable
+        items={destinations.map((p): DestinationRow => {
+          const ownerEmail = Array.isArray(p.profiles)
+            ? p.profiles[0]?.email
+            : (p.profiles as { email: string } | null)?.email
+          return { ...p, owner_email: ownerEmail ?? null }
+        })}
+        showOwner={showAll}
+        lang={lang}
+      />
     </div>
   )
 }

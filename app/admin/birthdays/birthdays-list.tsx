@@ -38,12 +38,6 @@ export default function BirthdaysList({ travellers }: { travellers: BirthdayTrav
         ? rows.filter((r) => `${r.title ?? ''} ${r.name ?? ''} ${r.client_name ?? ''}`.toLowerCase().includes(q))
         : rows
 
-    const inputStyle: React.CSSProperties = {
-        padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
-        background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-        borderRadius: '8px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
-    }
-
     function dateLabel(p: { day: number; month: number } | null): string {
         if (!p) return '—'
         return `${p.day} ${MONTHS_RU[p.month - 1] ?? ''}`
@@ -61,46 +55,60 @@ export default function BirthdaysList({ travellers }: { travellers: BirthdayTrav
                 {t('Travellers sorted by the nearest upcoming birthday.', 'Путешественники по ближайшему дню рождения.')}
             </p>
 
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('Search by name or client…', 'Поиск по имени или клиенту…')}
-                style={{ ...inputStyle, width: '100%', marginBottom: '16px' }} />
+            <div className="adm-toolbar">
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('Search by name or client…', 'Поиск по имени или клиенту…')}
+                    className="adm-field adm-field-search" />
+            </div>
 
             {filtered.length === 0 ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+                <div className="adm-empty">
                     {travellers.length === 0
                         ? t('No travellers with a birth date yet.', 'Пока нет путешественников с датой рождения.')
                         : t('Nothing matches your search.', 'Ничего не найдено.')}
                 </div>
             ) : (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {filtered.map((r) => {
-                        const soon = r.days != null && (r.days as number) <= 14
-                        return (
-                            <li key={r.id}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${soon ? 'var(--admin-accent)' : 'var(--admin-border-card)'}`, borderRadius: '8px', background: 'var(--admin-card)' }}>
-                                    <span style={{ fontSize: '18px' }}>🎂</span>
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                        <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>
-                                            {[r.title, r.name].filter(Boolean).join(' ') || t('Unnamed', 'Без имени')}
-                                            {r.turning != null && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', fontWeight: 400 }}> · {t(`turns ${r.turning}`, `исполнится ${r.turning}`)}</span>}
-                                        </div>
-                                        {r.client_name && (
-                                            <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
-                                                {r.client_id
-                                                    ? <Link href={`/admin/clients/${r.client_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>{r.client_name}</Link>
-                                                    : r.client_name}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 600, color: soon ? 'var(--admin-accent)' : 'var(--admin-text)' }}>{dateLabel(r.parsed)}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--admin-text-muted)', marginTop: '2px' }}>{r.days != null ? daysLabel(r.days as number) : ''}</div>
-                                    </div>
-                                </div>
-                            </li>
-                        )
-                    })}
-                </ul>
+                <div className="adm-tcard">
+                    <div className="adm-tscroll">
+                        <table className="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>{t('Traveller', 'Путешественник')}</th>
+                                    <th>{t('Client', 'Клиент')}</th>
+                                    <th>{t('Birthday', 'День рождения')}</th>
+                                    <th>{t('Turns', 'Исполнится')}</th>
+                                    <th>{t('In', 'Через')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map((r) => {
+                                    const soon = r.days != null && (r.days as number) <= 14
+                                    return (
+                                        <tr key={r.id}>
+                                            <td>
+                                                <span className="adm-cell-strong">🎂 {[r.title, r.name].filter(Boolean).join(' ') || t('Unnamed', 'Без имени')}</span>
+                                            </td>
+                                            <td style={{ color: r.client_name ? undefined : '#9C988E' }}>
+                                                {r.client_name
+                                                    ? (r.client_id
+                                                        ? <Link href={`/admin/clients/${r.client_id}`} style={{ color: 'var(--admin-accent)', textDecoration: 'none' }}>{r.client_name}</Link>
+                                                        : r.client_name)
+                                                    : '—'}
+                                            </td>
+                                            <td style={{ whiteSpace: 'nowrap', color: soon ? 'var(--admin-accent)' : undefined, fontWeight: soon ? 700 : undefined }}>{dateLabel(r.parsed)}</td>
+                                            <td className="adm-cell-muted">{r.turning != null ? r.turning : '—'}</td>
+                                            <td style={{ whiteSpace: 'nowrap', color: soon ? 'var(--admin-accent)' : undefined, fontWeight: soon ? 700 : undefined }}>
+                                                {r.days === 0
+                                                    ? <span className="adm-pill adm-tone-mid">{daysLabel(0)}</span>
+                                                    : (r.days != null ? daysLabel(r.days as number) : '')}
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
         </div>
     )
