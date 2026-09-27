@@ -1,37 +1,17 @@
 import { Suspense } from 'react'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { createSupabaseServer } from '@/lib/supabase-server'
 import { tr } from '@/lib/i18n'
 import ChangePasswordForm from './change-password-form'
-import BrandSettingsForm from './brand-settings-form'
+import BrandSettingsManager from './brand-settings-manager'
 import MicrosoftIntegration from './microsoft-integration'
+import { getOwnerBrands } from './actions'
 
 export default async function SettingsPage() {
   const profile = await getProfile()
   const lang = profile?.ui_language ?? 'en'
 
-  // Для owner'а подгружаем данные его компании (для блока настроек бренда)
-  let company = null
-  if (profile?.role === 'owner') {
-    const supabase = await createSupabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: me } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
-
-      if (me?.company_id) {
-        const { data } = await supabase
-          .from('companies')
-          .select('logo_url, accent_color, contact_email, contact_phone, website_url, office_address, tagline, greeting_message, footer_note, socials, voucher_template, voucher_bg_url')
-          .eq('id', me.company_id)
-          .single()
-        company = data
-      }
-    }
-  }
+  // Для owner'а подгружаем ВСЕ его бренды (настройки/дизайн по каждому)
+  const brands = profile?.role === 'owner' ? await getOwnerBrands() : []
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '480px', margin: '0 auto' }}>
@@ -44,12 +24,12 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      {company && (
+      {brands.length > 0 && (
         <>
           <div style={{ marginBottom: '8px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
             {tr(lang, 'Brand settings', 'Настройки бренда')}
           </div>
-          <BrandSettingsForm company={company} />
+          <BrandSettingsManager brands={brands} />
         </>
       )}
 

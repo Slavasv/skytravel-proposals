@@ -22,7 +22,7 @@ type Company = {
   socials: Record<string, string> | null
 }
 
-export default function BrandSettingsForm({ company }: { company: Company }) {
+export default function BrandSettingsForm({ company, companyId }: { company: Company; companyId: string }) {
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -75,6 +75,7 @@ export default function BrandSettingsForm({ company }: { company: Company }) {
       background: 'var(--admin-input)',
       marginBottom: '32px',
     }}>
+      <input type="hidden" name="company_id" value={companyId} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         <div>
