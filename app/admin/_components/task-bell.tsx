@@ -7,7 +7,7 @@ import { useT } from '@/lib/i18n-client'
 import PushToggle from './push-toggle'
 import { getMyBellTasks, type TaskRow } from '@/app/admin/tasks/actions'
 
-export default function TaskBell() {
+export default function TaskBell({ align = 'right' }: { align?: 'left' | 'right' }) {
     const t = useT()
     const pathname = usePathname()
     const [items, setItems] = useState<TaskRow[]>([])
@@ -32,7 +32,9 @@ export default function TaskBell() {
     return (
         <div style={{ position: 'relative' }}>
             <button type="button" onClick={() => setOpen((v) => !v)} aria-label={t('Notifications', 'Уведомления')}
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--admin-text-muted)' }}>
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: 'transparent', border: 'none', cursor: 'pointer', color: open ? '#F5EFE4' : '#B8AF9F' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#F5EFE4' }}
+                onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = '#B8AF9F' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -47,12 +49,12 @@ export default function TaskBell() {
             {open && (
                 <>
                     <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                    <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', zIndex: 41, width: '320px', maxHeight: '400px', overflowY: 'auto', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '10px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', padding: '6px' }}>
-                        <div style={{ padding: '8px 12px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+                    <div style={{ position: 'absolute', top: '100%', ...(align === 'left' ? { left: 0 } : { right: 0 }), marginTop: '8px', zIndex: 41, width: '320px', maxHeight: '400px', overflowY: 'auto', background: 'var(--admin-sidebar)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', padding: '6px' }}>
+                        <div style={{ padding: '8px 12px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-sidebar-muted)', fontWeight: 500 }}>
                             {t('Due & overdue', 'Горит и просрочено')}
                         </div>
                         {count === 0 ? (
-                            <div style={{ padding: '10px 12px', fontSize: '13px', color: 'var(--admin-text-faint)' }}>
+                            <div style={{ padding: '10px 12px', fontSize: '13px', color: 'var(--admin-sidebar-muted)' }}>
                                 {t('Nothing urgent. ', 'Ничего срочного. ')}🎉
                             </div>
                         ) : (
@@ -60,11 +62,11 @@ export default function TaskBell() {
                                 const due = fmtDue(task.due_at)
                                 return (
                                     <Link key={task.id} href={task.context_url || '/admin/tasks'} onClick={() => setOpen(false)}
-                                        style={{ display: 'block', padding: '9px 12px', borderRadius: '6px', textDecoration: 'none', color: 'var(--admin-text)' }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-input)' }}
+                                        style={{ display: 'block', padding: '9px 12px', borderRadius: '6px', textDecoration: 'none', color: '#EDE6D8' }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
                                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
                                         <div style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
-                                        <div style={{ fontSize: '11px', marginTop: '2px', color: due.over ? 'var(--admin-danger)' : 'var(--admin-warn, #e0a944)' }}>
+                                        <div style={{ fontSize: '11px', marginTop: '2px', color: due.over ? '#E58F86' : 'var(--admin-gold-soft)' }}>
                                             {due.text}{task.context_label ? ` · ${task.context_label}` : ''}
                                         </div>
                                     </Link>
@@ -72,7 +74,7 @@ export default function TaskBell() {
                             })
                         )}
                         <Link href="/admin/tasks" onClick={() => setOpen(false)}
-                            style={{ display: 'block', padding: '10px 12px', marginTop: '4px', borderTop: '1px solid var(--admin-border-card)', fontSize: '12px', color: 'var(--admin-accent)', textDecoration: 'none' }}>
+                            style={{ display: 'block', padding: '10px 12px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: 'var(--admin-gold-soft)', textDecoration: 'none' }}>
                             {t('All my tasks →', 'Все мои задачи →')}
                         </Link>
                         <PushToggle />

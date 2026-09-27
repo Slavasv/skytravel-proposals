@@ -114,8 +114,8 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
       }}>
         {brandBlock}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 6px 14px' }}>
-          {!isSuperadmin && !isAccountant && <TaskBell />}
-          <GearMenu isAdmin={isAdmin} email={email} />
+          {!isSuperadmin && !isAccountant && <TaskBell align="left" />}
+          <GearMenu isAdmin={isAdmin} email={email} align="left" />
         </div>
         {navList()}
         <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: '#E4DCCD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
