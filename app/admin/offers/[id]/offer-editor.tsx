@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { buildOfferText } from '@/lib/offer-text'
+import ClientPicker, { type PickerClient } from '@/app/admin/_components/client-picker'
 
 type Quote = {
   id: string; source: string; partner_id: string | null; amount: number | null
@@ -14,11 +15,14 @@ type Room = {
 }
 type Offer = {
   id: string; title: string | null; hotel_name: string | null; date_from: string | null; date_to: string | null
-  occupancy: string | null; meal: string | null; status: string | null; offer_rooms?: Room[]
+  occupancy: string | null; meal: string | null; status: string | null; client_id: string | null; offer_rooms?: Room[]
 }
 type Partner = { id: string; name: string }
+type Hotel = { name: string; link: string }
 
 const CURRENCIES = ['EUR', 'USD', 'AED', 'GBP']
+// Устаканенные типы питания (фиксированный список)
+const MEALS = ['Без питания', 'Завтраки', 'Полупансион', 'Полный пансион', 'Всё включено']
 const SOURCES: { v: string; label: string }[] = [
   { v: 'netto', label: 'Нетто' }, { v: 'booking', label: 'Букинг' }, { v: 'hotel', label: 'Отель' },
 ]
@@ -32,13 +36,14 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: '10.5px', letterS
 
 function num(v: string): number | null { return v.trim() === '' ? null : Number(v) }
 
-export default function OfferEditor({ offer, partners }: { offer: Offer; partners: Partner[] }) {
+export default function OfferEditor({ offer, partners, clients, hotels }: { offer: Offer; partners: Partner[]; clients: PickerClient[]; hotels: Hotel[] }) {
   const offerId = offer.id
   const [hdr, setHdr] = useState({
     title: offer.title || '', hotel_name: offer.hotel_name || '',
     date_from: offer.date_from || '', date_to: offer.date_to || '',
     occupancy: offer.occupancy || '', meal: offer.meal || '', status: offer.status || 'draft',
   })
+  const [clientId, setClientId] = useState(offer.client_id || '')
   const initRooms: Room[] = useMemo(() => {
     return [...(offer.offer_rooms || [])]
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -59,6 +64,16 @@ export default function OfferEditor({ offer, partners }: { offer: Offer; partner
   // ---- header ----
   function setH<K extends keyof typeof hdr>(k: K, v: string) { setHdr((p) => ({ ...p, [k]: v })) }
   function saveH(k: keyof typeof hdr, v: string) { api({ op: 'offer_update', patch: { [k]: v || null } }) }
+
+  function onPickClient(id: string) {
+    setClientId(id)
+    api({ op: 'offer_update', patch: { client_id: id || null } })
+    // если название пустое — подставим имя клиента
+    if (!hdr.title.trim()) {
+      const c = clients.find((x) => x.id === id)
+      if (c?.name) { setH('title', c.name); saveH('title', c.name) }
+    }
+  }
 
   // ---- rooms ----
   async function addRoom() {
@@ -123,17 +138,31 @@ export default function OfferEditor({ offer, partners }: { offer: Offer; partner
           <div style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px' }}>
               <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Клиент</label>
+                <ClientPicker clients={clients} value={clientId} onChange={onPickClient} returnTo={`/admin/offers/${offerId}`} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
                 <label style={lbl}>Название (клиент / поездка)</label>
                 <input style={field} value={hdr.title} onChange={(e) => setH('title', e.target.value)} onBlur={(e) => saveH('title', e.target.value)} placeholder="напр. Семья Кузнецовых" />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={lbl}>Отель</label>
-                <input style={field} value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} placeholder="напр. Botanic Sanctuary Antwerp" />
+                <input style={field} list="offer-hotels" value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} placeholder="начните вводить — подскажем из библиотеки" />
+                <datalist id="offer-hotels">
+                  {hotels.map((h) => <option key={h.name} value={h.name} />)}
+                </datalist>
               </div>
               <div><label style={lbl}>Дата с</label><input type="date" style={field} value={hdr.date_from} onChange={(e) => { setH('date_from', e.target.value); saveH('date_from', e.target.value) }} /></div>
               <div><label style={lbl}>Дата по</label><input type="date" style={field} value={hdr.date_to} onChange={(e) => { setH('date_to', e.target.value); saveH('date_to', e.target.value) }} /></div>
               <div><label style={lbl}>Размещение</label><input style={field} value={hdr.occupancy} onChange={(e) => setH('occupancy', e.target.value)} onBlur={(e) => saveH('occupancy', e.target.value)} placeholder="2 взрослых + 5 детей (14,11,…)" /></div>
-              <div><label style={lbl}>Питание</label><input style={field} value={hdr.meal} onChange={(e) => setH('meal', e.target.value)} onBlur={(e) => saveH('meal', e.target.value)} placeholder="завтраки / без питания" /></div>
+              <div>
+                <label style={lbl}>Питание</label>
+                <select style={field} value={hdr.meal} onChange={(e) => { setH('meal', e.target.value); saveH('meal', e.target.value) }}>
+                  <option value="">— выбрать —</option>
+                  {MEALS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  {hdr.meal && !MEALS.includes(hdr.meal) && <option value={hdr.meal}>{hdr.meal}</option>}
+                </select>
+              </div>
               <div>
                 <label style={lbl}>Статус</label>
                 <select style={field} value={hdr.status} onChange={(e) => { setH('status', e.target.value); saveH('status', e.target.value) }}>
