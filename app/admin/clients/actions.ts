@@ -5,6 +5,7 @@ import { getUiLang } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { composeName, splitName } from '@/lib/name'
 
 export type ClientUpdate = {
   name?: string
@@ -143,6 +144,8 @@ export type Traveller = {
   id: string
   client_id: string
   name: string | null
+  first_name: string | null
+  last_name: string | null
   title: string | null
   relation: string | null
   traveller_code: string | null
@@ -156,6 +159,8 @@ export type Traveller = {
 
 export type TravellerUpdate = {
   name?: string
+  first_name?: string | null
+  last_name?: string | null
   title?: string | null
   relation?: string | null
   traveller_code?: string | null
@@ -250,12 +255,15 @@ export async function ensurePrimaryTraveller(clientId: string): Promise<Travelle
     p_company_id: client.company_id,
   })
 
+  const primary = splitName(client.name)
   const { data, error } = await supabase
     .from('travellers')
     .insert({
       client_id: clientId,
       company_id: client.company_id,
       name: client.name.trim(),
+      first_name: primary.first,
+      last_name: primary.last,
       title: 'Mr',
       relation: 'Primary Client',
       traveller_code: code ?? null,
@@ -272,9 +280,14 @@ export async function ensurePrimaryTraveller(clientId: string): Promise<Travelle
 
 export async function updateTraveller(id: string, updates: TravellerUpdate) {
   const supabase = await createSupabaseServer()
+  // если пришли отдельные имя/фамилия — держим собранное `name` в синхроне
+  const patch: TravellerUpdate = { ...updates }
+  if ('first_name' in updates || 'last_name' in updates) {
+    patch.name = composeName(updates.first_name, updates.last_name)
+  }
   const { error } = await supabase
     .from('travellers')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw new Error(error.message)
 }

@@ -4,6 +4,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import { tr } from '@/lib/i18n'
 import { getUiLang } from '@/lib/get-profile'
+import { splitName } from '@/lib/name'
 
 export type Guest = {
   id: string
@@ -106,10 +107,13 @@ export async function saveGuestToClient(
     p_company_id: client.company_id,
   })
 
+  const nameParts = splitName(cleanName)
   const { error } = await supabase.from('travellers').insert({
     client_id: clientId,
     company_id: client.company_id,
     name: cleanName,
+    first_name: nameParts.first,
+    last_name: nameParts.last,
     title: guest.title || null,
     date_of_birth: guest.birth_date || null,
     traveller_code: code ?? null,

@@ -12,6 +12,7 @@ import { useT } from '@/lib/i18n-client'
 import {
   addTraveller, updateTraveller, deleteTraveller, reorderTravellers, type Traveller,
 } from '../actions'
+import { splitName } from '@/lib/name'
 import DateInput from '@/app/admin/_components/date-input'
 
 // Обращения: взрослые и детские (как в ваучере)
@@ -75,8 +76,10 @@ function TravellerCard({
   const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: traveller.id })
 
+  const initSplit = splitName(traveller.name)
   const [form, setForm] = useState({
-    name: traveller.name || '',
+    first_name: traveller.first_name ?? initSplit.first,
+    last_name: traveller.last_name ?? initSplit.last,
     title: traveller.title || 'Mr',
     relation: traveller.relation || '',
     traveller_code: traveller.traveller_code || '',
@@ -101,7 +104,8 @@ function TravellerCard({
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       await updateTraveller(traveller.id, {
-        name: form.name,
+        first_name: form.first_name || null,
+        last_name: form.last_name || null,
         title: form.title || null,
         relation: form.relation || null,
         traveller_code: form.traveller_code || null,
@@ -137,7 +141,9 @@ function TravellerCard({
           style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, minWidth: 0 }}>
           <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text)' }}>
-            {form.name ? `${form.title} ${form.name}` : `${t('Traveller', 'Путешественник')} ${index + 1}`}
+            {(form.first_name || form.last_name)
+              ? `${form.title} ${[form.first_name, form.last_name].filter(Boolean).join(' ')}`
+              : `${t('Traveller', 'Путешественник')} ${index + 1}`}
           </span>
           {form.traveller_code && (
             <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)', fontWeight: 400 }}>{form.traveller_code}</span>
@@ -167,9 +173,13 @@ function TravellerCard({
               </optgroup>
             </select>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t('Full name', 'Полное имя')}</label>
-            <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} style={inputStyle} placeholder="Pertsev Yurii" />
+          <div style={{ flex: 1, minWidth: '120px' }}>
+            <label style={labelStyle}>{t('First name', 'Имя')}</label>
+            <input type="text" value={form.first_name} onChange={(e) => set('first_name', e.target.value)} style={inputStyle} placeholder="Yurii" />
+          </div>
+          <div style={{ flex: 1, minWidth: '120px' }}>
+            <label style={labelStyle}>{t('Last name', 'Фамилия')}</label>
+            <input type="text" value={form.last_name} onChange={(e) => set('last_name', e.target.value)} style={inputStyle} placeholder="Pertsev" />
           </div>
           <div style={{ width: '130px', flexShrink: 0 }}>
             <label style={labelStyle}>{t('Code', 'Код')}</label>
