@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import { deleteRequest, duplicateRequest } from './actions'
@@ -316,6 +316,14 @@ function Row({
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  function openMenu() {
+    const rect = btnRef.current?.getBoundingClientRect()
+    if (rect) setMenuPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - 150) })
+    setMenuOpen(true)
+  }
 
   const client = Array.isArray(r.clients) ? r.clients[0] : r.clients
   const ownerEmail = Array.isArray(r.profiles) ? r.profiles[0]?.email : r.profiles?.email
@@ -363,17 +371,21 @@ function Row({
         ) : <span style={{ color: C.faint }}>—</span>}
       </td>
       <td style={{ ...td, color: C.muted, fontSize: '12.5px', whiteSpace: 'nowrap' }}>{createdText}</td>
-      <td style={{ ...td, position: 'relative', textAlign: 'right' }} onClick={stop}>
-        <button onClick={() => setMenuOpen((v) => !v)} disabled={isPending} aria-label={t('Actions', 'Действия')}
-          style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: '18px', lineHeight: 1, cursor: 'pointer', padding: '2px 6px', borderRadius: '6px', fontFamily: 'inherit' }}>⋯</button>
+      <td style={{ ...td, textAlign: 'right' }} onClick={stop}>
+        <button ref={btnRef} onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())} disabled={isPending} aria-label={t('Actions', 'Действия')}
+          style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: '18px', lineHeight: 1, cursor: 'pointer', padding: '2px 8px', borderRadius: '6px', fontFamily: 'inherit' }}>⋯</button>
         {menuOpen && (
           <>
-            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-            <div style={{ position: 'absolute', top: '100%', right: '10px', background: 'var(--admin-input)', border: `1px solid ${C.borderStrong}`, borderRadius: '8px', padding: '4px', minWidth: '150px', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, width: '150px', background: 'var(--admin-input)', border: `1px solid ${C.borderStrong}`, borderRadius: '8px', padding: '4px', zIndex: 41, boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}>
               <button onClick={() => { setMenuOpen(false); startTransition(async () => { await duplicateRequest(r.id) }) }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: C.text, fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>{t('Duplicate', 'Дублировать')}</button>
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: C.text, fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.rowHover }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>{t('Duplicate', 'Дублировать')}</button>
               <button onClick={() => { setMenuOpen(false); if (confirm(t('Delete this request?\n\nThis cannot be undone.', 'Удалить эту заявку?\n\nЭто действие необратимо.'))) startTransition(async () => { await deleteRequest(r.id) }) }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>{t('Delete', 'Удалить')}</button>
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(178,74,66,0.1)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>{t('Delete', 'Удалить')}</button>
             </div>
           </>
         )}
