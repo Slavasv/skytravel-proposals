@@ -4,6 +4,8 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { getClientsForRequest, getLinkedProposals, getAvailableDestinations } from '../actions'
 import { getRequestDestinations } from '../destinations-actions'
 import { getBookingsForRequest } from '@/app/admin/bookings/actions'
+import { getOffersForRequest } from '@/app/admin/offers/actions'
+import { getSimplesForRequest } from '@/app/admin/simple/actions'
 import { getUiLang, getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import RequestForm from './request-form'
@@ -28,6 +30,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const linked = await getLinkedProposals(id)
   const availableDestinations = await getAvailableDestinations()
   const bookings = await getBookingsForRequest(id)
+  const offers = await getOffersForRequest(id)
+  const simples = await getSimplesForRequest(id)
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -40,7 +44,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </h1>
       </div>
 
-      <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} bookings={bookings} />
+      <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} bookings={bookings} offers={offers} simples={simples} />
 
       <EntityTasks entityType="request" entityId={id} currentUserId={profile?.id || ''} />
     </div>
