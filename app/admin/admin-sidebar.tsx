@@ -20,7 +20,7 @@ type Item = { href: string; label: string; matchPrefix: string; icon: IconName }
 type IconName =
   | 'clients' | 'requests' | 'bookings' | 'tasks' | 'accounting'
   | 'partners' | 'proposals' | 'destinations' | 'vouchers' | 'birthdays'
-  | 'library' | 'companies' | 'offers'
+  | 'library' | 'companies' | 'offers' | 'simple'
 
 function Icon({ name }: { name: IconName }) {
   const p: Record<IconName, string> = {
@@ -37,6 +37,7 @@ function Icon({ name }: { name: IconName }) {
     library: 'M4 4h16v16H4zM9 4v16M15 4v16',
     companies: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
     offers: 'M4 5h16v5H4zM4 14h16v5H4zM8 7.5h.01M8 16.5h.01',
+    simple: 'M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1zM9 8h6M9 12h6',
   }
   return (
     <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -62,6 +63,7 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
           { href: '/admin/bookings', label: t('Bookings', 'Брони'), matchPrefix: '/admin/bookings', icon: 'bookings' },
           { href: '/admin/vouchers', label: t('Vouchers', 'Ваучеры'), matchPrefix: '/admin/vouchers', icon: 'vouchers' },
           { href: '/admin/offers', label: t('Offers', 'Офферы'), matchPrefix: '/admin/offers', icon: 'offers' },
+          { href: '/admin/simple', label: t('Simple', 'Симпл'), matchPrefix: '/admin/simple', icon: 'simple' },
           ...(isAdmin ? [{ href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting', icon: 'accounting' as IconName }] : []),
           { href: '/admin/clients', label: t('Clients', 'Клиенты'), matchPrefix: '/admin/clients', icon: 'clients' },
           { href: '/admin/partners', label: t('Partners', 'Партнёры'), matchPrefix: '/admin/partners', icon: 'partners' },

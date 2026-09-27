@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { buildOfferText, type Lang } from '@/lib/offer-text'
 import { useT, useLang } from '@/lib/i18n-client'
 import ClientPicker, { type PickerClient } from '@/app/admin/_components/client-picker'
+import { createSimpleFromOffer } from '@/app/admin/simple/actions'
 
 type Quote = {
   id: string; source: string; partner_id: string | null; amount: number | null
@@ -142,10 +143,19 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
 
   return (
     <div style={{ maxWidth: '820px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 4px' }}>{hdr.hotel_name || t('New offer', 'Новый оффер')}</h1>
-      <p style={{ color: 'var(--admin-text-muted)', margin: '0 0 18px', fontSize: '13px' }}>
-        {t('Working view with price comparison — the WhatsApp text is below.', 'Рабочий визуал со сравнением цен — готовый текст для WhatsApp ниже.')}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 4px' }}>{hdr.hotel_name || t('New offer', 'Новый оффер')}</h1>
+          <p style={{ color: 'var(--admin-text-muted)', margin: '0 0 18px', fontSize: '13px' }}>
+            {t('Working view with price comparison — the WhatsApp text is below.', 'Рабочий визуал со сравнением цен — готовый текст для WhatsApp ниже.')}
+          </p>
+        </div>
+        <form action={createSimpleFromOffer.bind(null, offerId)}>
+          <button type="submit" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            {t('Create simple for client →', 'Создать симпл для клиента →')}
+          </button>
+        </form>
+      </div>
 
       {/* header card */}
       <div style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
