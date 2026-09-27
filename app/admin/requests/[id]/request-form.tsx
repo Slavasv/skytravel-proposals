@@ -9,6 +9,8 @@ import {
   selectDestination, unselectDestination, approveProposal, unapproveProposal,
   type RequestClientOption, type LinkedProposal, type DestinationOption,
 } from '../actions'
+import { createOfferFromRequest, type LinkedOffer } from '@/app/admin/offers/actions'
+import { createSimpleFromRequest, type LinkedSimple } from '@/app/admin/simple/actions'
 import { type RequestBooking } from '@/app/admin/bookings/actions'
 import RequestTravellers from './request-travellers'
 import AttachDestination from './attach-destination'
@@ -74,7 +76,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function RequestForm({
-  request, clients, destinations, linked = [], availableDestinations = [], bookings = [],
+  request, clients, destinations, linked = [], availableDestinations = [], bookings = [], offers = [], simples = [],
 }: {
   request: RequestRow
   clients: RequestClientOption[]
@@ -82,6 +84,8 @@ export default function RequestForm({
   linked?: LinkedProposal[]
   availableDestinations?: DestinationOption[]
   bookings?: RequestBooking[]
+  offers?: LinkedOffer[]
+  simples?: LinkedSimple[]
 }) {
   const t = useT()
   const router = useRouter()
@@ -361,7 +365,38 @@ export default function RequestForm({
               {t('+ Create proposal', '+ Создать предложение')}
             </button>
           </form>
+          <form action={createOfferFromRequest.bind(null, request.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Create offer', '+ Создать оффер')}
+            </button>
+          </form>
+          <form action={createSimpleFromRequest.bind(null, request.id)}>
+            <button type="submit"
+              style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--admin-accent)', background: 'transparent', border: '1px dashed var(--admin-border-card)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('+ Create simple', '+ Создать симпл')}
+            </button>
+          </form>
         </div>
+
+        {(offers.length > 0 || simples.length > 0) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }}>
+            {offers.map((o) => (
+              <a key={o.id} href={`/admin/offers/${o.id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>{t('Offer', 'Оффер')}</span>
+                <span style={{ fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.hotel_name || o.title || t('Untitled offer', 'Оффер без названия')}</span>
+              </a>
+            ))}
+            {simples.map((s) => (
+              <a key={s.id} href={`/admin/simple/${s.id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px solid var(--admin-border-card)', borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border-card)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }}>{t('Simple', 'Симпл')}</span>
+                <span style={{ fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.hotel_name || s.title || t('Untitled simple', 'Симпл без названия')}</span>
+              </a>
+            ))}
+          </div>
+        )}
 
         {linked.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

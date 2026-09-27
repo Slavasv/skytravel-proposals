@@ -1,6 +1,8 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { getUiLang } from '@/lib/get-profile'
+import { buildOccupancy, type TravellerLite } from '@/lib/occupancy'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -63,4 +65,57 @@ export async function deleteSimple(id: string) {
   const { error } = await supabase.from('simple_proposals').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/admin/simple')
+}
+
+// Создать симпл напрямую из заявки (без оффера): подтягиваем клиента, даты, состав гостей.
+export async function createSimpleFromRequest(requestId: string) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const lang = await getUiLang()
+
+  const { data: request } = await supabase
+    .from('requests')
+    .select('client_id, company_id, traveller_ids, trip_start, trip_end, destination')
+    .eq('id', requestId)
+    .single()
+  if (!request) throw new Error('Request not found')
+  if (!request.company_id) throw new Error('Компания не найдена')
+
+  let clientName = ''
+  if (request.client_id) {
+    const { data: client } = await supabase.from('clients').select('name').eq('id', request.client_id).single()
+    clientName = client?.name || ''
+  }
+  let occupancy = ''
+  const ids = Array.isArray(request.traveller_ids) ? request.traveller_ids : []
+  if (ids.length > 0) {
+    const { data: travellers } = await supabase.from('travellers').select('title, relation, date_of_birth').in('id', ids)
+    occupancy = buildOccupancy((travellers ?? []) as TravellerLite[], lang)
+  }
+
+  const { data, error } = await supabase
+    .from('simple_proposals')
+    .insert({
+      slug: slug(), request_id: requestId, client_id: request.client_id ?? null,
+      title: clientName || request.destination || null,
+      date_from: request.trip_start ?? null, date_to: request.trip_end ?? null,
+      occupancy: occupancy || null, status: 'draft',
+      company_id: request.company_id, owner_id: user?.id ?? null,
+    })
+    .select().single()
+  if (error || !data) throw new Error(error?.message || 'Не удалось создать симпл')
+
+  revalidatePath(`/admin/requests/${requestId}`)
+  redirect(`/admin/simple/${data.id}`)
+}
+
+export type LinkedSimple = { id: string; hotel_name: string | null; title: string | null; status: string | null }
+export async function getSimplesForRequest(requestId: string): Promise<LinkedSimple[]> {
+  const supabase = await createSupabaseServer()
+  const { data } = await supabase
+    .from('simple_proposals')
+    .select('id, hotel_name, title, status')
+    .eq('request_id', requestId)
+    .order('updated_at', { ascending: false })
+  return (data ?? []) as LinkedSimple[]
 }
