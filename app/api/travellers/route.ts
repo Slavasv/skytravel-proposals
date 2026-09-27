@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { composeName } from '@/lib/name'
 
 // Быстрое создание traveller у клиента через стабильный URL (не серверный экшен).
 type Body = {
     clientId?: string
-    name?: string
+    firstName?: string
+    lastName?: string
     title?: string
     dateOfBirth?: string | null
 }
@@ -22,7 +24,9 @@ export async function POST(req: NextRequest) {
     }
 
     const clientId = body.clientId
-    const name = (body.name || '').trim()
+    const firstName = (body.firstName || '').trim()
+    const lastName = (body.lastName || '').trim()
+    const name = composeName(firstName, lastName)
     if (!clientId || !name) return NextResponse.json({ ok: false, error: 'clientId and name required' }, { status: 400 })
 
     const { data: client } = await supabase
@@ -50,6 +54,8 @@ export async function POST(req: NextRequest) {
             client_id: clientId,
             company_id: client.company_id,
             name,
+            first_name: firstName,
+            last_name: lastName,
             title: body.title || 'Mr',
             date_of_birth: body.dateOfBirth || null,
             traveller_code: code ?? null,

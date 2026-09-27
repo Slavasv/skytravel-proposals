@@ -56,7 +56,8 @@ export default function RequestTravellers({
   const selectedRef = useRef<string[]>(initialIds)
   const [loading, setLoading] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [newName, setNewName] = useState('')
+  const [newFirst, setNewFirst] = useState('')
+  const [newLast, setNewLast] = useState('')
   const [newTitle, setNewTitle] = useState('Mr')
   const [newDob, setNewDob] = useState('')
   const [busy, setBusy] = useState(false)
@@ -95,14 +96,14 @@ export default function RequestTravellers({
   }, [selected, requestId])
 
   async function handleCreate() {
-    if (!newName.trim() || !clientId) return
+    if ((!newFirst.trim() && !newLast.trim()) || !clientId) return
     setBusy(true)
     let created: TravellerBrief | null = null
     try {
       const res = await fetch('/api/travellers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, name: newName, title: newTitle, dateOfBirth: newDob || null }),
+        body: JSON.stringify({ clientId, firstName: newFirst, lastName: newLast, title: newTitle, dateOfBirth: newDob || null }),
       })
       const j = await res.json().catch(() => ({}))
       if (res.ok && j?.traveller) created = j.traveller as TravellerBrief
@@ -118,7 +119,8 @@ export default function RequestTravellers({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ travellerIds: next }),
     }).catch(() => {})
-    setNewName('')
+    setNewFirst('')
+    setNewLast('')
     setNewTitle('Mr')
     setNewDob('')
     setAdding(false)
@@ -187,17 +189,20 @@ export default function RequestTravellers({
           <select value={newTitle} onChange={(e) => setNewTitle(e.target.value)} style={{ ...inputSt, width: '80px' }}>
             {TITLES.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
           </select>
-          <input type="text" autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
+          <input type="text" autoFocus value={newFirst} onChange={(e) => setNewFirst(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
-            placeholder={t('Full name', 'Полное имя')} style={{ ...inputSt, flex: 1, minWidth: '140px' }} />
+            placeholder={t('First name', 'Имя')} style={{ ...inputSt, flex: 1, minWidth: '110px' }} />
+          <input type="text" value={newLast} onChange={(e) => setNewLast(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
+            placeholder={t('Last name', 'Фамилия')} style={{ ...inputSt, flex: 1, minWidth: '110px' }} />
           <input type="date" value={newDob} onChange={(e) => setNewDob(e.target.value)}
             title={t('Date of birth', 'Дата рождения')}
             style={{ ...inputSt, width: '150px' }} />
-          <button type="button" onClick={handleCreate} disabled={busy || !newName.trim()}
-            style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy || !newName.trim() ? 0.4 : 1 }}>
+          <button type="button" onClick={handleCreate} disabled={busy || (!newFirst.trim() && !newLast.trim())}
+            style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 500, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '6px', cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy || (!newFirst.trim() && !newLast.trim()) ? 0.4 : 1 }}>
             {busy ? t('Adding…', 'Добавляем…') : t('Add', 'Добавить')}
           </button>
-          <button type="button" onClick={() => { setAdding(false); setNewName(''); setNewDob('') }}
+          <button type="button" onClick={() => { setAdding(false); setNewFirst(''); setNewLast(''); setNewDob('') }}
             style={{ padding: '8px 12px', fontSize: '12px', background: 'transparent', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('Cancel', 'Отмена')}
           </button>
