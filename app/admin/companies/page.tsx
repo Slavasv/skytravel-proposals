@@ -3,6 +3,7 @@ import { getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import CreateBrandForm from './create-brand-form'
+import CompaniesManager, { type CompanyRow } from './companies-manager'
 
 export default async function CompaniesPage() {
   const profile = await getProfile()
@@ -13,12 +14,36 @@ export default async function CompaniesPage() {
     notFound()
   }
 
-  // Список всех компаний (через admin-клиент, superadmin видит все)
   const admin = createSupabaseAdmin()
+
   const { data: companies } = await admin
     .from('companies')
     .select('id, name, slug, is_active, created_at')
     .order('created_at', { ascending: true })
+
+  // профили (для владельца и счётчика сотрудников) + auth-юзеры (для email-логина)
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('id, company_id, role, created_at')
+
+  const { data: authList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const emailById = new Map<string, string>()
+  for (const u of authList?.users ?? []) emailById.set(u.id, u.email ?? '')
+
+  const rows: CompanyRow[] = (companies ?? []).map((c) => {
+    const members = (profiles ?? []).filter((p) => p.company_id === c.id)
+    const owner =
+      members.find((p) => p.role === 'owner') ??
+      [...members].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))[0]
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      is_active: c.is_active,
+      ownerEmail: owner ? (emailById.get(owner.id) || '') : '',
+      userCount: members.length,
+    }
+  })
 
   return (
     <div className="page-pad-40" style={{ padding: '40px', fontFamily: 'system-ui', maxWidth: '720px', margin: '0 auto' }}>
@@ -27,27 +52,13 @@ export default async function CompaniesPage() {
           {tr(lang, 'Companies', 'Компании')}
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', margin: 0, fontSize: '14px' }}>
-          {companies?.length ?? 0} {(companies?.length ?? 0) === 1 ? tr(lang, 'brand', 'бренд') : tr(lang, 'brands', 'брендов')}
+          {rows.length} {rows.length === 1 ? tr(lang, 'brand', 'бренд') : tr(lang, 'brands', 'брендов')}
         </p>
       </div>
 
       <CreateBrandForm />
 
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {(companies ?? []).map((c) => (
-          <li key={c.id} style={{
-            padding: '16px',
-            border: '1px solid var(--admin-border-card)',
-            borderRadius: '8px',
-            background: 'transparent',
-          }}>
-            <div style={{ fontWeight: 500, color: 'var(--admin-text)' }}>{c.name}</div>
-            <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
-              slug: {c.slug}{!c.is_active && ` · ${tr(lang, 'archived', 'архив')}`}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <CompaniesManager companies={rows} />
     </div>
   )
 }
