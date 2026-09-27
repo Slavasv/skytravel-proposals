@@ -17,7 +17,7 @@ type State = 'unsupported' | 'default' | 'granted' | 'denied' | 'busy'
 
 const rowSt: React.CSSProperties = {
     display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
-    background: 'transparent', border: 'none', borderTop: '1px solid var(--admin-border-card)',
+    background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)',
     fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
 }
 
@@ -64,20 +64,20 @@ export default function PushToggle() {
 
     if (state === 'granted') {
         return (
-            <button type="button" onClick={disable} style={{ ...rowSt, color: 'var(--admin-text-muted)' }}>
+            <button type="button" onClick={disable} style={{ ...rowSt, color: 'var(--admin-sidebar-text)' }}>
                 🔔 {t('Notifications on — turn off here', 'Уведомления включены — выключить')}
             </button>
         )
     }
     if (state === 'denied') {
         return (
-            <div style={{ ...rowSt, color: 'var(--admin-text-faint)', cursor: 'default' }}>
+            <div style={{ ...rowSt, color: 'var(--admin-sidebar-muted)', cursor: 'default' }}>
                 {t('Notifications blocked in browser settings', 'Уведомления заблокированы в настройках браузера')}
             </div>
         )
     }
     return (
-        <button type="button" onClick={enable} disabled={state === 'busy'} style={{ ...rowSt, color: 'var(--admin-accent)' }}>
+        <button type="button" onClick={enable} disabled={state === 'busy'} style={{ ...rowSt, color: 'var(--admin-gold-soft)' }}>
             {state === 'busy' ? t('Enabling…', 'Включаю…') : `🔔 ${t('Enable push in this browser', 'Включить уведомления в этом браузере')}`}
         </button>
     )

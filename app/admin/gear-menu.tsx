@@ -11,13 +11,16 @@ import type { UiLang } from '@/lib/i18n'
 type Props = {
   email: string
   isAdmin: boolean
+  /** Куда раскрывать меню: 'left' — вправо от кнопки (сайдбар слева),
+   *  'right' — влево от кнопки (верхняя панель, кнопка у правого края). */
+  align?: 'left' | 'right'
 }
 
 const menuItemStyle: React.CSSProperties = {
   display: 'block',
   padding: '8px 12px',
   fontSize: '13px',
-  color: 'var(--admin-text)',
+  color: '#EDE6D8',
   textDecoration: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
@@ -33,7 +36,7 @@ const LANGS: { value: UiLang; label: string }[] = [
   { value: 'ru', label: 'Русский' },
 ]
 
-export default function GearMenu({ email, isAdmin }: Props) {
+export default function GearMenu({ email, isAdmin, align = 'right' }: Props) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const t = useT()
@@ -59,7 +62,7 @@ export default function GearMenu({ email, isAdmin }: Props) {
   }
 
   function onHover(e: React.MouseEvent<HTMLElement>) {
-    e.currentTarget.style.background = 'var(--admin-border-card)'
+    e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
   }
   function onLeave(e: React.MouseEvent<HTMLElement>) {
     e.currentTarget.style.background = 'none'
@@ -74,13 +77,13 @@ export default function GearMenu({ email, isAdmin }: Props) {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: open ? 'var(--admin-text)' : 'var(--admin-text-muted)',
+          color: open ? '#F5EFE4' : '#B8AF9F',
           padding: '4px',
           display: 'flex',
           alignItems: 'center',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--admin-text)' }}
-        onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = 'var(--admin-text-muted)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = '#F5EFE4' }}
+        onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = '#B8AF9F' }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fillRule="evenodd" clipRule="evenodd" d="M6.5 1a.5.5 0 0 0-.491.404l-.24 1.32a5.2 5.2 0 0 0-.928.537l-1.27-.423a.5.5 0 0 0-.588.224l-1.5 2.598a.5.5 0 0 0 .104.632l1.02.883a5.3 5.3 0 0 0 0 1.65l-1.02.883a.5.5 0 0 0-.104.632l1.5 2.598a.5.5 0 0 0 .588.224l1.27-.423c.291.205.602.383.928.537l.24 1.32A.5.5 0 0 0 6.5 15h3a.5.5 0 0 0 .491-.404l.24-1.32c.326-.154.637-.332.928-.537l1.27.423a.5.5 0 0 0 .588-.224l1.5-2.598a.5.5 0 0 0-.104-.632l-1.02-.883a5.3 5.3 0 0 0 0-1.65l1.02-.883a.5.5 0 0 0 .104-.632l-1.5-2.598a.5.5 0 0 0-.588-.224l-1.27.423a5.2 5.2 0 0 0-.928-.537l-.24-1.32A.5.5 0 0 0 9.5 1h-3zm1.5 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="currentColor"/>
@@ -92,28 +95,28 @@ export default function GearMenu({ email, isAdmin }: Props) {
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
           <div style={{
             position: 'absolute',
-            right: 0,
+            ...(align === 'left' ? { left: 0 } : { right: 0 }),
             top: 'calc(100% + 8px)',
             zIndex: 20,
-            background: 'var(--admin-input)',
-            border: '1px solid var(--admin-border)',
+            background: 'var(--admin-sidebar)',
+            border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '10px',
             padding: '6px',
             minWidth: '220px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
           }}>
-            <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--admin-text-faint)' }}>
+            <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--admin-sidebar-muted)' }}>
               {email}
             </div>
 
-            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
 
             {/* Переключатель языка интерфейса */}
             <div style={{ padding: '8px 12px' }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-text-faint)', marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--admin-sidebar-muted)', marginBottom: '8px' }}>
                 {t('Language', 'Язык')}
               </div>
-              <div style={{ display: 'flex', border: '1px solid var(--admin-border)', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '8px', overflow: 'hidden' }}>
                 {LANGS.map((opt) => {
                   const active = opt.value === lang
                   return (
@@ -129,8 +132,8 @@ export default function GearMenu({ email, isAdmin }: Props) {
                         fontFamily: 'inherit',
                         cursor: savingLang ? 'wait' : 'pointer',
                         border: 'none',
-                        background: active ? 'var(--admin-text-on-dark)' : 'transparent',
-                        color: active ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)',
+                        background: active ? 'var(--admin-gold-soft)' : 'transparent',
+                        color: active ? '#26221D' : 'var(--admin-sidebar-text)',
                         fontWeight: active ? 600 : 400,
                         transition: 'background 0.15s, color 0.15s',
                       }}
@@ -142,7 +145,7 @@ export default function GearMenu({ email, isAdmin }: Props) {
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
 
             <Link
               href="/admin/settings"
@@ -166,11 +169,11 @@ export default function GearMenu({ email, isAdmin }: Props) {
               </Link>
             )}
 
-            <div style={{ height: '1px', background: 'var(--admin-border-card)', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
 
             <button
               onClick={handleSignOut}
-              style={{ ...menuItemStyle, color: 'var(--admin-danger)' }}
+              style={{ ...menuItemStyle, color: '#E58F86' }}
               onMouseEnter={onHover}
               onMouseLeave={onLeave}
             >
