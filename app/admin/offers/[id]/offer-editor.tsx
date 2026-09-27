@@ -170,7 +170,7 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={lbl}>{t('Hotel', 'Отель')}</label>
-            <input style={field} list="offer-hotels" value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} placeholder={t('start typing — suggestions from the library', 'начните вводить — подскажем из библиотеки')} />
+            <input style={field} list="offer-hotels" value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} placeholder={t('choose from the library or type your own', 'выбрать из базы или вписать вручную')} />
             <datalist id="offer-hotels">{hotels.map((h) => <option key={h.name} value={h.name} />)}</datalist>
           </div>
           <div><label style={lbl}>{t('Date from', 'Дата с')}</label><input type="date" style={field} value={hdr.date_from} onChange={(e) => { setH('date_from', e.target.value); saveH('date_from', e.target.value) }} /></div>
@@ -208,7 +208,7 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px', marginBottom: '14px' }}>
             <div>
               <label style={lbl}>{t('Room category', 'Категория номера')}</label>
-              <input style={field} list="offer-rooms" value={room.room_type || ''} onChange={(e) => patchRoomLocal(room.id, { room_type: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_type: e.target.value })} placeholder={t('Deluxe Room (25–40 m²)', 'Deluxe Room (25–40 м²)')} />
+              <input style={field} list="offer-rooms" value={room.room_type || ''} onChange={(e) => patchRoomLocal(room.id, { room_type: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_type: e.target.value })} placeholder={t('from the library or type your own', 'из базы или вписать вручную')} />
             </div>
             <div><label style={lbl}>{t('Room link', 'Ссылка на номер')}</label><input style={field} value={room.room_link || ''} onChange={(e) => patchRoomLocal(room.id, { room_link: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_link: e.target.value })} placeholder="https://…" /></div>
             <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>{t('Room note (optional)', 'Примечание к номеру (необязательно)')}</label><input style={field} value={room.room_note || ''} onChange={(e) => patchRoomLocal(room.id, { room_note: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_note: e.target.value })} placeholder={t('e.g. 2 Outer-connecting rooms…', 'напр. 2 номера Outer-connecting…')} /></div>

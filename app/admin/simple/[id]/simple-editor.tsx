@@ -12,6 +12,8 @@ type Simple = {
   id: string; title: string | null; hotel_name: string | null; date_from: string | null; date_to: string | null
   occupancy: string | null; meal: string | null; status: string | null; simple_rooms?: Room[]
 }
+type HotelRoom = { ru: string; en: string }
+type Hotel = { name: string; link: string; rooms: HotelRoom[] }
 
 const CURRENCIES = ['EUR', 'USD', 'AED', 'GBP']
 const MEALS: { key: string; en: string; ru: string }[] = [
@@ -29,7 +31,7 @@ const field: React.CSSProperties = {
 const lbl: React.CSSProperties = { display: 'block', fontSize: '10.5px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-faint)', marginBottom: '5px' }
 function num(v: string): number | null { return v.trim() === '' ? null : Number(v) }
 
-export default function SimpleEditor({ simple }: { simple: Simple }) {
+export default function SimpleEditor({ simple, hotels = [] }: { simple: Simple; hotels?: Hotel[] }) {
   const t = useT()
   const lang = useLang() as Lang
   const simpleId = simple.id
@@ -44,6 +46,12 @@ export default function SimpleEditor({ simple }: { simple: Simple }) {
   const [copied, setCopied] = useState(false)
 
   const mealLabel = (key: string) => MEALS.find((m) => m.key === key)?.[lang] || key
+
+  // номера из библиотеки для выбранного отеля (подсказки категорий)
+  const hotelRooms = useMemo(() => {
+    const h = hotels.find((x) => x.name.trim().toLowerCase() === hdr.hotel_name.trim().toLowerCase())
+    return (h?.rooms || []).map((r) => (lang === 'ru' ? (r.ru || r.en) : (r.en || r.ru))).filter(Boolean)
+  }, [hotels, hdr.hotel_name, lang])
 
   async function api(body: Record<string, unknown>) {
     try {
@@ -88,7 +96,11 @@ export default function SimpleEditor({ simple }: { simple: Simple }) {
 
       <div style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px' }}>
-          <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>{t('Hotel', 'Отель')}</label><input style={field} value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} /></div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={lbl}>{t('Hotel', 'Отель')}</label>
+            <input style={field} list="simple-hotels" value={hdr.hotel_name} onChange={(e) => setH('hotel_name', e.target.value)} onBlur={(e) => saveH('hotel_name', e.target.value)} placeholder={t('choose from the library or type your own', 'выбрать из базы или вписать вручную')} />
+            <datalist id="simple-hotels">{hotels.map((h) => <option key={h.name} value={h.name} />)}</datalist>
+          </div>
           <div><label style={lbl}>{t('Date from', 'Дата с')}</label><input type="date" style={field} value={hdr.date_from} onChange={(e) => { setH('date_from', e.target.value); saveH('date_from', e.target.value) }} /></div>
           <div><label style={lbl}>{t('Date to', 'Дата по')}</label><input type="date" style={field} value={hdr.date_to} onChange={(e) => { setH('date_to', e.target.value); saveH('date_to', e.target.value) }} /></div>
           <div><label style={lbl}>{t('Occupancy', 'Размещение')}</label><input style={field} value={hdr.occupancy} onChange={(e) => setH('occupancy', e.target.value)} onBlur={(e) => saveH('occupancy', e.target.value)} /></div>
@@ -110,6 +122,8 @@ export default function SimpleEditor({ simple }: { simple: Simple }) {
         </div>
       </div>
 
+      <datalist id="simple-rooms">{hotelRooms.map((r) => <option key={r} value={r} />)}</datalist>
+
       {rooms.map((room, idx) => (
         <div key={room.id} style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '16px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -118,7 +132,7 @@ export default function SimpleEditor({ simple }: { simple: Simple }) {
             <button onClick={() => delRoom(room.id)} className="adm-dots" title={t('Delete room', 'Удалить номер')} style={{ marginLeft: 'auto' }}>✕</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px' }}>
-            <div><label style={lbl}>{t('Room category', 'Категория номера')}</label><input style={field} value={room.room_type || ''} onChange={(e) => patchRoomLocal(room.id, { room_type: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_type: e.target.value })} /></div>
+            <div><label style={lbl}>{t('Room category', 'Категория номера')}</label><input style={field} list="simple-rooms" value={room.room_type || ''} onChange={(e) => patchRoomLocal(room.id, { room_type: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_type: e.target.value })} placeholder={t('from the library or type your own', 'из базы или вписать вручную')} /></div>
             <div><label style={lbl}>{t('Room link', 'Ссылка на номер')}</label><input style={field} value={room.room_link || ''} onChange={(e) => patchRoomLocal(room.id, { room_link: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_link: e.target.value })} placeholder="https://…" /></div>
             <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>{t('Room note (optional)', 'Примечание к номеру (необязательно)')}</label><input style={field} value={room.room_note || ''} onChange={(e) => patchRoomLocal(room.id, { room_note: e.target.value })} onBlur={(e) => saveRoom(room.id, { room_note: e.target.value })} /></div>
             <div><label style={lbl}>{t('Client price', 'Цена клиенту')}</label><input inputMode="decimal" defaultValue={room.price ?? ''} onBlur={(e) => { const v = num(e.target.value); patchRoomLocal(room.id, { price: v }); saveRoom(room.id, { price: v }) }} style={field} /></div>
