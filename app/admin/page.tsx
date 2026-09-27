@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
 import { createProposal } from './actions'
-import ProposalCard from './proposal-card'
+import ProposalsTable from './proposals-table'
 import StatusFilter from './status-filter'
 
 type SearchParams = { status?: string; view?: string }
@@ -128,20 +128,15 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             : 'No proposals yet. Click + New proposal to create one.'}
         </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {proposals.map((p) => {
+        <ProposalsTable
+          proposals={proposals.map((p) => {
             const ownerEmail = Array.isArray(p.profiles)
               ? p.profiles[0]?.email
               : (p.profiles as { email: string } | null)?.email
-            return (
-              <ProposalCard
-                key={p.id}
-                proposal={{ ...p, owner_email: ownerEmail ?? null }}
-                showOwner={showAll}
-              />
-            )
+            return { ...p, owner_email: ownerEmail ?? null }
           })}
-        </ul>
+          showOwner={showAll}
+        />
       )}
     </div>
   )

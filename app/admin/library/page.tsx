@@ -1,6 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { createBlock } from './actions'
-import BlockRow from './block-row'
+import LibraryTable, { type LibraryBlock } from './library-table'
 import LibrarySearch from './library-search'
 import { getUiLang } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
@@ -153,7 +153,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       />
 
       {(!blocks || blocks.length === 0) ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+        <div className="adm-empty">
           {query || activeType
             ? tr(lang, 'No blocks match your search.', 'Нет блоков по вашему запросу.')
             : showArchived
@@ -161,15 +161,12 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
               : tr(lang, 'No blocks yet. Click + New block to create one.', 'Блоков пока нет. Нажмите «+ Новый блок», чтобы создать.')}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {blocks.map((b) => (
-            <BlockRow
-              key={b.id}
-              block={b}
-              usageCount={b.day_blocks?.[0]?.count ?? 0}
-            />
-          ))}
-        </div>
+        <LibraryTable
+          blocks={blocks.map((b) => ({
+            ...b,
+            usageCount: b.day_blocks?.[0]?.count ?? 0,
+          })) as unknown as LibraryBlock[]}
+        />
       )}
     </div>
   )
