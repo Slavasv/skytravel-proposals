@@ -132,6 +132,14 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
 
   function copy() { navigator.clipboard?.writeText(waText); setCopied(true); setTimeout(() => setCopied(false), 1400) }
 
+  // превью: строки в *…* показываем жирным (в WhatsApp это тоже жирный)
+  function renderWa(text: string) {
+    return text.split('\n').map((line, i) => {
+      const m = line.match(/^\*(.+)\*$/)
+      return <span key={i}>{m ? <strong>{m[1]}</strong> : line}{'\n'}</span>
+    })
+  }
+
   return (
     <div style={{ maxWidth: '820px' }}>
       <h1 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 4px' }}>{hdr.hotel_name || t('New offer', 'Новый оффер')}</h1>
@@ -197,49 +205,32 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
           </div>
 
           <div style={{ fontSize: '11px', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', fontWeight: 700, marginBottom: '8px' }}>{t('Price comparison', 'Сравнение цен')}</div>
-          <div className="adm-tscroll">
-            <table className="adm-table" style={{ marginBottom: '2px' }}>
-              <thead><tr>
-                <th style={{ width: '34px' }}>{t('Act.', 'Акт.')}</th><th>{t('Source', 'Источник')}</th><th>{t('Partner', 'Партнёр')}</th><th>{t('Price', 'Цена')}</th><th>{t('Curr.', 'Валюта')}</th><th>{t('Comm.%', 'Комис.%')}</th><th style={{ width: '34px' }}> </th>
-              </tr></thead>
-              <tbody>
-                {(room.quotes || []).map((q) => (
-                  <tr key={q.id} style={q.is_chosen ? { background: '#F3EEDF' } : undefined}>
-                    <td>
-                      <button aria-label={t('current', 'актуальная')} onClick={() => setChosen(room.id, q.id)}
-                        style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${q.is_chosen ? 'var(--admin-gold-soft)' : 'var(--admin-border-hover)'}`, background: q.is_chosen ? 'radial-gradient(circle, var(--admin-gold-soft) 0 45%, transparent 47%)' : 'transparent', cursor: 'pointer', padding: 0 }} />
-                    </td>
-                    <td>
-                      <select value={q.source} onChange={(e) => { patchQuoteLocal(room.id, q.id, { source: e.target.value }); saveQuote(q.id, { source: e.target.value }) }} style={{ ...field, padding: '5px 7px', width: 'auto' }}>
-                        {SOURCES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      {q.source === 'netto' ? (
-                        <select value={q.partner_id || ''} onChange={(e) => { patchQuoteLocal(room.id, q.id, { partner_id: e.target.value || null }); saveQuote(q.id, { partner_id: e.target.value || null }) }} style={{ ...field, padding: '5px 7px', width: 'auto', minWidth: '130px' }}>
-                          <option value="">{t('— partner —', '— партнёр —')}</option>
-                          {partners.map((p) => <option key={p.id} value={p.id}>{p.name || '—'}</option>)}
-                        </select>
-                      ) : <span className="adm-cell-faint">—</span>}
-                    </td>
-                    <td><input inputMode="decimal" defaultValue={q.amount ?? ''} onBlur={(e) => { const v = num(e.target.value); patchQuoteLocal(room.id, q.id, { amount: v }); saveQuote(q.id, { amount: v }) }} style={{ ...field, padding: '5px 7px', width: '90px' }} /></td>
-                    <td>
-                      <select value={q.currency || 'EUR'} onChange={(e) => { patchQuoteLocal(room.id, q.id, { currency: e.target.value }); saveQuote(q.id, { currency: e.target.value }) }} style={{ ...field, padding: '5px 7px', width: 'auto' }}>
-                        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </td>
-                    <td>{q.source === 'netto'
-                      ? <input inputMode="decimal" defaultValue={q.commission_pct ?? ''} onBlur={(e) => { const v = num(e.target.value); patchQuoteLocal(room.id, q.id, { commission_pct: v }); saveQuote(q.id, { commission_pct: v }) }} style={{ ...field, padding: '5px 7px', width: '56px' }} />
-                      : <span className="adm-cell-faint">—</span>}</td>
-                    <td className="adm-right"><button className="adm-dots" title={t('Delete', 'Удалить')} onClick={() => delQuote(room.id, q.id)}>✕</button></td>
-                  </tr>
-                ))}
-                {(room.quotes || []).length === 0 && (
-                  <tr><td colSpan={7} className="adm-cell-faint" style={{ textAlign: 'center', padding: '10px' }}>{t('No quotes yet', 'Котировок нет')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {(room.quotes || []).length === 0 && (
+            <div className="adm-cell-faint" style={{ fontSize: '12.5px', padding: '4px 0 8px' }}>{t('No quotes yet — add one below.', 'Котировок нет — добавьте ниже.')}</div>
+          )}
+          {(room.quotes || []).map((q) => (
+            <div key={q.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', padding: '8px 10px', marginBottom: '6px', borderRadius: '9px', border: '1px solid var(--admin-border-card)', background: q.is_chosen ? '#F3EEDF' : 'var(--admin-input)' }}>
+              <button aria-label={t('mark current', 'сделать актуальной')} title={t('current', 'актуальная')} onClick={() => setChosen(room.id, q.id)}
+                style={{ width: '17px', height: '17px', flex: 'none', borderRadius: '50%', border: `2px solid ${q.is_chosen ? 'var(--admin-gold-soft)' : 'var(--admin-border-hover)'}`, background: q.is_chosen ? 'radial-gradient(circle, var(--admin-gold-soft) 0 45%, transparent 47%)' : 'transparent', cursor: 'pointer', padding: 0 }} />
+              <select value={q.source} onChange={(e) => { patchQuoteLocal(room.id, q.id, { source: e.target.value }); saveQuote(q.id, { source: e.target.value }) }} style={{ ...field, padding: '6px 7px', width: 'auto', flex: 'none' }}>
+                {SOURCES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+              </select>
+              {q.source === 'netto' ? (
+                <select value={q.partner_id || ''} onChange={(e) => { patchQuoteLocal(room.id, q.id, { partner_id: e.target.value || null }); saveQuote(q.id, { partner_id: e.target.value || null }) }} style={{ ...field, padding: '6px 7px', flex: '1 1 150px', minWidth: '120px' }}>
+                  <option value="">{t('— partner —', '— партнёр —')}</option>
+                  {partners.map((p) => <option key={p.id} value={p.id}>{p.name || '—'}</option>)}
+                </select>
+              ) : <span className="adm-cell-faint" style={{ flex: '1 1 150px', minWidth: '120px' }}>—</span>}
+              <input inputMode="decimal" defaultValue={q.amount ?? ''} onBlur={(e) => { const v = num(e.target.value); patchQuoteLocal(room.id, q.id, { amount: v }); saveQuote(q.id, { amount: v }) }} placeholder={t('Price', 'Цена')} style={{ ...field, padding: '6px 8px', width: '86px', flex: 'none' }} />
+              <select value={q.currency || 'EUR'} onChange={(e) => { patchQuoteLocal(room.id, q.id, { currency: e.target.value }); saveQuote(q.id, { currency: e.target.value }) }} style={{ ...field, padding: '6px 7px', width: 'auto', flex: 'none' }}>
+                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {q.source === 'netto'
+                ? <input inputMode="decimal" defaultValue={q.commission_pct ?? ''} onBlur={(e) => { const v = num(e.target.value); patchQuoteLocal(room.id, q.id, { commission_pct: v }); saveQuote(q.id, { commission_pct: v }) }} title={t('Commission %', 'Комиссия %')} placeholder="%" style={{ ...field, padding: '6px 8px', width: '52px', flex: 'none' }} />
+                : <span className="adm-cell-faint" style={{ width: '52px', flex: 'none', textAlign: 'center' }}>—</span>}
+              <button className="adm-dots" title={t('Delete', 'Удалить')} onClick={() => delQuote(room.id, q.id)} style={{ flex: 'none', marginLeft: 'auto' }}>✕</button>
+            </div>
+          ))}
           <div style={{ display: 'flex', gap: '8px', margin: '8px 0 14px', flexWrap: 'wrap' }}>
             {SOURCES.map((s) => (
               <button key={s.v} onClick={() => addQuote(room.id, s.v)} style={{ fontSize: '12px', color: 'var(--admin-accent)', background: 'none', border: '1px dashed var(--admin-border-hover)', borderRadius: '7px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>+ {s.label}</button>
@@ -265,7 +256,7 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
           <span>{t('WhatsApp preview', 'Превью для WhatsApp')}</span>
           <button onClick={copy} style={{ padding: '5px 12px', fontSize: '11px', fontWeight: 600, background: '#25623b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>{copied ? t('Copied ✓', 'Скопировано ✓') : t('Copy', 'Скопировать')}</button>
         </div>
-        <pre style={{ margin: 0, padding: '16px', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.55, color: '#2C2C2A', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{waText || t('Fill in the hotel and rooms — the text will appear here.', 'Заполните отель и номера — текст появится здесь.')}</pre>
+        <pre style={{ margin: 0, padding: '16px', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.55, color: '#2C2C2A', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{waText ? renderWa(waText) : t('Fill in the hotel and rooms — the text will appear here.', 'Заполните отель и номера — текст появится здесь.')}</pre>
       </div>
       <p style={{ fontSize: '11.5px', color: 'var(--admin-text-faint)', marginTop: '8px', lineHeight: 1.5 }}>
         {t('Internal version — with net/booking/hotel. The client gets the “Simple” (price only) — coming next.', 'Внутренний вариант — с нетто/букинг/отель. Клиенту уйдёт «Симпл» (только цена) — добавим следующим шагом.')}
