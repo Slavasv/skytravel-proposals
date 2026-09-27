@@ -138,7 +138,9 @@ body {
 
 /* Каркас админки: боковое меню слева (десктоп) / верхняя панель + выезжающий
    drawer (мобилка/планшет ниже 1024px). Единый шрифт Montserrat во всей админке. */
-.admin-shell, .admin-shell * { font-family: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, sans-serif; }
+/* Единый шрифт: !important перебивает инлайновые fontFamily:'system-ui',
+   прописанные в обёртках старых страниц — иначе они остаются в старом шрифте. */
+.admin-shell, .admin-shell * { font-family: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, sans-serif !important; }
 .admin-sidebar-desktop { display: flex; }
 .admin-topbar { display: none; }
 @media (max-width: 1023px) {
@@ -146,4 +148,30 @@ body {
   .admin-topbar { display: flex; }
   /* основная область не заезжает под фиксированную верхнюю панель */
   .admin-main { padding-top: 52px; }
+}
+
+/* ============================================================
+   ЕДИНЫЙ КАРКАС СТРАНИЦ АДМИНКИ
+   Старые страницы используют общий класс .page-pad-40 с инлайновым
+   padding:40px и разной maxWidth. Приводим их к одной колонке контента,
+   как на эталонных страницах (заявки/задачи). Скоуп .admin-main —
+   чтобы не задеть клиентские страницы, которые тоже используют .page-pad-40.
+   ============================================================ */
+.admin-main .page-pad-40 {
+  max-width: 1080px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 28px 30px 64px !important;
+}
+@media (max-width: 767px) {
+  .admin-main .page-pad-40 {
+    padding: 18px 16px 48px !important;
+  }
+}
+
+/* Единый вид заголовков разделов (перебиваем инлайновые 24px/500). */
+.admin-main h1 {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
 }
