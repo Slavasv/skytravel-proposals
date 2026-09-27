@@ -54,12 +54,12 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
     : isAccountant
       ? [{ href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting', icon: 'accounting' }]
       : [
+          { href: '/admin/tasks', label: t('Tasks', 'Задачи'), matchPrefix: '/admin/tasks', icon: 'tasks' },
           { href: '/admin/requests', label: t('Requests', 'Заявки'), matchPrefix: '/admin/requests', icon: 'requests' },
           { href: '/admin', label: t('Proposals', 'Предложения'), matchPrefix: '/admin/proposals', icon: 'proposals' },
           { href: '/admin/destinations', label: t('Destinations', 'Направления'), matchPrefix: '/admin/destinations', icon: 'destinations' },
           { href: '/admin/bookings', label: t('Bookings', 'Брони'), matchPrefix: '/admin/bookings', icon: 'bookings' },
           { href: '/admin/vouchers', label: t('Vouchers', 'Ваучеры'), matchPrefix: '/admin/vouchers', icon: 'vouchers' },
-          { href: '/admin/tasks', label: t('Tasks', 'Задачи'), matchPrefix: '/admin/tasks', icon: 'tasks' },
           ...(isAdmin ? [{ href: '/admin/accounting', label: t('Accounting', 'Бухгалтерия'), matchPrefix: '/admin/accounting', icon: 'accounting' as IconName }] : []),
           { href: '/admin/clients', label: t('Clients', 'Клиенты'), matchPrefix: '/admin/clients', icon: 'clients' },
           { href: '/admin/partners', label: t('Partners', 'Партнёры'), matchPrefix: '/admin/partners', icon: 'partners' },

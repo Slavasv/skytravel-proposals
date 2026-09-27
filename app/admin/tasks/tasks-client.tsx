@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import {
+    DndContext, PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
+    type DragEndEvent,
+} from '@dnd-kit/core'
 import { useT } from '@/lib/i18n-client'
 import CreateTaskButton from '@/app/admin/_components/create-task-button'
 import {
@@ -11,6 +15,7 @@ import {
 } from './actions'
 
 type Scope = 'mine' | 'assigned_by_me' | 'all' | 'done'
+type View = 'list' | 'board'
 
 const inputSt: React.CSSProperties = {
     padding: '8px 10px', fontSize: '13px', color: 'var(--admin-text)',
@@ -50,6 +55,86 @@ function initials(name: string | null): string {
     return parts.map((p) => p[0]?.toUpperCase() || '').join('') || '—'
 }
 
+type TFn = (en: string, ru: string) => string
+
+function dueBadge(due: string | null, t: TFn): { text: string; tone: string } | null {
+    if (!due) return null
+    const d = new Date(due)
+    const now = new Date()
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startTomorrow = new Date(startToday); startTomorrow.setDate(startTomorrow.getDate() + 1)
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    const hasTime = time !== '00:00'
+    if (d < now) return { text: t('overdue', 'просрочено'), tone: 'var(--admin-danger)' }
+    if (d < startTomorrow) return { text: hasTime ? `${t('today', 'сегодня')} ${time}` : t('today', 'сегодня'), tone: 'var(--admin-warn, #e0a944)' }
+    const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    return { text: hasTime ? `${date} ${time}` : date, tone: 'var(--admin-text-muted)' }
+}
+
+// колонки доски (по статусу); отменённые скрыты по умолчанию
+const BOARD_COLUMNS: { status: TaskStatus; en: string; ru: string; color: string }[] = [
+    { status: 'open', en: 'Open', ru: 'Открыта', color: '#9C988E' },
+    { status: 'in_progress', en: 'In progress', ru: 'В работе', color: 'var(--admin-blue, #5b8def)' },
+    { status: 'done', en: 'Done', ru: 'Выполнена', color: 'var(--admin-success)' },
+]
+
+function BoardCard({ task, currentUserId, t, onEdit }: {
+    task: TaskRow; currentUserId: string; t: TFn; onEdit: (task: TaskRow) => void
+}) {
+    const editable = task.assignee_id === currentUserId || task.creator_id === currentUserId
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id, disabled: !editable })
+    const due = dueBadge(task.due_at, t)
+    const isClosed = task.status === 'done' || task.status === 'cancelled'
+    return (
+        <div ref={setNodeRef}
+            style={{
+                display: 'flex', gap: '10px', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)',
+                borderRadius: '10px', padding: '10px 11px', marginBottom: '8px',
+                opacity: isDragging ? 0.4 : (isClosed ? 0.7 : 1),
+                boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.18)' : 'none',
+                cursor: editable ? 'grab' : 'default',
+                ...(transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : {}),
+            }}
+            {...(editable ? { ...listeners, ...attributes } : {})}>
+            <span style={{ width: '5px', borderRadius: '3px', flex: 'none', background: PRIO_COLOR[task.priority] }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <button type="button" onClick={() => onEdit(task)}
+                    style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontSize: '13.5px', fontWeight: 500, color: 'var(--admin-text)', textDecoration: isClosed ? 'line-through' : 'none', fontFamily: 'inherit' }}>
+                    {task.title}
+                </button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px', fontSize: '11.5px', color: 'var(--admin-text-muted)' }}>
+                    {task.context_url ? (
+                        <Link href={task.context_url} onPointerDown={(e) => e.stopPropagation()} style={{ color: 'var(--admin-blue, #5b8def)', textDecoration: 'none' }}>
+                            {task.context_label || t(TYPE_LABEL[task.entity_type][0], TYPE_LABEL[task.entity_type][1])}
+                        </Link>
+                    ) : task.context_label ? <span>{task.context_label}</span> : null}
+                    {due && <span style={{ color: due.tone, fontWeight: 600 }}>{due.text}</span>}
+                    <span title={task.assignee_name || t('Unassigned', 'Не назначено')}
+                        style={{ marginLeft: 'auto', width: '22px', height: '22px', borderRadius: '50%', flex: 'none', background: task.assignee_name ? 'var(--admin-input)' : 'transparent', border: task.assignee_name ? 'none' : '1px dashed var(--admin-text-faint)', color: 'var(--admin-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700 }}>
+                        {task.assignee_name ? initials(task.assignee_name) : '?'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function BoardColumn({ status, label, color, count, children }: {
+    status: TaskStatus; label: string; color: string; count: number; children: React.ReactNode
+}) {
+    const { setNodeRef, isOver } = useDroppable({ id: status })
+    return (
+        <div ref={setNodeRef}
+            style={{ background: isOver ? 'var(--admin-hover)' : 'var(--admin-head)', border: `1px solid ${isOver ? 'var(--admin-border-hover)' : 'var(--admin-border-card)'}`, borderRadius: '12px', padding: '10px', transition: 'background 0.12s, border-color 0.12s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--admin-text-muted)', padding: '4px 6px 12px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
+                {label} <span style={{ color: 'var(--admin-text-faint)', fontWeight: 600 }}>· {count}</span>
+            </div>
+            {children}
+        </div>
+    )
+}
+
 export default function TasksClient({ initial, people, clients, partners, currentUserId }: {
     initial: TaskRow[]
     people: PersonLite[]
@@ -59,6 +144,7 @@ export default function TasksClient({ initial, people, clients, partners, curren
 }) {
     const t = useT()
     const [scope, setScope] = useState<Scope>('all')
+    const [view, setView] = useState<View>('list')
     const [tasks, setTasks] = useState<TaskRow[]>(initial)
     const [loading, setLoading] = useState(false)
 
@@ -127,6 +213,16 @@ export default function TasksClient({ initial, people, clients, partners, curren
         load()
     }
 
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+    function onDragEnd(e: DragEndEvent) {
+        const id = String(e.active.id)
+        const target = e.over?.id ? (String(e.over.id) as TaskStatus) : null
+        if (!target) return
+        const task = tasks.find((x) => x.id === id)
+        if (!task || task.status === target) return
+        setStatus(id, target)
+    }
+
     async function handleDelete(id: string) {
         setMenuFor(null)
         if (!confirm(t('Delete this task? This cannot be undone.', 'Удалить задачу? Действие необратимо.'))) return
@@ -191,6 +287,15 @@ export default function TasksClient({ initial, people, clients, partners, curren
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '18px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 600, margin: 0 }}>{t('Tasks', 'Задачи')}</h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {/* переключатель Список / Доска */}
+                    <div style={{ display: 'inline-flex', gap: '2px', background: 'var(--admin-head)', border: '1px solid var(--admin-border-card)', borderRadius: '9px', padding: '3px' }}>
+                        {([['list', t('List', 'Список')], ['board', t('Board', 'Доска')]] as [View, string][]).map(([v, label]) => (
+                            <button key={v} type="button" onClick={() => setView(v)}
+                                style={{ padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, border: 'none', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', background: view === v ? 'var(--admin-text-on-dark)' : 'transparent', color: view === v ? 'var(--admin-dark-panel)' : 'var(--admin-text-muted)' }}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
                     {syncNote && <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{syncNote}</span>}
                     <button type="button" onClick={() => doSync(true)} disabled={syncing}
                         style={{ ...inputSt, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.6 : 1 }}>
@@ -256,6 +361,27 @@ export default function TasksClient({ initial, people, clients, partners, curren
                 <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '10px', fontSize: '14px' }}>
                     {loading ? t('Loading…', 'Загрузка…') : t('No tasks here.', 'Задач нет.')}
                 </div>
+            ) : view === 'board' ? (
+                <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', alignItems: 'start' }}>
+                        {BOARD_COLUMNS.map((col) => {
+                            const items = tasks.filter((x) => x.status === col.status)
+                            return (
+                                <BoardColumn key={col.status} status={col.status} label={t(col.en, col.ru)} color={col.color} count={items.length}>
+                                    {items.map((task) => (
+                                        <BoardCard key={task.id} task={task} currentUserId={currentUserId} t={t} onEdit={setEditing} />
+                                    ))}
+                                    {items.length === 0 && (
+                                        <div style={{ padding: '16px 8px', fontSize: '12px', color: 'var(--admin-text-faint)', textAlign: 'center' }}>—</div>
+                                    )}
+                                </BoardColumn>
+                            )
+                        })}
+                    </div>
+                    <p style={{ marginTop: '14px', fontSize: '12px', color: 'var(--admin-text-faint)' }}>
+                        {t('Drag a card to another column to change its status.', 'Перетащите карточку в другую колонку, чтобы сменить статус.')}
+                    </p>
+                </DndContext>
             ) : (
                 groups.map((g) => (
                     <div key={g.key} style={{ marginBottom: '22px' }}>
