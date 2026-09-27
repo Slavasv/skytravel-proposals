@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useTransition } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import { deleteRequest, duplicateRequest } from './actions'
 
@@ -21,126 +21,46 @@ export type RequestRow = {
   profiles?: { email: string } | { email: string }[] | null
 }
 
-// value хранится в БД; en/ru — подпись
-const STATUS_META: Record<string, { en: string; ru: string; color: string }> = {
-  new:            { en: 'New Request',         ru: 'Новая заявка',            color: 'var(--admin-accent)' },
-  clients_review: { en: 'Client review',       ru: 'На согласовании',          color: 'var(--admin-accent)' },
-  preparing:      { en: 'Preparing proposal',  ru: 'Готовим предложение',      color: 'var(--admin-accent)' },
-  proposal_sent:  { en: 'Proposal sent',       ru: 'Предложение отправлено',   color: '#C99A3F' },
-  revising:       { en: 'Revising proposal',   ru: 'Дорабатываем',             color: '#C99A3F' },
-  booking:        { en: 'Booking in progress', ru: 'В процессе бронирования',  color: '#C99A3F' },
-  confirmed:      { en: 'Confirmed',           ru: 'Подтверждена',             color: 'var(--admin-success)' },
-  cancelled:      { en: 'Cancelled',           ru: 'Отменена',                 color: 'var(--admin-text-muted)' },
+// локальная палитра с усиленным контрастом (глобально поправим отдельно)
+const C = {
+  text: 'var(--admin-text)',
+  muted: '#6F6C64',
+  faint: '#9C988E',
+  border: '#D8D0C2',
+  borderStrong: '#C7BCA8',
+  head: '#EAE3D6',
+  card: 'var(--admin-card)',
+  accent: '#B07B2B',
+  rowHover: '#F5EFE4',
 }
 
-function RequestItem({ r, showOwner, destination }: { r: RequestRow; showOwner: boolean; destination?: string }) {
-  const t = useT()
-  const [isPending, startTransition] = useTransition()
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  function daysBetween(from: string, to: string): string {
-    const a = new Date(from), b = new Date(to)
-    if (isNaN(a.getTime()) || isNaN(b.getTime())) return ''
-    const diff = Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000))
-    if (diff === 0) return t('same day', 'в тот же день')
-    if (diff === 1) return t('1 day', '1 день')
-    return t(`${diff} days`, `${diff} дн.`)
-  }
-
-  const client = Array.isArray(r.clients) ? r.clients[0] : r.clients
-  const ownerEmail = Array.isArray(r.profiles) ? r.profiles[0]?.email : r.profiles?.email
-  const meta = STATUS_META[r.status || 'new'] || STATUS_META.new
-  const clientName = client?.name || t('No client', 'Без клиента')
-
-  const subParts = [destination].filter(Boolean)
-  if (r.trip_start) {
-    const start = new Date(r.trip_start)
-    if (!isNaN(start.getTime())) {
-      const now = new Date(); now.setHours(0, 0, 0, 0)
-      const days = Math.round((start.getTime() - now.getTime()) / 86400000)
-      let when = ''
-      if (days < 0) when = t('past trip', 'поездка в прошлом')
-      else if (days === 0) when = t('trip today', 'поездка сегодня')
-      else if (days < 31) when = t(`trip in ${days}d`, `поездка через ${days}д`)
-      else when = t(`trip in ~${Math.round(days / 30)}mo`, `поездка через ~${Math.round(days / 30)}мес`)
-      subParts.push(when)
-    }
-  }
-  if (r.closed_at) subParts.push(t(`closed in ${daysBetween(r.created_at, r.closed_at)}`, `закрыта за ${daysBetween(r.created_at, r.closed_at)}`))
-  const subline = subParts.join(' · ')
-
-  function toggleMenu(e: React.MouseEvent) { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen) }
-  function handleDuplicate(e: React.MouseEvent) {
-    e.preventDefault(); e.stopPropagation(); setMenuOpen(false)
-    startTransition(async () => { await duplicateRequest(r.id) })
-  }
-  function handleDelete(e: React.MouseEvent) {
-    e.preventDefault(); e.stopPropagation(); setMenuOpen(false)
-    if (!confirm(t('Delete this request?\n\nThis cannot be undone.', 'Удалить эту заявку?\n\nЭто действие необратимо.'))) return
-    startTransition(async () => { await deleteRequest(r.id) })
-  }
-
-  return (
-    <li style={{ position: 'relative', opacity: isPending ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-      <Link href={`/admin/requests/${r.id}`} style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-        padding: '16px 18px', paddingRight: '56px', border: '1px solid var(--admin-border-card)',
-        borderRadius: '8px', background: 'var(--admin-card)', textDecoration: 'none', color: 'inherit',
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--admin-text)' }}>{clientName}</span>
-            {r.request_code && <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>{r.request_code}</span>}
-            <span style={{ fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', color: meta.color, border: `1px solid ${meta.color}`, borderRadius: '4px', padding: '1px 6px' }}>
-              {t(meta.en, meta.ru)}
-            </span>
-            {r.priority && (
-              <span style={{ fontSize: '10px', color: 'var(--admin-text-muted)' }}>{r.priority}</span>
-            )}
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {subline || t('No details yet', 'Пока нет деталей')}
-          </div>
-          {showOwner && ownerEmail && (
-            <div style={{ fontSize: '12px', color: 'var(--admin-text-faint)', marginTop: '2px' }}>{ownerEmail}</div>
-          )}
-        </div>
-      </Link>
-
-      <button onClick={toggleMenu} disabled={isPending} aria-label={t('Actions', 'Действия')}
-        style={{ position: 'absolute', top: '50%', right: '14px', transform: 'translateY(-50%)', background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', color: 'var(--admin-text-muted)', fontSize: '18px', lineHeight: 1, borderRadius: '6px', fontFamily: 'inherit' }}>
-        ⋯
-      </button>
-
-      {menuOpen && (
-        <>
-          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-          <div style={{ position: 'absolute', top: '50%', right: '14px', background: 'var(--admin-input)', border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '4px', minWidth: '140px', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.4)' }}>
-            <button onClick={handleDuplicate}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--admin-card)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>{t('Duplicate', 'Дублировать')}</button>
-            <button onClick={handleDelete}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(224, 123, 123, 0.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>{t('Delete', 'Удалить')}</button>
-          </div>
-        </>
-      )}
-    </li>
-  )
+// tone: цвет фона/границы/текста выпадашки статуса
+type Tone = 'work' | 'mid' | 'done' | 'cancel'
+const TONE: Record<Tone, { bg: string; border: string; color: string }> = {
+  work:   { bg: '#F7EFDD', border: '#E4CF9E', color: '#7A5B12' },
+  mid:    { bg: '#FBE9CE', border: '#E9C98D', color: '#8A5A12' },
+  done:   { bg: '#E2EFDD', border: '#AFCFA4', color: '#356B2C' },
+  cancel: { bg: '#EDE7DC', border: '#D3C9B8', color: '#7A6F66' },
 }
+const STATUS_META: Record<string, { en: string; ru: string; tone: Tone }> = {
+  new:            { en: 'New Request',         ru: 'Новая заявка',            tone: 'work' },
+  clients_review: { en: 'Client review',       ru: 'На согласовании',         tone: 'work' },
+  preparing:      { en: 'Preparing proposal',  ru: 'Готовим предложение',     tone: 'work' },
+  proposal_sent:  { en: 'Proposal sent',       ru: 'Предложение отправлено',  tone: 'mid' },
+  revising:       { en: 'Revising proposal',   ru: 'Дорабатываем',            tone: 'mid' },
+  booking:        { en: 'Booking in progress', ru: 'В процессе бронирования', tone: 'mid' },
+  confirmed:      { en: 'Confirmed',           ru: 'Подтверждена',            tone: 'done' },
+  cancelled:      { en: 'Cancelled',           ru: 'Отменена',                tone: 'cancel' },
+}
+const STATUS_ORDER = ['new', 'clients_review', 'preparing', 'proposal_sent', 'revising', 'booking', 'confirmed', 'cancelled']
 
-function Chip({ label, onClear }: { label: string; onClear: () => void }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 6px 4px 10px', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '999px', fontSize: '12px', color: 'var(--admin-text)' }}>
-      {label}
-      <button type="button" onClick={onClear}
-        style={{ background: 'transparent', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '0 2px', fontFamily: 'inherit' }}>
-        ×
-      </button>
-    </span>
-  )
+const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function parseISO(s: string | null): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d
 }
 
 export default function RequestsList({
@@ -151,20 +71,23 @@ export default function RequestsList({
   destSummary?: Record<string, string>
 }) {
   const t = useT()
+  const router = useRouter()
+  const isRu = t('en', 'ru') === 'ru'
+  const MONTHS = isRu ? MONTHS_RU : MONTHS_EN
+
   const safe = Array.isArray(requests) ? requests : []
+  const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<'trip_soon' | 'trip_far' | 'created'>('trip_soon')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
-  const [createdFrom, setCreatedFrom] = useState('')
-  const [createdTo, setCreatedTo] = useState('')
   const [tripFrom, setTripFrom] = useState('')
   const [tripTo, setTripTo] = useState('')
   const [ownerFilter, setOwnerFilter] = useState('')
-  const [activeFilter, setActiveFilter] = useState('')  // какой контрол показан
+  const [activeFilter, setActiveFilter] = useState('')
 
-  const statusLabel = (v: string) => STATUS_META[v] ? t(STATUS_META[v].en, STATUS_META[v].ru) : v
+  const effStatus = (r: RequestRow) => overrides[r.id] ?? r.status ?? 'new'
 
-  // список агентов из загруженных заявок (для фильтра в режиме «Все»)
   const agentOptions = useMemo(() => {
     const map = new Map<string, string>()
     for (const r of safe) {
@@ -174,137 +97,287 @@ export default function RequestsList({
     }
     return Array.from(map, ([id, email]) => ({ id, email })).sort((a, b) => a.email.localeCompare(b.email))
   }, [safe])
-  const agentLabel = (id: string) => agentOptions.find((a) => a.id === id)?.email || id
 
+  // фильтрация
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return safe.filter((r) => {
       if (ownerFilter && r.owner_id !== ownerFilter) return false
-      if (statusFilter && r.status !== statusFilter) return false
+      if (statusFilter && effStatus(r) !== statusFilter) return false
       if (priorityFilter && r.priority !== priorityFilter) return false
-
-      // дата создания в диапазоне
-      if (createdFrom || createdTo) {
-        const created = new Date(r.created_at)
-        if (createdFrom && created < new Date(createdFrom)) return false
-        if (createdTo && created > new Date(createdTo + 'T23:59:59')) return false
-      }
-
-      // даты поездки пересекаются с фильтром хотя бы одним днём
       if (tripFrom || tripTo) {
         if (!r.trip_start && !r.trip_end) return false
         const rStart = r.trip_start ? new Date(r.trip_start) : new Date(r.trip_end!)
         const rEnd = r.trip_end ? new Date(r.trip_end) : new Date(r.trip_start!)
-        const fFrom = tripFrom ? new Date(tripFrom) : null
-        const fTo = tripTo ? new Date(tripTo) : null
-        if (fFrom && rEnd < fFrom) return false
-        if (fTo && rStart > fTo) return false
+        if (tripFrom && rEnd < new Date(tripFrom)) return false
+        if (tripTo && rStart > new Date(tripTo)) return false
       }
-
       if (!q) return true
       const client = Array.isArray(r.clients) ? r.clients[0] : r.clients
-      const hay = [client?.name, r.request_code, r.destination, r.details].filter(Boolean).join(' ').toLowerCase()
+      const hay = [client?.name, r.request_code, destSummary[r.id], r.destination, r.details].filter(Boolean).join(' ').toLowerCase()
       return hay.includes(q)
     })
-  }, [safe, search, statusFilter, priorityFilter, createdFrom, createdTo, tripFrom, tripTo, ownerFilter])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safe, search, statusFilter, priorityFilter, tripFrom, tripTo, ownerFilter, overrides, destSummary])
 
-  const inputStyle: React.CSSProperties = {
-    padding: '10px 14px', fontSize: '14px', color: 'var(--admin-text)',
-    background: 'var(--admin-input)', border: '1px solid var(--admin-border)',
-    borderRadius: '8px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  // сортировка
+  const sorted = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    // группа: 0 — предстоящие, 1 — прошедшие, 2 — без даты
+    const key = (r: RequestRow) => {
+      const s = parseISO(r.trip_start)
+      if (!s) return { g: 2, t: 0 }
+      return { g: s >= today ? 0 : 1, t: s.getTime() }
+    }
+    const arr = [...filtered]
+    arr.sort((a, b) => {
+      if (sort === 'created') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      const ka = key(a), kb = key(b)
+      if (ka.g !== kb.g) return ka.g - kb.g
+      if (ka.g === 0) return sort === 'trip_far' ? kb.t - ka.t : ka.t - kb.t  // предстоящие
+      if (ka.g === 1) return kb.t - ka.t  // прошедшие — свежие выше
+      return 0
+    })
+    return arr
+  }, [filtered, sort])
+
+  function changeStatus(id: string, newStatus: string) {
+    const prev = overrides[id] ?? safe.find((r) => r.id === id)?.status ?? 'new'
+    setOverrides((o) => ({ ...o, [id]: newStatus }))
+    fetch(`/api/requests/${id}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    }).then((res) => { if (!res.ok) throw new Error() })
+      .catch(() => {
+        setOverrides((o) => ({ ...o, [id]: prev }))
+        alert(t('Could not change status', 'Не удалось изменить статус'))
+      })
+  }
+
+  // форматирование дат
+  function fmtDay(d: Date) { return `${d.getDate()} ${MONTHS[d.getMonth()]}` }
+  function tripRange(r: RequestRow): string {
+    const s = parseISO(r.trip_start), e = parseISO(r.trip_end)
+    if (!s && !e) return ''
+    if (s && e) {
+      if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) return `${s.getDate()}–${e.getDate()} ${MONTHS[e.getMonth()]}`
+      return `${fmtDay(s)}–${fmtDay(e)}`
+    }
+    return fmtDay((s || e)!)
+  }
+  function proximity(r: RequestRow): { text: string; kind: 'soon' | 'past' } | null {
+    const s = parseISO(r.trip_start)
+    if (!s) return null
+    const now = new Date(); now.setHours(0, 0, 0, 0)
+    const days = Math.round((s.getTime() - now.getTime()) / 86400000)
+    if (days < 0) return { text: t('past trip', 'поездка в прошлом'), kind: 'past' }
+    if (days === 0) return { text: t('today', 'сегодня'), kind: 'soon' }
+    if (days < 31) return { text: t(`in ${days}d`, `через ${days} дн`), kind: 'soon' }
+    return { text: t(`in ~${Math.round(days / 30)}mo`, `через ~${Math.round(days / 30)} мес`), kind: 'soon' }
+  }
+
+  const field: React.CSSProperties = {
+    padding: '9px 12px', fontSize: '13px', color: C.text, background: 'var(--admin-input)',
+    border: `1px solid ${C.borderStrong}`, borderRadius: '8px', fontFamily: 'inherit', outline: 'none',
   }
 
   return (
     <div>
-      <div style={{ marginBottom: '16px' }}>
-        {/* строка: поиск + кнопка фильтра */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by client, destination, details…', 'Поиск по клиенту, направлению, деталям…')} style={{ ...inputStyle, flex: 1, minWidth: '200px' }} />
-          <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} style={{ ...inputStyle, width: '180px' }}>
-            <option value="">{t('+ Filter ▾', '+ Фильтр ▾')}</option>
-            {showOwner && <option value="agent">{t('Agent', 'Агент')}</option>}
-            <option value="status">{t('Status', 'Статус')}</option>
-            <option value="priority">{t('Priority', 'Приоритет')}</option>
-            <option value="created">{t('Created date', 'Дата создания')}</option>
-            <option value="trip">{t('Trip dates', 'Даты поездки')}</option>
-          </select>
-        </div>
+      {/* toolbar */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px', alignItems: 'center' }}>
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('Search by client, destination, details…', 'Поиск по клиенту, направлению, деталям…')}
+          style={{ ...field, flex: 1, minWidth: '220px' }} />
+        <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} style={field}
+          title={t('Sort', 'Сортировка')}>
+          <option value="trip_soon">{t('Trip: soonest first', 'Поездка: ближайшие')}</option>
+          <option value="trip_far">{t('Trip: latest first', 'Поездка: дальние')}</option>
+          <option value="created">{t('Created: newest', 'Создана: новые')}</option>
+        </select>
+        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} style={field}>
+          <option value="">{t('+ Filter ▾', '+ Фильтр ▾')}</option>
+          {showOwner && <option value="agent">{t('Agent', 'Агент')}</option>}
+          <option value="status">{t('Status', 'Статус')}</option>
+          <option value="priority">{t('Priority', 'Приоритет')}</option>
+          <option value="trip">{t('Trip dates', 'Даты поездки')}</option>
+        </select>
 
-        {/* контрол выбранного типа фильтра */}
         {activeFilter === 'agent' && showOwner && (
-          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} style={{ ...field, minWidth: '200px' }}>
             <option value="">{t('All agents', 'Все агенты')}</option>
-            {agentOptions.map((a) => (
-              <option key={a.id} value={a.id}>{a.email}</option>
-            ))}
+            {agentOptions.map((a) => <option key={a.id} value={a.id}>{a.email}</option>)}
           </select>
         )}
         {activeFilter === 'status' && (
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...field, minWidth: '200px' }}>
             <option value="">{t('All statuses', 'Все статусы')}</option>
-            {Object.entries(STATUS_META).map(([value, m]) => (
-              <option key={value} value={value}>{t(m.en, m.ru)}</option>
-            ))}
+            {STATUS_ORDER.map((v) => <option key={v} value={v}>{t(STATUS_META[v].en, STATUS_META[v].ru)}</option>)}
           </select>
         )}
         {activeFilter === 'priority' && (
-          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
+          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} style={{ ...field, minWidth: '180px' }}>
             <option value="">{t('All priorities', 'Все приоритеты')}</option>
             <option value="Low">{t('Low', 'Низкий')}</option>
             <option value="Medium">{t('Medium', 'Средний')}</option>
             <option value="High">{t('High', 'Высокий')}</option>
           </select>
         )}
-        {activeFilter === 'created' && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('From', 'С')}</span>
-            <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} style={{ ...inputStyle, width: '160px' }} />
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('To', 'По')}</span>
-            <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} style={{ ...inputStyle, width: '160px' }} />
-          </div>
-        )}
         {activeFilter === 'trip' && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('From', 'С')}</span>
-            <input type="date" value={tripFrom} onChange={(e) => setTripFrom(e.target.value)} style={{ ...inputStyle, width: '160px' }} />
-            <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>{t('To', 'По')}</span>
-            <input type="date" value={tripTo} onChange={(e) => setTripTo(e.target.value)} style={{ ...inputStyle, width: '160px' }} />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input type="date" value={tripFrom} onChange={(e) => setTripFrom(e.target.value)} style={field} />
+            <span style={{ fontSize: '12px', color: C.muted }}>—</span>
+            <input type="date" value={tripTo} onChange={(e) => setTripTo(e.target.value)} style={field} />
           </div>
         )}
-
-        {/* чипсы активных фильтров */}
-        {(ownerFilter || statusFilter || priorityFilter || createdFrom || createdTo || tripFrom || tripTo) && (
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-            {ownerFilter && (
-              <Chip label={`${t('Agent', 'Агент')}: ${agentLabel(ownerFilter)}`} onClear={() => setOwnerFilter('')} />
-            )}
-            {statusFilter && (
-              <Chip label={`${t('Status', 'Статус')}: ${statusLabel(statusFilter)}`} onClear={() => setStatusFilter('')} />
-            )}
-            {priorityFilter && (
-              <Chip label={`${t('Priority', 'Приоритет')}: ${priorityFilter}`} onClear={() => setPriorityFilter('')} />
-            )}
-            {(createdFrom || createdTo) && (
-              <Chip label={`${t('Created', 'Создана')}: ${createdFrom || '…'} — ${createdTo || '…'}`} onClear={() => { setCreatedFrom(''); setCreatedTo('') }} />
-            )}
-            {(tripFrom || tripTo) && (
-              <Chip label={`${t('Trip', 'Поездка')}: ${tripFrom || '…'} — ${tripTo || '…'}`} onClear={() => { setTripFrom(''); setTripTo('') }} />
-            )}
-          </div>
+        {(ownerFilter || statusFilter || priorityFilter || tripFrom || tripTo) && (
+          <button type="button" onClick={() => { setOwnerFilter(''); setStatusFilter(''); setPriorityFilter(''); setTripFrom(''); setTripTo(''); setActiveFilter('') }}
+            style={{ ...field, cursor: 'pointer', color: C.muted }}>{t('Clear filters', 'Сбросить фильтры')}</button>
         )}
       </div>
 
-      {filtered.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)', border: '1px dashed var(--admin-text-faint)', borderRadius: '8px', fontSize: '14px' }}>
+      {sorted.length === 0 ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: C.muted, border: `1px dashed ${C.borderStrong}`, borderRadius: '10px', fontSize: '14px' }}>
           {safe.length === 0
             ? t('No requests yet. Click + New request to create one.', 'Пока нет заявок. Нажмите «+ Новая заявка», чтобы создать.')
             : t('Nothing matches your filters.', 'Ничего не найдено по фильтрам.')}
         </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map((r) => <RequestItem key={r.id} r={r} showOwner={showOwner} destination={destSummary[r.id]} />)}
-        </ul>
+        <div style={{ border: `1px solid ${C.borderStrong}`, borderRadius: '10px', overflow: 'hidden', background: C.card }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <Th>{t('Client', 'Клиент')}</Th>
+                  <Th>{t('Destination', 'Направление')}</Th>
+                  <Th>{t('Trip dates', 'Даты поездки')}</Th>
+                  {showOwner && <Th>{t('Agent', 'Агент')}</Th>}
+                  <Th>{t('Status', 'Статус')}</Th>
+                  <Th>{t('Priority', 'Приоритет')}</Th>
+                  <Th>{t('Created', 'Создана')}</Th>
+                  <Th> </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((r) => (
+                  <Row
+                    key={r.id} r={r} showOwner={showOwner}
+                    destination={destSummary[r.id]}
+                    status={effStatus(r)}
+                    tripText={tripRange(r)}
+                    prox={proximity(r)}
+                    createdText={(() => { const d = parseISO(r.created_at); return d ? fmtDay(d) : '' })()}
+                    onStatus={changeStatus}
+                    onOpen={() => router.push(`/admin/requests/${r.id}`)}
+                    isRu={isRu}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
+  )
+
+  function Th({ children }: { children: React.ReactNode }) {
+    return (
+      <th style={{ background: C.head, textAlign: 'left', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.muted, padding: '11px 14px', borderBottom: `1px solid ${C.borderStrong}`, whiteSpace: 'nowrap' }}>
+        {children}
+      </th>
+    )
+  }
+}
+
+const PRIO_STYLE: Record<string, { bg: string; color: string }> = {
+  High: { bg: '#F6E2DF', color: '#B24A42' },
+  Medium: { bg: '#F7EDD8', color: '#8A5A12' },
+  Low: { bg: '#ECE6DA', color: '#6F6C64' },
+}
+const PRIO_LABEL: Record<string, { en: string; ru: string }> = {
+  High: { en: 'High', ru: 'Высокий' },
+  Medium: { en: 'Medium', ru: 'Средний' },
+  Low: { en: 'Low', ru: 'Низкий' },
+}
+
+function Row({
+  r, showOwner, destination, status, tripText, prox, createdText, onStatus, onOpen,
+}: {
+  r: RequestRow
+  showOwner: boolean
+  destination?: string
+  status: string
+  tripText: string
+  prox: { text: string; kind: 'soon' | 'past' } | null
+  createdText: string
+  onStatus: (id: string, s: string) => void
+  onOpen: () => void
+  isRu: boolean
+}) {
+  const t = useT()
+  const [isPending, startTransition] = useTransition()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const client = Array.isArray(r.clients) ? r.clients[0] : r.clients
+  const ownerEmail = Array.isArray(r.profiles) ? r.profiles[0]?.email : r.profiles?.email
+  const tone = TONE[STATUS_META[status]?.tone ?? 'work']
+
+  const td: React.CSSProperties = { padding: '11px 14px', borderBottom: `1px solid ${C.border}`, fontSize: '13.5px', color: C.text, verticalAlign: 'middle' }
+  const stop = (e: React.MouseEvent) => e.stopPropagation()
+
+  return (
+    <tr onClick={onOpen}
+      style={{ cursor: 'pointer', opacity: isPending ? 0.4 : (status === 'cancelled' ? 0.72 : 1), transition: 'opacity 0.15s', background: 'transparent' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = C.rowHover }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+      <td style={td}>
+        <div style={{ fontWeight: 600, color: C.text }}>{client?.name || t('No client', 'Без клиента')}</div>
+        {r.request_code && <div style={{ fontSize: '11px', color: C.faint, marginTop: '2px' }}>{r.request_code}</div>}
+      </td>
+      <td style={{ ...td, color: destination ? C.text : C.faint }}>{destination || '—'}</td>
+      <td style={td}>
+        {tripText ? (
+          <>
+            <span style={{ fontWeight: 600 }}>{tripText}</span>
+            {prox && <span style={{ display: 'block', marginTop: '2px', fontSize: '11px', fontWeight: prox.kind === 'soon' ? 700 : 400, color: prox.kind === 'soon' ? C.accent : C.faint }}>{prox.text}</span>}
+          </>
+        ) : <span style={{ color: C.faint }}>{t('no dates', 'даты не заданы')}</span>}
+      </td>
+      {showOwner && <td style={{ ...td, fontSize: '12px', color: C.muted }}>{ownerEmail || '—'}</td>}
+      <td style={td} onClick={stop}>
+        <select value={status} onChange={(e) => onStatus(r.id, e.target.value)}
+          style={{
+            appearance: 'none', WebkitAppearance: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700,
+            letterSpacing: '0.02em', textTransform: 'uppercase', borderRadius: '6px', padding: '6px 22px 6px 9px',
+            cursor: 'pointer', background: tone.bg, color: tone.color, border: `1px solid ${tone.border}`,
+            backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 3l3 3 3-3' fill='none' stroke='%23888' stroke-width='1.4'/></svg>")`,
+            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center',
+          }}>
+          {STATUS_ORDER.map((v) => <option key={v} value={v} style={{ color: '#2C2C2A', background: '#fff', textTransform: 'none' }}>{t(STATUS_META[v].en, STATUS_META[v].ru)}</option>)}
+        </select>
+      </td>
+      <td style={td}>
+        {r.priority && PRIO_STYLE[r.priority] ? (
+          <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', ...PRIO_STYLE[r.priority] }}>
+            {t(PRIO_LABEL[r.priority].en, PRIO_LABEL[r.priority].ru)}
+          </span>
+        ) : <span style={{ color: C.faint }}>—</span>}
+      </td>
+      <td style={{ ...td, color: C.muted, fontSize: '12.5px', whiteSpace: 'nowrap' }}>{createdText}</td>
+      <td style={{ ...td, position: 'relative', textAlign: 'right' }} onClick={stop}>
+        <button onClick={() => setMenuOpen((v) => !v)} disabled={isPending} aria-label={t('Actions', 'Действия')}
+          style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: '18px', lineHeight: 1, cursor: 'pointer', padding: '2px 6px', borderRadius: '6px', fontFamily: 'inherit' }}>⋯</button>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
+            <div style={{ position: 'absolute', top: '100%', right: '10px', background: 'var(--admin-input)', border: `1px solid ${C.borderStrong}`, borderRadius: '8px', padding: '4px', minWidth: '150px', zIndex: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}>
+              <button onClick={() => { setMenuOpen(false); startTransition(async () => { await duplicateRequest(r.id) }) }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: C.text, fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>{t('Duplicate', 'Дублировать')}</button>
+              <button onClick={() => { setMenuOpen(false); if (confirm(t('Delete this request?\n\nThis cannot be undone.', 'Удалить эту заявку?\n\nЭто действие необратимо.'))) startTransition(async () => { await deleteRequest(r.id) }) }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', color: 'var(--admin-danger)', fontSize: '13px', cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit' }}>{t('Delete', 'Удалить')}</button>
+            </div>
+          </>
+        )}
+      </td>
+    </tr>
   )
 }
