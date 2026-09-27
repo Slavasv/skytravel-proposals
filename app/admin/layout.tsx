@@ -1,4 +1,4 @@
-import AdminHeader from './admin-header'
+import AdminSidebar from './admin-sidebar'
 import TaskFab from './_components/task-fab'
 import VersionWatcher from './version-watcher'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
@@ -14,13 +14,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const lang = profile?.ui_language ?? 'en'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}>
-      <LangProvider lang={lang}>
+    <LangProvider lang={lang}>
+      <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}>
         <VersionWatcher />
-        <AdminHeader isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} isAccountant={isAccountant} />
-        {children}
+        <AdminSidebar isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} isAccountant={isAccountant} />
+        <main className="admin-main" style={{ flex: 1, minWidth: 0 }}>
+          {children}
+        </main>
         {!isSuperadmin && !isAccountant && <TaskFab />}
-      </LangProvider>
-    </div>
+      </div>
+    </LangProvider>
   )
 }
