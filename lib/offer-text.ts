@@ -86,11 +86,12 @@ export function buildOfferText(offer: OfferLite, mode: 'admin' | 'client', lang:
     const block: string[] = []
     if (i === 0) {
       if (head.length) block.push(head.join('\n'))
-      if (offer.hotel_name?.trim()) { block.push(''); block.push(offer.hotel_name.trim()) }
+      // *…* — жирный в WhatsApp
+      if (offer.hotel_name?.trim()) { block.push(''); block.push(`*${offer.hotel_name.trim()}*`) }
       block.push('')
     }
     const label = (room.room_note?.trim() || room.room_type?.trim() || '')
-    if (label) block.push(label)
+    if (label) block.push(`*${label}*`)
     if (room.room_type?.trim() && room.room_note?.trim() && room.room_type.trim() !== room.room_note.trim()) {
       block.push(room.room_type.trim())
     }
