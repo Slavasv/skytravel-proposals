@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatDateRange } from '@/lib/offer-text'
+import { formatDateRange, type Lang } from '@/lib/offer-text'
 import { deleteOffer } from './actions'
 
 type RoomLite = { room_type: string | null; sale_price: number | null; sale_currency: string | null; is_recommended: boolean; sort_order: number | null }
@@ -21,9 +21,17 @@ export type OfferListRow = {
   clients: { name: string | null } | { name: string | null }[] | null
 }
 
-const STATUS: Record<string, { label: string; tone: string }> = {
-  draft: { label: 'черновик', tone: 'adm-tone-low' },
-  sent: { label: 'отправлен', tone: 'adm-tone-info' },
+const STATUS: Record<string, { en: string; ru: string; tone: string }> = {
+  draft: { en: 'draft', ru: 'черновик', tone: 'adm-tone-low' },
+  sent: { en: 'sent', ru: 'отправлен', tone: 'adm-tone-info' },
+}
+
+const MEAL_LABEL: Record<string, { en: string; ru: string }> = {
+  room_only: { en: 'Room only', ru: 'Без питания' },
+  breakfast: { en: 'Breakfast', ru: 'Завтраки' },
+  half_board: { en: 'Half board', ru: 'Полупансион' },
+  full_board: { en: 'Full board', ru: 'Полный пансион' },
+  all_inclusive: { en: 'All inclusive', ru: 'Всё включено' },
 }
 
 function money(v: number | null, cur: string | null): string {
@@ -41,7 +49,7 @@ function pickRoom(rooms: RoomLite[] | null): { cat: string; price: number | null
   return { cat: rec.room_type || '', price: rec.sale_price, cur: rec.sale_currency, more: list.length - 1 }
 }
 
-function OfferRow({ r, onOpen }: { r: OfferListRow; onOpen: () => void }) {
+function OfferRow({ r, onOpen, lang, T }: { r: OfferListRow; onOpen: () => void; lang: Lang; T: (en: string, ru: string) => string }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -52,6 +60,7 @@ function OfferRow({ r, onOpen }: { r: OfferListRow; onOpen: () => void }) {
   const sub = [cli?.name, req?.request_code].filter(Boolean).join(' · ')
   const room = pickRoom(r.offer_rooms)
   const st = STATUS[r.status || 'draft'] || STATUS.draft
+  const range = formatDateRange(r.date_from, r.date_to, lang)
   const stop = (e: React.MouseEvent) => e.stopPropagation()
 
   function openMenu() {
@@ -61,7 +70,7 @@ function OfferRow({ r, onOpen }: { r: OfferListRow; onOpen: () => void }) {
   }
   function handleDelete(e: React.MouseEvent) {
     e.stopPropagation(); setMenuOpen(false)
-    if (!confirm(`Удалить оффер${r.hotel_name ? ` «${r.hotel_name}»` : ''}?\n\nЭто действие необратимо.`)) return
+    if (!confirm(T(`Delete offer${r.hotel_name ? ` “${r.hotel_name}”` : ''}?\n\nThis cannot be undone.`, `Удалить оффер${r.hotel_name ? ` «${r.hotel_name}»` : ''}?\n\nЭто действие необратимо.`))) return
     startTransition(async () => { await deleteOffer(r.id) })
   }
 
@@ -71,14 +80,14 @@ function OfferRow({ r, onOpen }: { r: OfferListRow; onOpen: () => void }) {
         <span className="adm-cell-strong">{r.hotel_name || 'Без отеля'}</span>
         {sub && <div className="adm-cell-code">{sub}</div>}
       </td>
-      <td style={{ color: formatDateRange(r.date_from, r.date_to) ? undefined : '#9C988E' }}>{formatDateRange(r.date_from, r.date_to) || '—'}</td>
+      <td style={{ color: range ? undefined : '#9C988E' }}>{range || '—'}</td>
       <td style={{ color: r.occupancy ? undefined : '#9C988E' }}>{r.occupancy || '—'}</td>
-      <td style={{ color: r.meal ? undefined : '#9C988E' }}>{r.meal || '—'}</td>
+      <td style={{ color: r.meal ? undefined : '#9C988E' }}>{r.meal ? (MEAL_LABEL[r.meal] ? T(MEAL_LABEL[r.meal].en, MEAL_LABEL[r.meal].ru) : r.meal) : '—'}</td>
       <td style={{ color: room.cat ? undefined : '#9C988E' }}>
         {room.cat || '—'}{room.more > 0 && <span className="adm-cell-faint"> +{room.more}</span>}
       </td>
       <td className="adm-cell-strong">{money(room.price, room.cur)}</td>
-      <td><span className={`adm-pill ${st.tone}`}>{st.label}</span></td>
+      <td><span className={`adm-pill ${st.tone}`}>{T(st.en, st.ru)}</span></td>
       <td className="adm-right" onClick={stop}>
         <button ref={btnRef} className="adm-dots" disabled={isPending} aria-label="Действия"
           onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}>⋯</button>
@@ -95,8 +104,9 @@ function OfferRow({ r, onOpen }: { r: OfferListRow; onOpen: () => void }) {
   )
 }
 
-export default function OffersList({ rows }: { rows: OfferListRow[] }) {
+export default function OffersList({ rows, lang }: { rows: OfferListRow[]; lang: Lang }) {
   const router = useRouter()
+  const T = (en: string, ru: string) => (lang === 'ru' ? ru : en)
   const [q, setQ] = useState('')
   const safe = Array.isArray(rows) ? rows : []
 
@@ -115,19 +125,19 @@ export default function OffersList({ rows }: { rows: OfferListRow[] }) {
     <div>
       <div className="adm-toolbar">
         <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="Поиск по отелю, клиенту, номеру…" className="adm-field adm-field-search" />
+          placeholder={T('Search by hotel, client, room…', 'Поиск по отелю, клиенту, номеру…')} className="adm-field adm-field-search" />
       </div>
       {filtered.length === 0 ? (
-        <div className="adm-empty">{safe.length === 0 ? 'Офферов пока нет. Нажмите «+ Новый оффер».' : 'Ничего не найдено.'}</div>
+        <div className="adm-empty">{safe.length === 0 ? T('No offers yet. Click “+ New offer”.', 'Офферов пока нет. Нажмите «+ Новый оффер».') : T('Nothing found.', 'Ничего не найдено.')}</div>
       ) : (
         <div className="adm-tcard"><div className="adm-tscroll">
           <table className="adm-table">
             <thead><tr>
-              <th>Отель</th><th>Даты</th><th>Размещение</th><th>Питание</th><th>Категория номера</th><th>Цена клиенту</th><th>Статус</th><th> </th>
+              <th>{T('Hotel', 'Отель')}</th><th>{T('Dates', 'Даты')}</th><th>{T('Occupancy', 'Размещение')}</th><th>{T('Meals', 'Питание')}</th><th>{T('Room category', 'Категория номера')}</th><th>{T('Client price', 'Цена клиенту')}</th><th>{T('Status', 'Статус')}</th><th> </th>
             </tr></thead>
             <tbody>
               {filtered.map((r) => (
-                <OfferRow key={r.id} r={r} onOpen={() => router.push(`/admin/offers/${r.id}`)} />
+                <OfferRow key={r.id} r={r} lang={lang} T={T} onOpen={() => router.push(`/admin/offers/${r.id}`)} />
               ))}
             </tbody>
           </table>
