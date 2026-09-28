@@ -25,8 +25,13 @@ export async function GET(req: NextRequest) {
     if (!code) return fail('no_code')
     if (!state || !savedState || state !== savedState) return fail('state_mismatch')
 
+    // целевой режим подключения (совпадает с тем, что ставили в connect)
+    const target = req.cookies.get('ms_oauth_target')?.value === 'user' ? 'user' : 'company'
+
     const profile = await getProfile()
-    if (!profile || !canManageBrand(profile.role)) return fail('no_admin_session')
+    if (!profile) return fail('no_session')
+    // общий аккаунт компании — только owner/admin; личный — любой залогиненный
+    if (target === 'company' && !canManageBrand(profile.role)) return fail('no_admin_session')
 
     const admin = createSupabaseAdmin()
     const { data: me } = await admin.from('profiles').select('company_id').eq('id', profile.id).single()
@@ -38,7 +43,7 @@ export async function GET(req: NextRequest) {
         return fail(`token:${tok.error || 'no_refresh'} ${tok.error_description || ''}`)
     }
 
-    // кто именно подключился (email/имя интеграционного аккаунта)
+    // кто именно подключился (email/имя аккаунта)
     let email: string | null = null
     let name: string | null = null
     try {
@@ -52,22 +57,44 @@ export async function GET(req: NextRequest) {
         }
     } catch { /* ignore */ }
 
-    await admin.from('microsoft_integration').upsert(
-        {
-            company_id: me.company_id,
-            account_email: email,
-            account_name: name,
-            refresh_token: tok.refresh_token,
-            tenant_id: process.env.MS_TENANT_ID || null,
-            connected_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'company_id' }
-    )
+    if (target === 'user') {
+        // Вариант А: личный токен сотрудника
+        await admin.from('microsoft_user_tokens').upsert(
+            {
+                user_id: profile.id,
+                refresh_token: tok.refresh_token,
+                account_email: email,
+                account_name: name,
+                tenant_id: process.env.MS_TENANT_ID || null,
+                connected_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' }
+        )
+        // заодно проставим рабочий ms_email в профиль (для сопоставления в Planner/почте)
+        if (email) {
+            await admin.from('profiles').update({ ms_email: email.toLowerCase() }).eq('id', profile.id)
+        }
+    } else {
+        // общий аккаунт компании (как было)
+        await admin.from('microsoft_integration').upsert(
+            {
+                company_id: me.company_id,
+                account_email: email,
+                account_name: name,
+                refresh_token: tok.refresh_token,
+                tenant_id: process.env.MS_TENANT_ID || null,
+                connected_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'company_id' }
+        )
+    }
 
     const ok = new URL('/admin/settings', req.url)
-    ok.searchParams.set('ms', 'connected')
+    ok.searchParams.set('ms', target === 'user' ? 'me_connected' : 'connected')
     const res = NextResponse.redirect(ok)
     res.cookies.delete('ms_oauth_state')
+    res.cookies.delete('ms_oauth_target')
     return res
 }

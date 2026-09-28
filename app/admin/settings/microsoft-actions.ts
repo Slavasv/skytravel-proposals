@@ -154,6 +154,26 @@ export async function disconnectMicrosoft(): Promise<void> {
     await admin.from('microsoft_integration').delete().eq('company_id', companyId)
 }
 
+// ---- ЛИЧНОЕ подключение сотрудника (Вариант А) — доступно любому залогиненному ----
+export async function getMyMicrosoftStatus(): Promise<{ connected: boolean; email: string | null }> {
+    const profile = await getProfile()
+    if (!profile) return { connected: false, email: null }
+    const admin = createSupabaseAdmin()
+    const { data } = await admin
+        .from('microsoft_user_tokens')
+        .select('account_email, refresh_token')
+        .eq('user_id', profile.id)
+        .single()
+    return { connected: !!data?.refresh_token, email: (data?.account_email as string | null) ?? null }
+}
+
+export async function disconnectMyMicrosoft(): Promise<void> {
+    const profile = await getProfile()
+    if (!profile) return
+    const admin = createSupabaseAdmin()
+    await admin.from('microsoft_user_tokens').delete().eq('user_id', profile.id)
+}
+
 export async function sendTestEmail(toEmail: string): Promise<{ ok: boolean; error?: string }> {
     const companyId = await myCompanyId()
     if (!companyId) return { ok: false, error: 'no access' }

@@ -134,7 +134,7 @@ export default function MicrosoftIntegration() {
                     <div style={{ fontSize: '13px', color: 'var(--admin-text-muted)', marginBottom: '14px' }}>
                         {t('Connect the corporate Microsoft account for email and Planner sync.', 'Подключите корпоративный аккаунт Microsoft для писем и синхронизации Planner.')}
                     </div>
-                    <a href="/api/microsoft/connect" style={btnDark}>{t('Connect Microsoft', 'Подключить Microsoft')}</a>
+                    <a href="/api/microsoft/connect?target=company" style={btnDark}>{t('Connect Microsoft', 'Подключить Microsoft')}</a>
                 </>
             )}
         </div>

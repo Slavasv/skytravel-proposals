@@ -91,6 +91,12 @@ export async function getAccessTokenForCompany(companyId: string): Promise<strin
 export async function graphFetch(companyId: string, path: string, init?: RequestInit): Promise<Response> {
     const token = await getAccessTokenForCompany(companyId)
     if (!token) throw new Error('Microsoft not connected')
+    return rawGraphFetch(token, path, init)
+}
+
+// Низкоуровневый вызов Graph с ГОТОВЫМ access-токеном (когда нужен токен
+// конкретного пользователя, а не компании).
+export async function rawGraphFetch(token: string, path: string, init?: RequestInit): Promise<Response> {
     return fetch(`https://graph.microsoft.com/v1.0${path}`, {
         ...init,
         headers: {
@@ -99,4 +105,45 @@ export async function graphFetch(companyId: string, path: string, init?: Request
             ...(init?.headers || {}),
         },
     })
+}
+
+// Свежий access-токен для КОНКРЕТНОГО пользователя (Вариант А): refresh из
+// microsoft_user_tokens, обновляем, сохраняем ротированный refresh. null — если
+// пользователь свой Microsoft не подключал или refresh недействителен.
+export async function getAccessTokenForUser(userId: string): Promise<string | null> {
+    const admin = createSupabaseAdmin()
+    const { data: row } = await admin
+        .from('microsoft_user_tokens')
+        .select('refresh_token')
+        .eq('user_id', userId)
+        .single()
+    const refresh = row?.refresh_token as string | undefined
+    if (!refresh) return null
+
+    const tok = await refreshAccessToken(refresh)
+    if (tok.error || !tok.access_token) return null
+
+    if (tok.refresh_token && tok.refresh_token !== refresh) {
+        await admin
+            .from('microsoft_user_tokens')
+            .update({ refresh_token: tok.refresh_token, updated_at: new Date().toISOString() })
+            .eq('user_id', userId)
+    }
+    return tok.access_token
+}
+
+// «Действующий» токен: сначала личный токен пользователя (действие от его имени),
+// иначе — общий токен компании (фолбэк). Возвращаем и источник, чтобы вызывающий
+// мог при ошибке под личным токеном повторить под общим.
+export async function getActingToken(
+    companyId: string,
+    userId: string | null,
+): Promise<{ token: string; source: 'user' | 'company' } | null> {
+    if (userId) {
+        const t = await getAccessTokenForUser(userId)
+        if (t) return { token: t, source: 'user' }
+    }
+    const c = await getAccessTokenForCompany(companyId)
+    if (c) return { token: c, source: 'company' }
+    return null
 }
