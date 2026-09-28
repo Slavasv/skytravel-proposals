@@ -4,7 +4,6 @@ import { getProfile } from '@/lib/get-profile'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 async function currentUserId(): Promise<string> {
   const server = await createSupabaseServer()
@@ -60,25 +59,31 @@ export async function updateCompany(formData: FormData) {
   revalidatePath('/admin/settings')
 }
 
-// Владелец сам заводит новый бренд (без нового пользователя): компания + членство, затем возврат в настройки.
-export async function createOwnerBrand(formData: FormData) {
-  const profile = await getProfile()
-  if (profile?.role !== 'owner') throw new Error('Недостаточно прав')
-  const uid = await currentUserId()
+// Владелец сам заводит новый бренд (без нового пользователя): компания + членство.
+// Возвращает результат (не бросает и не редиректит) — чтобы ошибка показывалась прямо в форме.
+export async function createOwnerBrand(name: string, slug: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  try {
+    const profile = await getProfile()
+    if (profile?.role !== 'owner') return { ok: false, error: 'Недостаточно прав' }
+    const uid = await currentUserId()
 
-  const cleanName = ((formData.get('name') as string) || '').trim()
-  const cleanSlug = ((formData.get('slug') as string) || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
-  if (!cleanName || !cleanSlug) throw new Error('Название и slug обязательны')
+    const cleanName = (name || '').trim()
+    const cleanSlug = (slug || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+    if (!cleanName || !cleanSlug) return { ok: false, error: 'Название и slug обязательны' }
 
-  const admin = createSupabaseAdmin()
-  const { data: company, error } = await admin.from('companies').insert({ name: cleanName, slug: cleanSlug }).select('id').single()
-  if (error || !company) {
-    if (error && (error.message.includes('duplicate') || error.code === '23505')) throw new Error(`Slug «${cleanSlug}» уже занят`)
-    throw new Error(error?.message || 'Не удалось создать бренд')
+    const admin = createSupabaseAdmin()
+    const { data: company, error } = await admin.from('companies').insert({ name: cleanName, slug: cleanSlug }).select('id').single()
+    if (error || !company) {
+      if (error && (error.message.includes('duplicate') || error.code === '23505')) return { ok: false, error: `Slug «${cleanSlug}» уже занят` }
+      return { ok: false, error: `Компания: ${error?.message || 'не создалась'}` }
+    }
+
+    const { error: mErr } = await admin.from('company_members').insert({ user_id: uid, company_id: company.id })
+    if (mErr) return { ok: false, error: `Членство: ${mErr.message}` }
+
+    revalidatePath('/admin/settings')
+    return { ok: true, id: company.id as string }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Ошибка' }
   }
-  const { error: mErr } = await admin.from('company_members').insert({ user_id: uid, company_id: company.id })
-  if (mErr) throw new Error(mErr.message)
-
-  revalidatePath('/admin/settings')
-  redirect('/admin/settings')
 }
