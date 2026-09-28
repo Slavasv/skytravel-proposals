@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { resolveCreateCompanyId } from '@/lib/brand-filter'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -17,15 +18,7 @@ export async function createPartner() {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-    companyId = me?.company_id ?? null
-  }
+  const companyId = await resolveCreateCompanyId()
 
   if (!companyId) throw new Error('Компания не найдена')
 

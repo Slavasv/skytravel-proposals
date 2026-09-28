@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { resolveCreateCompanyId } from '@/lib/brand-filter'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { emptyFlightData } from '@/lib/flight-voucher'
@@ -48,16 +49,8 @@ async function createProposalOfKind(kind: 'individual' | 'destination') {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // company_id из профиля создателя — чтобы предложение сразу принадлежало его бренду
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-    companyId = me?.company_id ?? null
-  }
+  // бренд создаваемого — активный из переключателя, иначе основной бренд пользователя
+  const companyId = await resolveCreateCompanyId()
 
   const { data, error } = await supabase
     .from('proposals')
@@ -239,16 +232,8 @@ export async function createVoucher() {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // company_id из профиля (для брендинга футера)
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-    companyId = me?.company_id ?? null
-  }
+  // бренд создаваемого — активный из переключателя, иначе основной бренд пользователя (для брендинга футера)
+  const companyId = await resolveCreateCompanyId()
 
   const { data, error } = await supabase
     .from('vouchers')
@@ -277,15 +262,7 @@ export async function createFlightVoucher() {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-    companyId = me?.company_id ?? null
-  }
+  const companyId = await resolveCreateCompanyId()
 
   const { data, error } = await supabase
     .from('vouchers')

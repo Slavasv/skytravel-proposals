@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { createProposal } from './actions'
 import ProposalsTable from './proposals-table'
 import StatusFilter from './status-filter'
@@ -25,6 +26,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
+  const brandId = await getActiveBrandId()
 
   const supabase = await createSupabaseServer()
 
@@ -37,6 +39,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   if (isAdmin && !showAll) {
     query = query.eq('owner_id', profile!.id)
   }
+  if (brandId) query = query.eq('company_id', brandId)
 
   const { data: allProposals, error } = await query
 

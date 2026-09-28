@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createClient } from './actions'
 import ClientsList, { type ClientRow } from './clients-list'
@@ -13,14 +14,17 @@ export default async function ClientsPage() {
     redirect('/admin/companies')
   }
 
+  const brandId = await getActiveBrandId()
   const supabase = await createSupabaseServer()
 
   // Клиенты — общий справочник компании: одного клиента в разное время
   // могут вести разные агенты, поэтому список видят все.
-  const { data: allClients, error } = await supabase
+  let query = supabase
     .from('clients')
     .select('id, name, client_code, client_type, client_status, lead_source, countries, phone, email, updated_at, owner_id, profiles(email)')
     .order('updated_at', { ascending: false })
+  if (brandId) query = query.eq('company_id', brandId)
+  const { data: allClients, error } = await query
 
   if (error) {
     return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createVoucher, createFlightVoucher } from '../actions'
 import VouchersList, { type VoucherRow } from './vouchers-list'
@@ -18,6 +19,7 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
 
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
+  const brandId = await getActiveBrandId()
 
   const supabase = await createSupabaseServer()
 
@@ -29,6 +31,7 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
   if (isAdmin && !showAll) {
     query = query.eq('owner_id', profile!.id)
   }
+  if (brandId) query = query.eq('company_id', brandId)
 
   const { data: allVouchers, error } = await query
 

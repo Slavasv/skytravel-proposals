@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createDestination } from '../actions'
 import DestinationsTable, { type DestinationRow } from './destinations-table'
@@ -19,6 +20,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
 
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
+  const brandId = await getActiveBrandId()
 
   const supabase = await createSupabaseServer()
 
@@ -31,6 +33,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
   if (isAdmin && !showAll) {
     query = query.eq('owner_id', profile!.id)
   }
+  if (brandId) query = query.eq('company_id', brandId)
 
   const { data: allDestinations, error } = await query
 
