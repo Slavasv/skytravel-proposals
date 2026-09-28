@@ -90,10 +90,15 @@ export function buildOfferText(offer: OfferLite, mode: 'admin' | 'client', lang:
       if (offer.hotel_name?.trim()) { block.push(''); block.push(`*${offer.hotel_name.trim()}*`) }
       block.push('')
     }
-    const label = (room.room_note?.trim() || room.room_type?.trim() || '')
-    if (label) block.push(`*${label}*`)
-    if (room.room_type?.trim() && room.room_note?.trim() && room.room_type.trim() !== room.room_note.trim()) {
-      block.push(room.room_type.trim())
+    // Название номера — жирным сверху; описание (рум-нот) — обычным под названием.
+    const name = room.room_type?.trim() || ''
+    const note = room.room_note?.trim() || ''
+    if (name) {
+      block.push(`*${name}*`)
+      if (note && note !== name) block.push(note)
+    } else if (note) {
+      // если названия нет — описание становится жирным заголовком
+      block.push(`*${note}*`)
     }
     if (room.room_link?.trim()) block.push(room.room_link.trim())
     block.push('')
