@@ -1,6 +1,6 @@
 import 'server-only'
 import { createSupabaseAdmin } from './supabase-admin'
-import { graphFetch } from './microsoft'
+import { graphFetch, getActingToken, getAccessTokenForCompany, rawGraphFetch } from './microsoft'
 
 // наш статус → % выполнения Planner (0 / 50 / 100)
 function statusToPercent(status: string): number {
@@ -191,11 +191,17 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
         }
 
         if (!task.ms_task_id) {
-            // создать
-            const res = await graphFetch(task.company_id, '/planner/tasks', {
-                method: 'POST',
-                body: JSON.stringify({ planId: integ.plan_id, ...fields }),
-            })
+            // создать — от имени НАЗНАЧИВШЕГО (creator), чтобы в Planner «создал: он».
+            // Если у него нет личного токена — getActingToken вернёт общий аккаунт.
+            const body = JSON.stringify({ planId: integ.plan_id, ...fields })
+            const acting = await getActingToken(task.company_id, (task.creator_id as string | null) ?? null)
+            if (!acting) return
+            let res = await rawGraphFetch(acting.token, '/planner/tasks', { method: 'POST', body })
+            // личный аккаунт может не иметь доступа к плану (не в группе) → пробуем общий
+            if (!res.ok && acting.source === 'user') {
+                const companyTok = await getAccessTokenForCompany(task.company_id)
+                if (companyTok) res = await rawGraphFetch(companyTok, '/planner/tasks', { method: 'POST', body })
+            }
             if (!res.ok) return
             const created = (await res.json()) as { id?: string }
             if (created.id) {

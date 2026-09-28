@@ -177,6 +177,7 @@ export async function createTask(input: NewTask): Promise<{ ok: boolean; error?:
         await sendTaskAssignedEmail({
             companyId: me.company_id,
             assigneeId: assignee,
+            assignerId: user.id,
             title,
             description: input.description ?? null,
             dueAt: input.due_at ?? null,

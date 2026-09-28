@@ -4,6 +4,7 @@ import { tr } from '@/lib/i18n'
 import ChangePasswordForm from './change-password-form'
 import BrandSettingsManager from './brand-settings-manager'
 import MicrosoftIntegration from './microsoft-integration'
+import PersonalMicrosoft from './personal-microsoft'
 import { getOwnerBrands } from './brands'
 
 export default async function SettingsPage() {
@@ -43,6 +44,13 @@ export default async function SettingsPage() {
           </Suspense>
         </>
       )}
+
+      <div style={{ marginBottom: '8px', marginTop: '28px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
+        {tr(lang, 'My Microsoft', 'Мой Microsoft')}
+      </div>
+      <Suspense fallback={null}>
+        <PersonalMicrosoft />
+      </Suspense>
 
       <div style={{ marginBottom: '8px', marginTop: '28px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--admin-text-faint)' }}>
         {tr(lang, 'Change password', 'Смена пароля')}
