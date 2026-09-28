@@ -22,6 +22,7 @@ export type VoucherRow = {
   guests: unknown
   voucher_hotels?: Hotel[] | null
   profiles?: { email: string } | { email: string }[] | null
+  companies?: { name: string | null } | { name: string | null }[] | null
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -71,7 +72,7 @@ function firstHotelLine(hotels: Hotel[] | null | undefined): string {
   return parts.join(' · ')
 }
 
-function VoucherRowItem({ v, showOwner, onOpen }: { v: VoucherRow; showOwner: boolean; onOpen: () => void }) {
+function VoucherRowItem({ v, showOwner, showBrand, onOpen }: { v: VoucherRow; showOwner: boolean; showBrand: boolean; onOpen: () => void }) {
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -80,6 +81,7 @@ function VoucherRowItem({ v, showOwner, onOpen }: { v: VoucherRow; showOwner: bo
   const btnRef = useRef<HTMLButtonElement>(null)
 
   const ownerEmail = Array.isArray(v.profiles) ? v.profiles[0]?.email : v.profiles?.email
+  const comp = Array.isArray(v.companies) ? v.companies[0] : v.companies
   const isFlight = v.voucher_type === 'flight'
   const flight = isFlight ? normalizeFlightData(v.flight_data) : null
   const mainName = isFlight
@@ -158,6 +160,7 @@ function VoucherRowItem({ v, showOwner, onOpen }: { v: VoucherRow; showOwner: bo
         </div>
         {code && <div className="adm-cell-code">{code}</div>}
       </td>
+      {showBrand && <td><span className="adm-pill adm-tone-info">{comp?.name || '—'}</span></td>}
       <td>
         {isFlight
           ? <span className="adm-pill adm-tone-mid">{t('Flight', 'Авиа')}</span>
@@ -188,7 +191,7 @@ function VoucherRowItem({ v, showOwner, onOpen }: { v: VoucherRow; showOwner: bo
   )
 }
 
-export default function VouchersList({ vouchers, showOwner }: { vouchers: VoucherRow[]; showOwner: boolean }) {
+export default function VouchersList({ vouchers, showOwner, showBrand = false }: { vouchers: VoucherRow[]; showOwner: boolean; showBrand?: boolean }) {
   const t = useT()
   const router = useRouter()
   const safeVouchers = Array.isArray(vouchers) ? vouchers : []
@@ -251,6 +254,7 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
               <thead>
                 <tr>
                   <th>{t('Guest / Booking', 'Гость / Бронь')}</th>
+                  {showBrand && <th>{t('Brand', 'Бренд')}</th>}
                   <th>{t('Type', 'Тип')}</th>
                   <th>{t('Details', 'Детали')}</th>
                   {showOwner && <th>{t('Owner', 'Владелец')}</th>}
@@ -260,7 +264,7 @@ export default function VouchersList({ vouchers, showOwner }: { vouchers: Vouche
               </thead>
               <tbody>
                 {filtered.map((v) => (
-                  <VoucherRowItem key={v.id} v={v} showOwner={showOwner}
+                  <VoucherRowItem key={v.id} v={v} showOwner={showOwner} showBrand={showBrand}
                     onOpen={() => router.push(`/admin/vouchers/${v.id}`)} />
                 ))}
               </tbody>

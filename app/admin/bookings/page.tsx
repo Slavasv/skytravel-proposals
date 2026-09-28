@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import BookingsList, { type BookingRow } from './bookings-list'
 
@@ -15,12 +15,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
 
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('bookings')
-    .select('id, booking_code, start_date, end_date, destination, status, created_at, clients(name, client_code), booking_services(gross, net, currency)')
+    .select('id, booking_code, start_date, end_date, destination, status, created_at, clients(name, client_code), booking_services(gross, net, currency), companies(name)')
     .order('created_at', { ascending: false })
 
   if (isAdmin && !showAll) query = query.eq('owner_id', profile!.id)
@@ -54,7 +55,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <BookingsList bookings={bookings} />
+      <BookingsList bookings={bookings} showBrand={showBrand} />
     </div>
   )
 }

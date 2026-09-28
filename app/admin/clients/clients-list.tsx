@@ -17,6 +17,12 @@ export type ClientRow = {
   updated_at: string
   owner_id: string | null
   profiles?: { email: string } | { email: string }[] | null
+  companies?: { name: string | null } | { name: string | null }[] | null
+}
+
+function brandName(c: { companies?: { name: string | null } | { name: string | null }[] | null }): string {
+  const co = Array.isArray(c.companies) ? c.companies[0] : c.companies
+  return co?.name || '—'
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -33,7 +39,7 @@ function fmtDate(s: string | null): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-function ClientRowItem({ c, showOwner, onOpen }: { c: ClientRow; showOwner: boolean; onOpen: () => void }) {
+function ClientRowItem({ c, showOwner, showBrand, onOpen }: { c: ClientRow; showOwner: boolean; showBrand: boolean; onOpen: () => void }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
@@ -76,6 +82,7 @@ function ClientRowItem({ c, showOwner, onOpen }: { c: ClientRow; showOwner: bool
         </div>
         {c.client_code && <div className="adm-cell-code">{c.client_code}</div>}
       </td>
+      {showBrand && <td><span className="adm-pill adm-tone-info">{brandName(c)}</span></td>}
       <td style={{ color: typeLabel ? undefined : '#9C988E' }}>{typeLabel || '—'}</td>
       <td style={{ color: countries ? undefined : '#9C988E' }}>{countries || '—'}</td>
       <td style={{ color: contact ? undefined : '#9C988E' }}>{contact || '—'}</td>
@@ -98,7 +105,7 @@ function ClientRowItem({ c, showOwner, onOpen }: { c: ClientRow; showOwner: bool
   )
 }
 
-export default function ClientsList({ clients, showOwner }: { clients: ClientRow[]; showOwner: boolean }) {
+export default function ClientsList({ clients, showOwner, showBrand = false }: { clients: ClientRow[]; showOwner: boolean; showBrand?: boolean }) {
   const router = useRouter()
   const safeClients = Array.isArray(clients) ? clients : []
   const [search, setSearch] = useState('')
@@ -132,6 +139,7 @@ export default function ClientsList({ clients, showOwner }: { clients: ClientRow
               <thead>
                 <tr>
                   <th>Client</th>
+                  {showBrand && <th>Brand</th>}
                   <th>Type</th>
                   <th>Countries</th>
                   <th>Contact</th>
@@ -142,7 +150,7 @@ export default function ClientsList({ clients, showOwner }: { clients: ClientRow
               </thead>
               <tbody>
                 {filtered.map((c) => (
-                  <ClientRowItem key={c.id} c={c} showOwner={showOwner}
+                  <ClientRowItem key={c.id} c={c} showOwner={showOwner} showBrand={showBrand}
                     onOpen={() => router.push(`/admin/clients/${c.id}`)} />
                 ))}
               </tbody>

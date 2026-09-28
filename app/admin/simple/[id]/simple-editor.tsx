@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { buildOfferText, type Lang } from '@/lib/offer-text'
 import { useT, useLang } from '@/lib/i18n-client'
 
@@ -89,10 +90,17 @@ export default function SimpleEditor({ simple, hotels = [] }: { simple: Simple; 
 
   return (
     <div style={{ maxWidth: '820px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 4px' }}>{hdr.hotel_name || t('Simple proposal', 'Симпл-пропозал')}</h1>
-      <p style={{ color: 'var(--admin-text-muted)', margin: '0 0 18px', fontSize: '13px' }}>
-        {t('What the client gets — only the client price. The WhatsApp text is below.', 'Что уходит клиенту — только цена клиенту. Текст для WhatsApp ниже.')}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 4px' }}>{hdr.hotel_name || t('Simple proposal', 'Симпл-пропозал')}</h1>
+          <p style={{ color: 'var(--admin-text-muted)', margin: '0 0 18px', fontSize: '13px' }}>
+            {t('What the client gets — only the client price. The WhatsApp text is below.', 'Что уходит клиенту — только цена клиенту. Текст для WhatsApp ниже.')}
+          </p>
+        </div>
+        <Link href="/admin/simple" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, background: 'transparent', color: 'var(--admin-text)', border: '1px solid var(--admin-border-hover)', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          {t('Done', 'Готово')}
+        </Link>
+      </div>
 
       <div style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px' }}>

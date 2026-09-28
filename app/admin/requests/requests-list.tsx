@@ -19,6 +19,7 @@ export type RequestRow = {
   owner_id: string | null
   clients?: { name: string; client_code: string | null } | { name: string; client_code: string | null }[] | null
   profiles?: { email: string } | { email: string }[] | null
+  companies?: { name: string | null } | { name: string | null }[] | null
 }
 
 // локальная палитра с усиленным контрастом (глобально поправим отдельно)
@@ -64,11 +65,12 @@ function parseISO(s: string | null): Date | null {
 }
 
 export default function RequestsList({
-  requests, showOwner, destSummary = {},
+  requests, showOwner, destSummary = {}, showBrand = false,
 }: {
   requests: RequestRow[]
   showOwner: boolean
   destSummary?: Record<string, string>
+  showBrand?: boolean
 }) {
   const t = useT()
   const router = useRouter()
@@ -248,6 +250,7 @@ export default function RequestsList({
               <thead>
                 <tr>
                   <Th>{t('Client', 'Клиент')}</Th>
+                  {showBrand && <Th>{t('Brand', 'Бренд')}</Th>}
                   <Th>{t('Destination', 'Направление')}</Th>
                   <Th>{t('Trip dates', 'Даты поездки')}</Th>
                   {showOwner && <Th>{t('Agent', 'Агент')}</Th>}
@@ -260,7 +263,7 @@ export default function RequestsList({
               <tbody>
                 {sorted.map((r) => (
                   <Row
-                    key={r.id} r={r} showOwner={showOwner}
+                    key={r.id} r={r} showOwner={showOwner} showBrand={showBrand}
                     destination={destSummary[r.id]}
                     status={effStatus(r)}
                     tripText={tripRange(r)}
@@ -300,10 +303,11 @@ const PRIO_LABEL: Record<string, { en: string; ru: string }> = {
 }
 
 function Row({
-  r, showOwner, destination, status, tripText, prox, createdText, onStatus, onOpen,
+  r, showOwner, showBrand, destination, status, tripText, prox, createdText, onStatus, onOpen,
 }: {
   r: RequestRow
   showOwner: boolean
+  showBrand: boolean
   destination?: string
   status: string
   tripText: string
@@ -341,6 +345,7 @@ function Row({
         <div style={{ fontWeight: 600, color: C.text }}>{client?.name || t('No client', 'Без клиента')}</div>
         {r.request_code && <div style={{ fontSize: '11px', color: C.faint, marginTop: '2px' }}>{r.request_code}</div>}
       </td>
+      {showBrand && <td style={{ ...td, color: C.muted, fontSize: '12.5px', whiteSpace: 'nowrap' }}>{(Array.isArray(r.companies) ? r.companies[0] : r.companies)?.name || '—'}</td>}
       <td style={{ ...td, color: destination ? C.text : C.faint }}>{destination || '—'}</td>
       <td style={td}>
         {tripText ? (

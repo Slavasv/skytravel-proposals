@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createClient } from './actions'
 import ClientsList, { type ClientRow } from './clients-list'
@@ -15,13 +15,14 @@ export default async function ClientsPage() {
   }
 
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
   const supabase = await createSupabaseServer()
 
   // Клиенты — общий справочник компании: одного клиента в разное время
   // могут вести разные агенты, поэтому список видят все.
   let query = supabase
     .from('clients')
-    .select('id, name, client_code, client_type, client_status, lead_source, countries, phone, email, updated_at, owner_id, profiles(email)')
+    .select('id, name, client_code, client_type, client_status, lead_source, countries, phone, email, updated_at, owner_id, profiles(email), companies(name)')
     .order('updated_at', { ascending: false })
   if (brandId) query = query.eq('company_id', brandId)
   const { data: allClients, error } = await query
@@ -49,7 +50,7 @@ export default async function ClientsPage() {
         </form>
       </div>
 
-      <ClientsList clients={clients} showOwner={true} />
+      <ClientsList clients={clients} showOwner={true} showBrand={showBrand} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createVoucher, createFlightVoucher } from '../actions'
 import VouchersList, { type VoucherRow } from './vouchers-list'
@@ -20,12 +20,13 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
 
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('vouchers')
-    .select('id, slug, voucher_no, booking_ref, issue_date, updated_at, owner_id, voucher_type, flight_data, guests, voucher_hotels(name, city, country, check_in, check_out, sort_order), profiles(email)')
+    .select('id, slug, voucher_no, booking_ref, issue_date, updated_at, owner_id, voucher_type, flight_data, guests, voucher_hotels(name, city, country, check_in, check_out, sort_order), profiles(email), companies(name)')
     .order('updated_at', { ascending: false })
 
   if (isAdmin && !showAll) {
@@ -71,7 +72,7 @@ export default async function VouchersPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <VouchersList vouchers={vouchers} showOwner={showAll} />
+      <VouchersList vouchers={vouchers} showOwner={showAll} showBrand={showBrand} />
     </div>
   )
 }

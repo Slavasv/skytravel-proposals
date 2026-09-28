@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, getUiLang } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { createOffer } from './actions'
 import OffersList, { type OfferListRow } from './offers-list'
 
@@ -12,10 +12,11 @@ export default async function OffersPage() {
   const T = (en: string, ru: string) => (lang === 'ru' ? ru : en)
 
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
   const supabase = await createSupabaseServer()
   let query = supabase
     .from('admin_offers')
-    .select('id, title, hotel_name, date_from, date_to, occupancy, meal, status, updated_at, offer_rooms(room_type, sale_price, sale_currency, is_recommended, sort_order), requests(request_code), clients(name)')
+    .select('id, title, hotel_name, date_from, date_to, occupancy, meal, status, updated_at, offer_rooms(room_type, sale_price, sale_currency, is_recommended, sort_order), requests(request_code), clients(name), companies(name)')
     .order('updated_at', { ascending: false })
   if (brandId) query = query.eq('company_id', brandId)
   const { data, error } = await query
@@ -41,7 +42,7 @@ export default async function OffersPage() {
           </button>
         </form>
       </div>
-      <OffersList rows={rows} lang={lang} />
+      <OffersList rows={rows} lang={lang} showBrand={showBrand} />
     </div>
   )
 }

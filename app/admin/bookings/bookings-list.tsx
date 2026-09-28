@@ -15,6 +15,12 @@ export type BookingRow = {
   created_at: string
   clients?: { name: string; client_code: string | null } | { name: string; client_code: string | null }[] | null
   booking_services?: { gross: number | null; net: number | null; currency: string | null }[] | null
+  companies?: { name: string | null } | { name: string | null }[] | null
+}
+
+function brandName(b: { companies?: { name: string | null } | { name: string | null }[] | null }): string {
+  const co = Array.isArray(b.companies) ? b.companies[0] : b.companies
+  return co?.name || '—'
 }
 
 type Tone = 'work' | 'mid' | 'done' | 'cancel' | 'info' | 'high' | 'low'
@@ -46,10 +52,11 @@ function parseISO(s: string | null): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-function BookingRowItem({ b, tripText, createdText, onOpen }: {
+function BookingRowItem({ b, tripText, createdText, showBrand, onOpen }: {
   b: BookingRow
   tripText: string
   createdText: string
+  showBrand: boolean
   onOpen: () => void
 }) {
   const t = useT()
@@ -91,6 +98,7 @@ function BookingRowItem({ b, tripText, createdText, onOpen }: {
         <span className="adm-cell-strong">{client?.name || t('No client', 'Без клиента')}</span>
         {b.booking_code && <div className="adm-cell-code">{b.booking_code}</div>}
       </td>
+      {showBrand && <td><span className="adm-pill adm-tone-info">{brandName(b)}</span></td>}
       <td style={{ color: b.destination ? undefined : '#9C988E' }}>{b.destination || '—'}</td>
       <td className="adm-cell-muted" style={{ whiteSpace: 'nowrap', color: tripText ? undefined : '#9C988E' }}>{tripText || '—'}</td>
       <td>
@@ -114,7 +122,7 @@ function BookingRowItem({ b, tripText, createdText, onOpen }: {
   )
 }
 
-export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
+export default function BookingsList({ bookings, showBrand = false }: { bookings: BookingRow[]; showBrand?: boolean }) {
   const t = useT()
   const router = useRouter()
   const isRu = t('en', 'ru') === 'ru'
@@ -173,6 +181,7 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
               <thead>
                 <tr>
                   <th>{t('Client', 'Клиент')}</th>
+                  {showBrand && <th>{t('Brand', 'Бренд')}</th>}
                   <th>{t('Destination', 'Направление')}</th>
                   <th>{t('Trip dates', 'Даты поездки')}</th>
                   <th>{t('Status', 'Статус')}</th>
@@ -187,6 +196,7 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
                     key={b.id} b={b}
                     tripText={tripRange(b)}
                     createdText={createdText(b)}
+                    showBrand={showBrand}
                     onOpen={() => router.push(`/admin/bookings/${b.id}`)}
                   />
                 ))}

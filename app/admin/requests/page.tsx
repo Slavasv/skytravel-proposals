@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createRequest } from './actions'
 import { getDestinationsSummary } from './destinations-actions'
@@ -18,12 +18,13 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
 
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('requests')
-    .select('id, request_code, destination, details, status, priority, created_at, closed_at, trip_start, trip_end, owner_id, clients(name, client_code), profiles(email)')
+    .select('id, request_code, destination, details, status, priority, created_at, closed_at, trip_start, trip_end, owner_id, clients(name, client_code), profiles(email), companies(name)')
     .order('created_at', { ascending: false })
 
   if (isAdmin && !showAll) {
@@ -63,7 +64,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <RequestsList requests={requests} showOwner={showAll} destSummary={destSummary} />
+      <RequestsList requests={requests} showOwner={showAll} destSummary={destSummary} showBrand={showBrand} />
     </div>
   )
 }
