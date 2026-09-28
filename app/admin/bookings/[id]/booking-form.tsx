@@ -90,7 +90,7 @@ export default function BookingForm({
   async function saveNow(current: typeof form) {
     setSaveState('saving'); setErrorMsg(null)
     try {
-      const res = await fetch(`/api/bookings/${booking.id}`, {
+      const res = await fetch(`/api/booking/${booking.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

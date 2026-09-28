@@ -21,6 +21,7 @@ type Partner = {
 // типы услуг (можно вписать своё)
 const SERVICE_TYPES = [
   'Accomodation',
+  'Hotel Alliance / Consortium',
   'DMC',
   'OTS',
   'Transfer company',
