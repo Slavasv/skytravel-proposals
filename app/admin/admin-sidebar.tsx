@@ -64,16 +64,22 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
 
   const brandSwitcher = brands.length > 1 ? (
     <div style={{ padding: '0 6px 12px' }}>
+      <div style={{ fontSize: '9.5px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--admin-sidebar-muted)', margin: '0 6px 5px', fontWeight: 600 }}>
+        {t('Brand', 'Бренд')}
+      </div>
       <select
         value={activeBrandId ?? 'all'}
         onChange={(e) => changeBrand(e.target.value)}
         style={{
-          width: '100%', padding: '8px 10px', fontSize: '12.5px', fontFamily: 'inherit', cursor: 'pointer',
-          background: 'rgba(255,255,255,0.06)', color: '#F5EFE4', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '8px', outline: 'none',
+          width: '100%', padding: '9px 30px 9px 11px', fontSize: '13px', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
+          appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+          background: '#332E27', color: '#F5EFE4', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '8px', outline: 'none',
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 3l3 3 3-3' fill='none' stroke='%23C9A24B' stroke-width='1.5'/></svg>")`,
+          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 11px center',
         }}
       >
-        <option value="all">{t('All brands', 'Все бренды')}</option>
-        {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        <option value="all" style={{ background: '#26221D', color: '#F5EFE4' }}>{t('All brands', 'Все бренды')}</option>
+        {brands.map((b) => <option key={b.id} value={b.id} style={{ background: '#26221D', color: '#F5EFE4' }}>{b.name}</option>)}
       </select>
     </div>
   ) : null

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import { createDestination } from '../actions'
 import DestinationsTable, { type DestinationRow } from './destinations-table'
@@ -21,12 +21,13 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
 
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('proposals')
-    .select('*, profiles(email)')
+    .select('*, profiles(email), companies(name)')
     .eq('kind', 'destination')
     .order('updated_at', { ascending: false })
 
@@ -115,6 +116,7 @@ export default async function DestinationsPage({ searchParams }: { searchParams:
           return { ...p, owner_email: ownerEmail ?? null }
         })}
         showOwner={showAll}
+        showBrand={showBrand}
         lang={lang}
       />
     </div>

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { createProposal } from './actions'
 import ProposalsTable from './proposals-table'
 import StatusFilter from './status-filter'
@@ -27,12 +27,13 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
 
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('proposals')
-    .select('*, profiles(email)')
+    .select('*, profiles(email), companies(name)')
     .eq('kind', 'individual')
     .order('updated_at', { ascending: false })
 
@@ -139,6 +140,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             return { ...p, owner_email: ownerEmail ?? null }
           })}
           showOwner={showAll}
+          showBrand={showBrand}
         />
       )}
     </div>

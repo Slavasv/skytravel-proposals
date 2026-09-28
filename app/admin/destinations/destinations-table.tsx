@@ -15,6 +15,12 @@ export type DestinationRow = {
   status: string | null
   updated_at: string
   owner_email?: string | null
+  companies?: { name: string | null } | { name: string | null }[] | null
+}
+
+function brandName(companies: DestinationRow['companies']): string {
+  const c = Array.isArray(companies) ? companies[0] : companies
+  return c?.name || '—'
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -44,9 +50,10 @@ function statusLabel(status: string | null, lang: UiLang): string {
   }
 }
 
-function DestinationRowItem({ p, showOwner, lang, onOpen }: {
+function DestinationRowItem({ p, showOwner, showBrand, lang, onOpen }: {
   p: DestinationRow
   showOwner: boolean
+  showBrand: boolean
   lang: UiLang
   onOpen: () => void
 }) {
@@ -85,6 +92,11 @@ function DestinationRowItem({ p, showOwner, lang, onOpen }: {
         <span className="adm-cell-strong">{title}</span>
         {p.slug && <div className="adm-cell-code">{p.slug}</div>}
       </td>
+      {showBrand && (
+        <td>
+          <span className="adm-pill adm-tone-info">{brandName(p.companies)}</span>
+        </td>
+      )}
       <td style={{ color: country ? undefined : '#9C988E' }}>{country || '—'}</td>
       <td>
         <span className={`adm-pill adm-tone-${tone}`}>{statusLabel(p.status, lang)}</span>
@@ -108,9 +120,10 @@ function DestinationRowItem({ p, showOwner, lang, onOpen }: {
   )
 }
 
-export default function DestinationsTable({ items, showOwner, lang }: {
+export default function DestinationsTable({ items, showOwner, showBrand = false, lang }: {
   items: DestinationRow[]
   showOwner: boolean
+  showBrand?: boolean
   lang: UiLang
 }) {
   const router = useRouter()
@@ -131,6 +144,7 @@ export default function DestinationsTable({ items, showOwner, lang }: {
           <thead>
             <tr>
               <th>{tr(lang, 'Destination', 'Направление')}</th>
+              {showBrand && <th>{tr(lang, 'Brand', 'Бренд')}</th>}
               <th>{tr(lang, 'Country', 'Страна')}</th>
               <th>{tr(lang, 'Status', 'Статус')}</th>
               {showOwner && <th>{tr(lang, 'Owner', 'Владелец')}</th>}
@@ -140,7 +154,7 @@ export default function DestinationsTable({ items, showOwner, lang }: {
           </thead>
           <tbody>
             {safeItems.map((p) => (
-              <DestinationRowItem key={p.id} p={p} showOwner={showOwner} lang={lang}
+              <DestinationRowItem key={p.id} p={p} showOwner={showOwner} showBrand={showBrand} lang={lang}
                 onOpen={() => router.push(`/admin/destinations/${p.id}`)} />
             ))}
           </tbody>

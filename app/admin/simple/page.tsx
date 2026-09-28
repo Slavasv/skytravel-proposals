@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, getUiLang } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import SimpleList, { type SimpleListRow } from './simple-list'
 
 export default async function SimplePage() {
@@ -11,10 +11,11 @@ export default async function SimplePage() {
   const T = (en: string, ru: string) => (lang === 'ru' ? ru : en)
 
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
   const supabase = await createSupabaseServer()
   let query = supabase
     .from('simple_proposals')
-    .select('id, title, hotel_name, date_from, date_to, occupancy, meal, status, updated_at, simple_rooms(room_type, price, currency, sort_order), requests(request_code), clients(name)')
+    .select('id, title, hotel_name, date_from, date_to, occupancy, meal, status, updated_at, simple_rooms(room_type, price, currency, sort_order), requests(request_code), clients(name), companies(name)')
     .order('updated_at', { ascending: false })
   if (brandId) query = query.eq('company_id', brandId)
   const { data, error } = await query
@@ -32,7 +33,7 @@ export default async function SimplePage() {
           {T('Client texts for WhatsApp — created from an offer', 'Клиентские тексты для WhatsApp — создаются из оффера')} · {rows.length}
         </p>
       </div>
-      <SimpleList rows={rows} lang={lang} />
+      <SimpleList rows={rows} lang={lang} showBrand={showBrand} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile } from '@/lib/get-profile'
-import { getActiveBrandId } from '@/lib/brand-filter'
+import { getActiveBrandId, getUserBrands } from '@/lib/brand-filter'
 import { createPartner } from './actions'
 import PartnersList, { type PartnerRow } from './partners-list'
 
@@ -13,11 +13,12 @@ export default async function PartnersPage() {
   }
 
   const brandId = await getActiveBrandId()
+  const showBrand = (await getUserBrands()).length > 1
   const supabase = await createSupabaseServer()
 
   let query = supabase
     .from('partners')
-    .select('id, name, service_type, destination, operator_group, updated_at')
+    .select('id, name, service_type, destination, operator_group, updated_at, companies(name)')
     .order('name', { ascending: true })
   if (brandId) query = query.eq('company_id', brandId)
   const { data: allPartners, error } = await query
@@ -45,7 +46,7 @@ export default async function PartnersPage() {
         </form>
       </div>
 
-      <PartnersList partners={partners} />
+      <PartnersList partners={partners} showBrand={showBrand} />
     </div>
   )
 }

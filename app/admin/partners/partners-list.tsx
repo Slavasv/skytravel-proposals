@@ -12,6 +12,12 @@ export type PartnerRow = {
   destination: string | null
   operator_group: string | null
   updated_at: string
+  companies?: { name: string | null } | { name: string | null }[] | null
+}
+
+function brandName(companies: PartnerRow['companies']): string {
+  const c = Array.isArray(companies) ? companies[0] : companies
+  return c?.name || '—'
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -22,7 +28,7 @@ function fmtDate(s: string | null): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-function PartnerRowItem({ p, onOpen }: { p: PartnerRow; onOpen: () => void }) {
+function PartnerRowItem({ p, showBrand, onOpen }: { p: PartnerRow; showBrand: boolean; onOpen: () => void }) {
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -56,6 +62,11 @@ function PartnerRowItem({ p, onOpen }: { p: PartnerRow; onOpen: () => void }) {
       <td>
         <span className="adm-cell-strong">{name}</span>
       </td>
+      {showBrand && (
+        <td>
+          <span className="adm-pill adm-tone-info">{brandName(p.companies)}</span>
+        </td>
+      )}
       <td>
         {serviceType
           ? <span className="adm-pill adm-tone-info">{serviceType}</span>
@@ -81,7 +92,7 @@ function PartnerRowItem({ p, onOpen }: { p: PartnerRow; onOpen: () => void }) {
   )
 }
 
-export default function PartnersList({ partners }: { partners: PartnerRow[] }) {
+export default function PartnersList({ partners, showBrand = false }: { partners: PartnerRow[]; showBrand?: boolean }) {
   const t = useT()
   const router = useRouter()
   const safe = Array.isArray(partners) ? partners : []
@@ -128,6 +139,7 @@ export default function PartnersList({ partners }: { partners: PartnerRow[] }) {
               <thead>
                 <tr>
                   <th>{t('Partner', 'Партнёр')}</th>
+                  {showBrand && <th>{t('Brand', 'Бренд')}</th>}
                   <th>{t('Type', 'Тип')}</th>
                   <th>{t('Destination', 'Направление')}</th>
                   <th>{t('Group', 'Группа')}</th>
@@ -137,7 +149,7 @@ export default function PartnersList({ partners }: { partners: PartnerRow[] }) {
               </thead>
               <tbody>
                 {filtered.map((p) => (
-                  <PartnerRowItem key={p.id} p={p}
+                  <PartnerRowItem key={p.id} p={p} showBrand={showBrand}
                     onOpen={() => router.push(`/admin/partners/${p.id}`)} />
                 ))}
               </tbody>

@@ -19,6 +19,7 @@ export type SimpleListRow = {
   simple_rooms: RoomLite[] | null
   requests: { request_code: string | null } | { request_code: string | null }[] | null
   clients: { name: string | null } | { name: string | null }[] | null
+  companies?: { name: string | null } | { name: string | null }[] | null
 }
 
 const STATUS: Record<string, { en: string; ru: string; tone: string }> = {
@@ -45,7 +46,7 @@ function pickRoom(rooms: RoomLite[] | null): { price: number | null; cur: string
   return list[0] ? { price: list[0].price, cur: list[0].currency } : { price: null, cur: null }
 }
 
-function Row({ r, onOpen, lang, T }: { r: SimpleListRow; onOpen: () => void; lang: Lang; T: (en: string, ru: string) => string }) {
+function Row({ r, onOpen, lang, T, showBrand }: { r: SimpleListRow; onOpen: () => void; lang: Lang; T: (en: string, ru: string) => string; showBrand: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -53,6 +54,7 @@ function Row({ r, onOpen, lang, T }: { r: SimpleListRow; onOpen: () => void; lan
 
   const req = Array.isArray(r.requests) ? r.requests[0] : r.requests
   const cli = Array.isArray(r.clients) ? r.clients[0] : r.clients
+  const comp = Array.isArray(r.companies) ? r.companies[0] : r.companies
   const sub = [cli?.name, req?.request_code].filter(Boolean).join(' · ')
   const room = pickRoom(r.simple_rooms)
   const st = STATUS[r.status || 'draft'] || STATUS.draft
@@ -76,6 +78,7 @@ function Row({ r, onOpen, lang, T }: { r: SimpleListRow; onOpen: () => void; lan
         <span className="adm-cell-strong">{r.hotel_name || (lang === 'ru' ? 'Без отеля' : 'No hotel')}</span>
         {sub && <div className="adm-cell-code">{sub}</div>}
       </td>
+      {showBrand && <td><span className="adm-pill adm-tone-info">{comp?.name || '—'}</span></td>}
       <td style={{ color: range ? undefined : '#9C988E' }}>{range || '—'}</td>
       <td style={{ color: r.occupancy ? undefined : '#9C988E' }}>{r.occupancy || '—'}</td>
       <td style={{ color: r.meal ? undefined : '#9C988E' }}>{r.meal ? (MEAL_LABEL[r.meal] ? T(MEAL_LABEL[r.meal].en, MEAL_LABEL[r.meal].ru) : r.meal) : '—'}</td>
@@ -97,7 +100,7 @@ function Row({ r, onOpen, lang, T }: { r: SimpleListRow; onOpen: () => void; lan
   )
 }
 
-export default function SimpleList({ rows, lang }: { rows: SimpleListRow[]; lang: Lang }) {
+export default function SimpleList({ rows, lang, showBrand = false }: { rows: SimpleListRow[]; lang: Lang; showBrand?: boolean }) {
   const router = useRouter()
   const T = (en: string, ru: string) => (lang === 'ru' ? ru : en)
   const [q, setQ] = useState('')
@@ -125,11 +128,11 @@ export default function SimpleList({ rows, lang }: { rows: SimpleListRow[]; lang
         <div className="adm-tcard"><div className="adm-tscroll">
           <table className="adm-table">
             <thead><tr>
-              <th>{T('Hotel', 'Отель')}</th><th>{T('Dates', 'Даты')}</th><th>{T('Occupancy', 'Размещение')}</th><th>{T('Meals', 'Питание')}</th><th>{T('Client price', 'Цена клиенту')}</th><th>{T('Status', 'Статус')}</th><th> </th>
+              <th>{T('Hotel', 'Отель')}</th>{showBrand && <th>{T('Brand', 'Бренд')}</th>}<th>{T('Dates', 'Даты')}</th><th>{T('Occupancy', 'Размещение')}</th><th>{T('Meals', 'Питание')}</th><th>{T('Client price', 'Цена клиенту')}</th><th>{T('Status', 'Статус')}</th><th> </th>
             </tr></thead>
             <tbody>
               {filtered.map((r) => (
-                <Row key={r.id} r={r} lang={lang} T={T} onOpen={() => router.push(`/admin/simple/${r.id}`)} />
+                <Row key={r.id} r={r} lang={lang} T={T} showBrand={showBrand} onOpen={() => router.push(`/admin/simple/${r.id}`)} />
               ))}
             </tbody>
           </table>

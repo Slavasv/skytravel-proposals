@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { buildOfferText, type Lang } from '@/lib/offer-text'
 import { useT, useLang } from '@/lib/i18n-client'
 import ClientPicker, { type PickerClient } from '@/app/admin/_components/client-picker'
@@ -150,11 +151,16 @@ export default function OfferEditor({ offer, partners, clients, hotels }: { offe
             {t('Working view with price comparison — the WhatsApp text is below.', 'Рабочий визуал со сравнением цен — готовый текст для WhatsApp ниже.')}
           </p>
         </div>
-        <form action={createSimpleFromOffer.bind(null, offerId)}>
-          <button type="submit" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            {t('Create simple for client →', 'Создать симпл для клиента →')}
-          </button>
-        </form>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <form action={createSimpleFromOffer.bind(null, offerId)}>
+            <button type="submit" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+              {t('Create simple for client →', 'Создать симпл для клиента →')}
+            </button>
+          </form>
+          <Link href="/admin/offers" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, background: 'transparent', color: 'var(--admin-text)', border: '1px solid var(--admin-border-hover)', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            {t('Done', 'Готово')}
+          </Link>
+        </div>
       </div>
 
       {/* header card */}

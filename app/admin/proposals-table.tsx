@@ -18,6 +18,12 @@ export type ProposalRow = {
   kind?: string | null
   owner_email?: string | null
   updated_at?: string | null
+  companies?: { name: string | null } | { name: string | null }[] | null
+}
+
+function brandName(companies: ProposalRow['companies']): string {
+  const c = Array.isArray(companies) ? companies[0] : companies
+  return c?.name || '—'
 }
 
 const STATUS_META: Record<string, { label: string; tone: string }> = {
@@ -34,7 +40,7 @@ function fmtDate(s: string | null | undefined): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-function ProposalRowItem({ p, showOwner, onOpen }: { p: ProposalRow; showOwner: boolean; onOpen: () => void }) {
+function ProposalRowItem({ p, showOwner, showBrand, onOpen }: { p: ProposalRow; showOwner: boolean; showBrand: boolean; onOpen: () => void }) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
@@ -71,6 +77,11 @@ function ProposalRowItem({ p, showOwner, onOpen }: { p: ProposalRow; showOwner: 
         <span className="adm-cell-strong">{title}</span>
         {p.slug && <div className="adm-cell-code">{p.slug}</div>}
       </td>
+      {showBrand && (
+        <td>
+          <span className="adm-pill adm-tone-info">{brandName(p.companies)}</span>
+        </td>
+      )}
       <td style={{ color: client ? undefined : '#9C988E' }}>{client || '—'}</td>
       <td>
         <span className={`adm-pill adm-tone-${meta.tone}`}>{meta.label}</span>
@@ -96,7 +107,7 @@ function ProposalRowItem({ p, showOwner, onOpen }: { p: ProposalRow; showOwner: 
   )
 }
 
-export default function ProposalsTable({ proposals, showOwner }: { proposals: ProposalRow[]; showOwner: boolean }) {
+export default function ProposalsTable({ proposals, showOwner, showBrand = false }: { proposals: ProposalRow[]; showOwner: boolean; showBrand?: boolean }) {
   const router = useRouter()
   const safe = Array.isArray(proposals) ? proposals : []
 
@@ -110,6 +121,7 @@ export default function ProposalsTable({ proposals, showOwner }: { proposals: Pr
           <thead>
             <tr>
               <th>Proposal</th>
+              {showBrand && <th>Brand</th>}
               <th>Client</th>
               <th>Status</th>
               <th>Trip dates</th>
@@ -121,7 +133,7 @@ export default function ProposalsTable({ proposals, showOwner }: { proposals: Pr
           </thead>
           <tbody>
             {safe.map((p) => (
-              <ProposalRowItem key={p.id} p={p} showOwner={showOwner}
+              <ProposalRowItem key={p.id} p={p} showOwner={showOwner} showBrand={showBrand}
                 onOpen={() => router.push(detailUrl(p))} />
             ))}
           </tbody>
