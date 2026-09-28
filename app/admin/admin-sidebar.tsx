@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import GearMenu from './gear-menu'
 import TaskBell from './_components/task-bell'
+import { setBrandFilter } from '@/lib/brand-filter-actions'
+
+type BrandLite = { id: string; name: string }
 
 type Props = {
   isAdmin: boolean
@@ -13,6 +16,8 @@ type Props = {
   companyName: string | null
   isSuperadmin: boolean
   isAccountant?: boolean
+  brands?: BrandLite[]
+  activeBrandId?: string | null
 }
 
 type Item = { href: string; label: string; matchPrefix: string; icon: IconName }
@@ -46,10 +51,32 @@ function Icon({ name }: { name: IconName }) {
   )
 }
 
-export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin, isAccountant }: Props) {
+export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin, isAccountant, brands = [], activeBrandId = null }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const t = useT()
   const [drawer, setDrawer] = useState(false)
+  const [, startTransition] = useTransition()
+
+  function changeBrand(value: string) {
+    startTransition(async () => { await setBrandFilter(value); router.refresh() })
+  }
+
+  const brandSwitcher = brands.length > 1 ? (
+    <div style={{ padding: '0 6px 12px' }}>
+      <select
+        value={activeBrandId ?? 'all'}
+        onChange={(e) => changeBrand(e.target.value)}
+        style={{
+          width: '100%', padding: '8px 10px', fontSize: '12.5px', fontFamily: 'inherit', cursor: 'pointer',
+          background: 'rgba(255,255,255,0.06)', color: '#F5EFE4', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '8px', outline: 'none',
+        }}
+      >
+        <option value="all">{t('All brands', 'Все бренды')}</option>
+        {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+      </select>
+    </div>
+  ) : null
 
   const items: Item[] = isSuperadmin
     ? [{ href: '/admin/companies', label: t('Companies', 'Компании'), matchPrefix: '/admin/companies', icon: 'companies' }]
@@ -121,6 +148,7 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
           {!isSuperadmin && !isAccountant && <TaskBell align="left" />}
           <GearMenu isAdmin={isAdmin} email={email} align="left" />
         </div>
+        {brandSwitcher}
         {navList()}
         <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: '#E4DCCD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {email}
@@ -152,6 +180,7 @@ export default function AdminSidebar({ isAdmin, email, companyName, isSuperadmin
           <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '250px', zIndex: 46, background: 'var(--admin-sidebar)', color: 'var(--admin-sidebar-text)', padding: '20px 14px', display: 'flex', flexDirection: 'column', overflowY: 'auto', boxShadow: '4px 0 24px rgba(0,0,0,0.4)' }}>
             {brandBlock}
             <div style={{ height: '10px' }} />
+            {brandSwitcher}
             {navList(() => setDrawer(false))}
           </div>
         </>

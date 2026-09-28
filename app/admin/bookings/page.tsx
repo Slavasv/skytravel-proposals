@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { tr } from '@/lib/i18n'
 import BookingsList, { type BookingRow } from './bookings-list'
 
@@ -13,6 +14,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
 
   const isAdmin = canManageBrand(profile?.role)
   const showAll = isAdmin && view === 'all'
+  const brandId = await getActiveBrandId()
 
   const supabase = await createSupabaseServer()
 
@@ -22,6 +24,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     .order('created_at', { ascending: false })
 
   if (isAdmin && !showAll) query = query.eq('owner_id', profile!.id)
+  if (brandId) query = query.eq('company_id', brandId)
 
   const { data, error } = await query
   if (error) return <div style={{ padding: '40px', color: 'red' }}>{tr(lang, 'Error', 'Ошибка')}: {error.message}</div>

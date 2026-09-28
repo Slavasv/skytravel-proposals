@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile, getUiLang } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { createOffer } from './actions'
 import OffersList, { type OfferListRow } from './offers-list'
 
@@ -10,11 +11,14 @@ export default async function OffersPage() {
   const lang = await getUiLang()
   const T = (en: string, ru: string) => (lang === 'ru' ? ru : en)
 
+  const brandId = await getActiveBrandId()
   const supabase = await createSupabaseServer()
-  const { data, error } = await supabase
+  let query = supabase
     .from('admin_offers')
     .select('id, title, hotel_name, date_from, date_to, occupancy, meal, status, updated_at, offer_rooms(room_type, sale_price, sale_currency, is_recommended, sort_order), requests(request_code), clients(name)')
     .order('updated_at', { ascending: false })
+  if (brandId) query = query.eq('company_id', brandId)
+  const { data, error } = await query
 
   if (error) {
     return <div className="page-pad-40" style={{ padding: '40px', color: 'var(--admin-danger)' }}>Ошибка: {error.message}</div>

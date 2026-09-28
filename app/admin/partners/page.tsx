@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { getProfile } from '@/lib/get-profile'
+import { getActiveBrandId } from '@/lib/brand-filter'
 import { createPartner } from './actions'
 import PartnersList, { type PartnerRow } from './partners-list'
 
@@ -11,12 +12,15 @@ export default async function PartnersPage() {
     redirect('/admin/companies')
   }
 
+  const brandId = await getActiveBrandId()
   const supabase = await createSupabaseServer()
 
-  const { data: allPartners, error } = await supabase
+  let query = supabase
     .from('partners')
     .select('id, name, service_type, destination, operator_group, updated_at')
     .order('name', { ascending: true })
+  if (brandId) query = query.eq('company_id', brandId)
+  const { data: allPartners, error } = await query
 
   if (error) {
     return <div style={{ padding: '40px', color: 'red' }}>Error: {error.message}</div>

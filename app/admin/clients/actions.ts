@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { resolveCreateCompanyId } from '@/lib/brand-filter'
 import { getUiLang } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { redirect } from 'next/navigation'
@@ -27,16 +28,7 @@ export async function createClient() {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // company_id из профиля
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-    companyId = me?.company_id ?? null
-  }
+  const companyId = await resolveCreateCompanyId()
 
   if (!companyId) throw new Error(tr(await getUiLang(), 'Company not found', 'Компания не найдена'))
 

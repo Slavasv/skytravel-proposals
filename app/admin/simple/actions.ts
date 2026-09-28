@@ -15,12 +15,6 @@ function slug(): string {
 export async function createSimpleFromOffer(offerId: string) {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
-  let companyId: string | null = null
-  if (user) {
-    const { data: me } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
-    companyId = me?.company_id ?? null
-  }
-  if (!companyId) throw new Error('Компания не найдена')
 
   const existing = await supabase.from('simple_proposals').select('id').eq('source_offer_id', offerId).limit(1).maybeSingle()
   if (existing.data?.id) redirect(`/admin/simple/${existing.data.id}`)
@@ -31,6 +25,7 @@ export async function createSimpleFromOffer(offerId: string) {
     .eq('id', offerId)
     .single()
   if (error || !offer) throw new Error('Оффер не найден')
+  if (!offer.company_id) throw new Error('Компания не найдена')
 
   const { data: simple, error: e2 } = await supabase
     .from('simple_proposals')
@@ -40,7 +35,7 @@ export async function createSimpleFromOffer(offerId: string) {
       title: offer.title ?? null, hotel_name: offer.hotel_name ?? null,
       date_from: offer.date_from ?? null, date_to: offer.date_to ?? null,
       occupancy: offer.occupancy ?? null, meal: offer.meal ?? null,
-      status: 'draft', company_id: companyId, owner_id: user?.id ?? null,
+      status: 'draft', company_id: offer.company_id, owner_id: user?.id ?? null,
     })
     .select()
     .single()

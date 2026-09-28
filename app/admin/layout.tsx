@@ -2,6 +2,7 @@ import AdminSidebar from './admin-sidebar'
 import TaskFab from './_components/task-fab'
 import VersionWatcher from './version-watcher'
 import { getProfile, canManageBrand } from '@/lib/get-profile'
+import { getBrandContext } from '@/lib/brand-filter'
 import { LangProvider } from '@/lib/i18n-client'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -13,11 +14,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isAccountant = profile?.role === 'accountant'
   const lang = profile?.ui_language ?? 'en'
 
+  // Переключатель брендов — только для не-суперадмина; появится, если брендов > 1
+  const { brands, activeId } = isSuperadmin ? { brands: [], activeId: null } : await getBrandContext()
+
   return (
     <LangProvider lang={lang}>
       <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}>
         <VersionWatcher />
-        <AdminSidebar isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} isAccountant={isAccountant} />
+        <AdminSidebar isAdmin={isAdmin} email={email} companyName={companyName} isSuperadmin={isSuperadmin} isAccountant={isAccountant} brands={brands} activeBrandId={activeId} />
         <main className="admin-main" style={{ flex: 1, minWidth: 0 }}>
           {children}
         </main>
