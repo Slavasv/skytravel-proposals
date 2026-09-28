@@ -81,6 +81,114 @@ async function getPlannerTaskDescription(companyId: string, msTaskId: string): P
     }
 }
 
+// ---- Чеклист (подзадачи) ↔ Planner details.checklist ----
+type PlannerChecklistEntry = { title?: string; isChecked?: boolean; orderHint?: string }
+
+// Прочитать текущий чеклист задачи из Planner
+async function readPlannerChecklist(companyId: string, msTaskId: string): Promise<Record<string, PlannerChecklistEntry>> {
+    try {
+        const g = await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`)
+        if (!g.ok) return {}
+        const cur = (await g.json()) as { checklist?: Record<string, PlannerChecklistEntry> }
+        return cur.checklist ?? {}
+    } catch { return {} }
+}
+
+// Наши пункты → Planner (при пуше наше приложение — источник правды).
+// Planner держит максимум 20 пунктов на задачу.
+async function pushChecklistToPlanner(companyId: string, taskId: string, msTaskId: string): Promise<void> {
+    try {
+        const admin = createSupabaseAdmin()
+        const { data: items } = await admin
+            .from('task_checklist_items')
+            .select('id, title, done, sort_order, ms_item_id')
+            .eq('task_id', taskId)
+            .order('sort_order', { ascending: true })
+        const list = (items ?? []).slice(0, 20)
+
+        const g = await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`)
+        if (!g.ok) return
+        const cur = (await g.json()) as Record<string, unknown>
+        const etag = cur['@odata.etag'] as string | undefined
+        if (!etag) return
+        const existing = (cur.checklist as Record<string, PlannerChecklistEntry> | undefined) ?? {}
+
+        const patchMap: Record<string, unknown> = {}
+        const usedKeys = new Set<string>()
+        const newKeys: { id: string; key: string }[] = []
+        for (const it of list) {
+            let key = (it.ms_item_id as string | null) || ''
+            if (!key) { key = globalThis.crypto.randomUUID(); newKeys.push({ id: it.id as string, key }) }
+            usedKeys.add(key)
+            patchMap[key] = {
+                '@odata.type': 'microsoft.graph.plannerChecklistItem',
+                title: ((it.title as string) || '—').slice(0, 100),
+                isChecked: !!it.done,
+                orderHint: ' !',
+            }
+        }
+        // удалённые у нас пункты — снять и в Planner
+        for (const k of Object.keys(existing)) if (!usedKeys.has(k)) patchMap[k] = null
+        if (Object.keys(patchMap).length === 0) return
+
+        await graphFetch(companyId, `/planner/tasks/${msTaskId}/details`, {
+            method: 'PATCH',
+            headers: { 'If-Match': etag },
+            body: JSON.stringify({ checklist: patchMap }),
+        })
+        // запомнить сгенерированные ключи Planner на наших пунктах
+        for (const m of newKeys) {
+            await admin.from('task_checklist_items').update({ ms_item_id: m.key }).eq('id', m.id)
+        }
+    } catch { /* best-effort */ }
+}
+
+// Publicная обёртка: синхронизировать чеклист задачи в Planner (зовём из экшенов).
+export async function pushTaskChecklist(taskId: string): Promise<void> {
+    try {
+        const admin = createSupabaseAdmin()
+        const { data: task } = await admin.from('tasks').select('company_id, ms_task_id').eq('id', taskId).single()
+        if (!task?.company_id || !task.ms_task_id) return
+        await pushChecklistToPlanner(task.company_id as string, taskId, task.ms_task_id as string)
+    } catch { /* best-effort */ }
+}
+
+// Planner → наши пункты (при поллинге Planner — источник правды).
+async function pullChecklistForTask(companyId: string, msTaskId: string, ourTaskId: string): Promise<void> {
+    try {
+        const admin = createSupabaseAdmin()
+        const checklist = await readPlannerChecklist(companyId, msTaskId)
+        const keys = Object.keys(checklist)
+        const { data: local } = await admin
+            .from('task_checklist_items')
+            .select('id, title, done, ms_item_id')
+            .eq('task_id', ourTaskId)
+        const byKey = new Map<string, { id: string; title: string; done: boolean }>()
+        for (const it of local ?? []) {
+            const k = it.ms_item_id as string | null
+            if (k) byKey.set(k, { id: it.id as string, title: (it.title as string) ?? '', done: !!it.done })
+        }
+        const now = new Date().toISOString()
+        let order = 0
+        for (const k of keys) {
+            order++
+            const e = checklist[k]
+            const title = (e.title ?? '').trim() || '—'
+            const done = !!e.isChecked
+            const mine = byKey.get(k)
+            if (mine) {
+                if (mine.title !== title || mine.done !== done) {
+                    await admin.from('task_checklist_items').update({ title, done, updated_at: now }).eq('id', mine.id)
+                }
+            } else {
+                await admin.from('task_checklist_items').insert({ task_id: ourTaskId, title, done, ms_item_id: k, sort_order: order })
+            }
+        }
+        // удалённые в Planner (были с ключом, ключа больше нет) — убрать у нас
+        for (const [k, it] of byKey) if (!keys.includes(k)) await admin.from('task_checklist_items').delete().eq('id', it.id)
+    } catch { /* best-effort */ }
+}
+
 // azure-user-id → id нашего профиля в компании (по ms_email/email). null — не нашли
 async function resolveProfileByAzureId(companyId: string, azureId: string): Promise<string | null> {
     try {
@@ -207,6 +315,7 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
             if (created.id) {
                 await admin.from('tasks').update({ ms_task_id: created.id, ms_synced_at: new Date().toISOString() }).eq('id', taskId)
                 await setPlannerTaskDescription(task.company_id, created.id, (task.description as string) || '')
+                await pushChecklistToPlanner(task.company_id, taskId, created.id)
             }
         } else {
             // обновить — Planner требует If-Match с текущим etag
@@ -224,6 +333,7 @@ export async function pushTaskToPlanner(taskId: string): Promise<void> {
                 await admin.from('tasks').update({ ms_synced_at: new Date().toISOString() }).eq('id', taskId)
                 await setPlannerTaskDescription(task.company_id, task.ms_task_id as string, (task.description as string) || '')
             }
+            await pushChecklistToPlanner(task.company_id, task.ms_task_id as string, task.ms_task_id as string)
         }
     } catch {
         /* синк — best-effort, ошибки глотаем */
@@ -248,6 +358,7 @@ type PlannerTask = {
     priority?: number
     bucketId?: string | null
     hasDescription?: boolean
+    checklistItemCount?: number
     assignments?: Record<string, unknown>
 }
 
@@ -280,6 +391,17 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
         const byMsId = new Map<string, { id: string; title: string; status: string; due_at: string | null; priority: string; entity_type: string; description: string; assignee_id: string | null }>()
         for (const t of ours ?? []) {
             if (t.ms_task_id) byMsId.set(t.ms_task_id as string, { id: t.id as string, title: (t.title as string) ?? '', status: t.status as string, due_at: (t.due_at as string | null) ?? null, priority: (t.priority as string) ?? 'medium', entity_type: (t.entity_type as string) ?? 'general', description: (t.description as string | null) ?? '', assignee_id: (t.assignee_id as string | null) ?? null })
+        }
+
+        // наши задачи, у которых уже есть пункты чеклиста (чтобы не дёргать details зря)
+        const ourIds = Array.from(byMsId.values()).map((v) => v.id)
+        const hasLocalChecklist = new Set<string>()
+        if (ourIds.length > 0) {
+            const { data: clRows } = await admin
+                .from('task_checklist_items')
+                .select('task_id')
+                .in('task_id', ourIds)
+            for (const r of clRows ?? []) hasLocalChecklist.add(r.task_id as string)
         }
 
         let updated = 0
@@ -331,6 +453,10 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                     await admin.from('tasks').update(patch).eq('id', mine.id)
                     updated++
                 }
+                // чеклист: подтягиваем из Planner, если там есть пункты или они есть у нас
+                if ((pt.checklistItemCount ?? 0) > 0 || hasLocalChecklist.has(mine.id)) {
+                    await pullChecklistForTask(companyId, pt.id, mine.id)
+                }
             } else {
                 // задача создана прямо в Planner — заводим у нас
                 const insert: Record<string, unknown> = {
@@ -347,8 +473,12 @@ export async function pullPlannerForCompany(companyId: string): Promise<{ update
                 if (nextDescription) insert.description = nextDescription
                 if (nextAssignee) insert.assignee_id = nextAssignee
                 if (nextStatus === 'done') insert.completed_at = now
-                await admin.from('tasks').insert(insert)
+                const { data: ins } = await admin.from('tasks').insert(insert).select('id').single()
                 created++
+                // чеклист новой (созданной в Planner) задачи — подтянуть сразу
+                if (ins?.id && (pt.checklistItemCount ?? 0) > 0) {
+                    await pullChecklistForTask(companyId, pt.id, ins.id as string)
+                }
             }
         }
 

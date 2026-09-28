@@ -8,6 +8,7 @@ import {
     type PersonLite, type ClientLite, type PartnerLite,
     type TaskEntityType, type TaskPriority, type TaskStatus,
 } from '@/app/admin/tasks/actions'
+import TaskChecklist from '@/app/admin/tasks/task-checklist'
 
 export type TaskContext = {
     entityType?: TaskEntityType
@@ -343,6 +344,11 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                                     placeholder={t('Attach partner…', 'Привязать партнёра…')} />
                             </div>
                         </div>
+
+                        {/* Подзадачи-чеклист (только для существующей задачи) */}
+                        {isEdit && editTask?.id && (
+                            <TaskChecklist taskId={editTask.id} readOnly={readOnly} />
+                        )}
 
                         {error && <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
 
