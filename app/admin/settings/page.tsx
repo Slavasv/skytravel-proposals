@@ -4,7 +4,7 @@ import { tr } from '@/lib/i18n'
 import ChangePasswordForm from './change-password-form'
 import BrandSettingsManager from './brand-settings-manager'
 import MicrosoftIntegration from './microsoft-integration'
-import { getOwnerBrands } from './actions'
+import { getOwnerBrands } from './brands'
 
 export default async function SettingsPage() {
   const profile = await getProfile()
