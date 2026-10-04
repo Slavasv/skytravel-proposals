@@ -7,6 +7,7 @@ import { getUiLang, getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import BookingForm from './booking-form'
 import EntityTasks from '@/app/admin/_components/entity-tasks'
+import Attachments from '@/app/admin/_components/attachments'
 export default async function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const lang = await getUiLang()
@@ -42,6 +43,8 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
       <BookingForm booking={booking} services={services} invoices={invoices} partners={partners} clients={clients} travellers={travellers} vouchers={vouchers} />
 
       <EntityTasks entityType="booking" entityId={id} currentUserId={profile?.id || ''} />
+
+      <Attachments entityType="booking" entityId={id} />
     </div>
   )
 }
