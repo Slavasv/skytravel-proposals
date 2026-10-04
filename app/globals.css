@@ -85,6 +85,14 @@
      BRAND — акцент бренда (по умолчанию; на клиентской из БД)
      ============================================================ */
   --brand-accent: #C9A227;       /* акцентный цвет бренда по умолчанию */
+
+  /* ============================================================
+     ШРИФТЫ — локальные (fontsource), чтобы билд не зависел от сети.
+     Имена семейств — как их отдаёт @fontsource-variable/*.
+     ============================================================ */
+  --font-geist-sans: 'Geist Variable', system-ui, -apple-system, sans-serif;
+  --font-geist-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-montserrat: 'Montserrat Variable', 'Montserrat', system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {

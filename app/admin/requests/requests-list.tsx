@@ -54,6 +54,9 @@ const STATUS_META: Record<string, { en: string; ru: string; tone: Tone }> = {
   cancelled:      { en: 'Cancelled',           ru: 'Отменена',                tone: 'cancel' },
 }
 const STATUS_ORDER = ['new', 'clients_review', 'preparing', 'proposal_sent', 'revising', 'booking', 'confirmed', 'cancelled']
+// «в работе» = всё, кроме завершённых (confirmed) и отменённых (cancelled)
+const ACTIVE_SET = ['new', 'clients_review', 'preparing', 'proposal_sent', 'revising', 'booking']
+type Actuality = 'active' | 'confirmed' | 'cancelled' | 'all'
 
 const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -86,9 +89,20 @@ export default function RequestsList({
   const [tripFrom, setTripFrom] = useState('')
   const [tripTo, setTripTo] = useState('')
   const [ownerFilter, setOwnerFilter] = useState('')
-  const [activeFilter, setActiveFilter] = useState('')
+  // по умолчанию показываем только заявки «в работе» (неактуальные скрыты)
+  const [actuality, setActuality] = useState<Actuality>('active')
+  const [showTripDates, setShowTripDates] = useState(false)
 
   const effStatus = (r: RequestRow) => overrides[r.id] ?? r.status ?? 'new'
+
+  // набор статусов текущей «актуальности»; null = все
+  const bucket: string[] | null =
+    actuality === 'active' ? ACTIVE_SET
+      : actuality === 'confirmed' ? ['confirmed']
+        : actuality === 'cancelled' ? ['cancelled']
+          : null
+  // в выпадашке конкретного статуса показываем только статусы текущего набора
+  const statusOptions = bucket ?? STATUS_ORDER
 
   const agentOptions = useMemo(() => {
     const map = new Map<string, string>()
@@ -105,6 +119,8 @@ export default function RequestsList({
     const q = search.trim().toLowerCase()
     return safe.filter((r) => {
       if (ownerFilter && r.owner_id !== ownerFilter) return false
+      // «актуальность» (по умолчанию — только в работе)
+      if (bucket && !bucket.includes(effStatus(r))) return false
       if (statusFilter && effStatus(r) !== statusFilter) return false
       if (priorityFilter && r.priority !== priorityFilter) return false
       if (tripFrom || tripTo) {
@@ -120,7 +136,7 @@ export default function RequestsList({
       return hay.includes(q)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safe, search, statusFilter, priorityFilter, tripFrom, tripTo, ownerFilter, overrides, destSummary])
+  }, [safe, search, statusFilter, priorityFilter, tripFrom, tripTo, ownerFilter, actuality, overrides, destSummary])
 
   // сортировка
   const sorted = useMemo(() => {
@@ -196,43 +212,48 @@ export default function RequestsList({
           <option value="trip_far">{t('Trip: latest first', 'Поездка: дальние')}</option>
           <option value="created">{t('Created: newest', 'Создана: новые')}</option>
         </select>
-        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} style={field}>
-          <option value="">{t('+ Filter ▾', '+ Фильтр ▾')}</option>
-          {showOwner && <option value="agent">{t('Agent', 'Агент')}</option>}
-          <option value="status">{t('Status', 'Статус')}</option>
-          <option value="priority">{t('Priority', 'Приоритет')}</option>
-          <option value="trip">{t('Trip dates', 'Даты поездки')}</option>
+
+        {/* Актуальность: по умолчанию «В работе» — неактуальные скрыты */}
+        <select value={actuality}
+          onChange={(e) => { setActuality(e.target.value as Actuality); setStatusFilter('') }}
+          style={{ ...field, fontWeight: 600 }} title={t('Actuality', 'Актуальность')}>
+          <option value="active">{t('In work', 'В работе')}</option>
+          <option value="confirmed">{t('Confirmed', 'Подтверждённые')}</option>
+          <option value="cancelled">{t('Cancelled', 'Отменённые')}</option>
+          <option value="all">{t('All', 'Все')}</option>
         </select>
 
-        {activeFilter === 'agent' && showOwner && (
-          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} style={{ ...field, minWidth: '200px' }}>
-            <option value="">{t('All agents', 'Все агенты')}</option>
+        {/* Все фильтры видны и работают одновременно */}
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...field, minWidth: '170px' }}>
+          <option value="">{t('Any status', 'Любой статус')}</option>
+          {statusOptions.map((v) => <option key={v} value={v}>{t(STATUS_META[v].en, STATUS_META[v].ru)}</option>)}
+        </select>
+        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} style={field}>
+          <option value="">{t('Any priority', 'Любой приоритет')}</option>
+          <option value="Low">{t('Low', 'Низкий')}</option>
+          <option value="Medium">{t('Medium', 'Средний')}</option>
+          <option value="High">{t('High', 'Высокий')}</option>
+        </select>
+        {showOwner && (
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} style={{ ...field, minWidth: '160px' }}>
+            <option value="">{t('Any agent', 'Любой агент')}</option>
             {agentOptions.map((a) => <option key={a.id} value={a.id}>{a.email}</option>)}
           </select>
         )}
-        {activeFilter === 'status' && (
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...field, minWidth: '200px' }}>
-            <option value="">{t('All statuses', 'Все статусы')}</option>
-            {STATUS_ORDER.map((v) => <option key={v} value={v}>{t(STATUS_META[v].en, STATUS_META[v].ru)}</option>)}
-          </select>
-        )}
-        {activeFilter === 'priority' && (
-          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} style={{ ...field, minWidth: '180px' }}>
-            <option value="">{t('All priorities', 'Все приоритеты')}</option>
-            <option value="Low">{t('Low', 'Низкий')}</option>
-            <option value="Medium">{t('Medium', 'Средний')}</option>
-            <option value="High">{t('High', 'Высокий')}</option>
-          </select>
-        )}
-        {activeFilter === 'trip' && (
+        <button type="button" onClick={() => setShowTripDates((v) => !v)}
+          style={{ ...field, cursor: 'pointer', color: (tripFrom || tripTo) ? C.accent : C.muted, fontWeight: (tripFrom || tripTo) ? 700 : 400 }}>
+          {t('Trip dates', 'Даты поездки')} {(tripFrom || tripTo) ? '•' : '▾'}
+        </button>
+        {showTripDates && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input type="date" value={tripFrom} onChange={(e) => setTripFrom(e.target.value)} style={field} />
             <span style={{ fontSize: '12px', color: C.muted }}>—</span>
             <input type="date" value={tripTo} onChange={(e) => setTripTo(e.target.value)} style={field} />
           </div>
         )}
-        {(ownerFilter || statusFilter || priorityFilter || tripFrom || tripTo) && (
-          <button type="button" onClick={() => { setOwnerFilter(''); setStatusFilter(''); setPriorityFilter(''); setTripFrom(''); setTripTo(''); setActiveFilter('') }}
+
+        {(ownerFilter || statusFilter || priorityFilter || tripFrom || tripTo || actuality !== 'active') && (
+          <button type="button" onClick={() => { setOwnerFilter(''); setStatusFilter(''); setPriorityFilter(''); setTripFrom(''); setTripTo(''); setActuality('active'); setShowTripDates(false) }}
             style={{ ...field, cursor: 'pointer', color: C.muted }}>{t('Clear filters', 'Сбросить фильтры')}</button>
         )}
       </div>
