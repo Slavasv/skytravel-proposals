@@ -1,6 +1,11 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
+
+const BUCKET = 'attachments'
+const SIGNED_TTL = 60 * 10 // 10 минут
+const MAX_FILE_MB = 25
 
 export type EntityType = 'client' | 'request' | 'booking' | 'task'
 
@@ -129,38 +134,84 @@ export async function getClientFiles(clientId: string): Promise<FileRow[]> {
   return rows.map((r) => (Array.isArray(r.files) ? r.files[0] : r.files)).filter((x): x is FileRow => !!x)
 }
 
-// Записать загруженный файл: files + link на сущность (+ опционально в клиентов)
-export async function createFile(input: {
-  entityType: EntityType
-  entityId: string
-  file: { storage_path: string; file_name: string; mime_type: string; size_bytes: number }
-  alsoClientIds?: string[]
-}): Promise<{ ok: boolean; error?: string }> {
+// Гарантируем наличие приватного бакета (на случай, если не создан миграцией)
+async function ensureBucket(admin: ReturnType<typeof createSupabaseAdmin>): Promise<void> {
+  try { await admin.storage.createBucket(BUCKET, { public: false }) } catch { /* уже есть */ }
+}
+
+// Загрузка файла + запись метаданных. Файл грузим СЕРВИС-РОЛЬЮ (мимо storage-RLS),
+// а строки в БД — под обычным пользователем (RLS по бренду работает).
+export async function uploadAndCreate(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
-  const companyId = await entityCompany(supabase, input.entityType, input.entityId)
+  if (!user) return { ok: false, error: 'Not authorized' }
+
+  const file = formData.get('file') as File | null
+  const entityType = formData.get('entityType') as EntityType | null
+  const entityId = formData.get('entityId') as string | null
+  const alsoRaw = (formData.get('alsoClientIds') as string | null) || '[]'
+  if (!file || !entityType || !entityId) return { ok: false, error: 'Bad input' }
+  if (file.size > MAX_FILE_MB * 1024 * 1024) return { ok: false, error: `Файл больше ${MAX_FILE_MB} МБ` }
+
+  const companyId = await entityCompany(supabase, entityType, entityId)
   if (!companyId) return { ok: false, error: 'Company not found' }
 
+  let alsoClientIds: string[] = []
+  try { alsoClientIds = JSON.parse(alsoRaw) } catch { alsoClientIds = [] }
+
+  // 1) заливаем объект сервис-ролью
+  const admin = createSupabaseAdmin()
+  await ensureBucket(admin)
+  const ext = (file.name.match(/\.([a-z0-9]+)$/i)?.[1] || 'bin').toLowerCase()
+  const now = new Date()
+  const folder = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`
+  const bytes = Buffer.from(await file.arrayBuffer())
+  const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, {
+    contentType: file.type || 'application/octet-stream', upsert: false,
+  })
+  if (upErr) return { ok: false, error: `Не удалось загрузить: ${upErr.message}` }
+
+  // 2) метаданные под пользователем (RLS по бренду)
   const { data: f, error } = await supabase.from('files').insert({
     company_id: companyId,
-    file_name: input.file.file_name,
-    storage_path: input.file.storage_path,
-    mime_type: input.file.mime_type,
-    size_bytes: input.file.size_bytes,
-    uploaded_by: user?.id ?? null,
+    file_name: file.name,
+    storage_path: path,
+    mime_type: file.type || 'application/octet-stream',
+    size_bytes: file.size,
+    uploaded_by: user.id,
   }).select('id').single()
-  if (error || !f) return { ok: false, error: error?.message || 'insert failed' }
+  if (error || !f) {
+    await admin.storage.from(BUCKET).remove([path]).catch(() => {})
+    return { ok: false, error: error?.message || 'insert failed' }
+  }
 
   const links: { file_id: string; entity_type: EntityType; entity_id: string }[] = [
-    { file_id: f.id as string, entity_type: input.entityType, entity_id: input.entityId },
+    { file_id: f.id as string, entity_type: entityType, entity_id: entityId },
   ]
-  for (const cid of input.alsoClientIds ?? []) {
-    if (input.entityType === 'client' && cid === input.entityId) continue
+  for (const cid of alsoClientIds) {
+    if (entityType === 'client' && cid === entityId) continue
     links.push({ file_id: f.id as string, entity_type: 'client', entity_id: cid })
   }
   const { error: lerr } = await supabase.from('file_links').insert(links)
   if (lerr) return { ok: false, error: lerr.message }
   return { ok: true }
+}
+
+// Подписанные ссылки (сервис-роль) — для превью и просмотра/скачивания.
+export async function signUrls(paths: string[]): Promise<Record<string, string>> {
+  if (paths.length === 0) return {}
+  const admin = createSupabaseAdmin()
+  const { data } = await admin.storage.from(BUCKET).createSignedUrls(paths, SIGNED_TTL)
+  const map: Record<string, string> = {}
+  for (const r of data ?? []) { if (r.path && r.signedUrl) map[r.path] = r.signedUrl }
+  return map
+}
+
+export async function signOne(path: string, download = false): Promise<string | null> {
+  const admin = createSupabaseAdmin()
+  const { data } = await admin.storage.from(BUCKET).createSignedUrl(path, SIGNED_TTL, { download })
+  return data?.signedUrl ?? null
 }
 
 // Прикрепить существующий файл к сущности (пикер / «→ в клиента»)
@@ -189,7 +240,8 @@ export async function deleteFile(fileId: string): Promise<{ ok: boolean; error?:
   const { error } = await supabase.from('files').delete().eq('id', fileId)
   if (error) return { ok: false, error: error.message }
   if (f?.storage_path) {
-    await supabase.storage.from('attachments').remove([f.storage_path as string]).catch(() => {})
+    // удаляем объект сервис-ролью (мимо storage-RLS)
+    await createSupabaseAdmin().storage.from(BUCKET).remove([f.storage_path as string]).catch(() => {})
   }
   return { ok: true }
 }

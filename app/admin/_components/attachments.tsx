@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useT } from '@/lib/i18n-client'
-import { uploadFile, signedUrl, signedUrls, MAX_FILE_MB } from '@/lib/upload-file'
 import {
   getAttachments, getMe, getEntityClients, getClientFiles,
-  createFile, linkExisting, unlink, deleteFile,
+  uploadAndCreate, signUrls, signOne, linkExisting, unlink, deleteFile,
   type AttachmentRow, type ClientLite, type FileRow, type EntityType, type Me,
 } from './attachments-actions'
+
+const MAX_FILE_MB = 25
 
 function isImage(m: string | null): boolean { return !!m && m.startsWith('image/') }
 function isPdf(m: string | null): boolean { return m === 'application/pdf' }
@@ -48,7 +49,7 @@ export default function Attachments({ entityType, entityId }: { entityType: Enti
     ])
     setItems(list); setMe(meData); setClients(cls)
     const previewPaths = list.filter((f) => isImage(f.mime_type)).map((f) => f.storage_path)
-    setPreviews(previewPaths.length ? await signedUrls(previewPaths) : {})
+    setPreviews(previewPaths.length ? await signUrls(previewPaths) : {})
     setLoading(false)
   }, [entityType, entityId])
 
@@ -62,8 +63,16 @@ export default function Attachments({ entityType, entityId }: { entityType: Enti
     setBusy(true)
     try {
       for (const file of Array.from(fileList)) {
-        const uploaded = await uploadFile(file)
-        await createFile({ entityType, entityId, file: uploaded, alsoClientIds: Array.from(alsoClients) })
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          alert(t(`File is larger than ${MAX_FILE_MB} MB`, `Файл больше ${MAX_FILE_MB} МБ`)); continue
+        }
+        const fd = new FormData()
+        fd.set('file', file)
+        fd.set('entityType', entityType)
+        fd.set('entityId', entityId)
+        fd.set('alsoClientIds', JSON.stringify(Array.from(alsoClients)))
+        const res = await uploadAndCreate(fd)
+        if (!res.ok) throw new Error(res.error || 'upload failed')
       }
       await load()
     } catch (e) {
@@ -75,7 +84,7 @@ export default function Attachments({ entityType, entityId }: { entityType: Enti
   }
 
   async function openFile(f: AttachmentRow, download = false) {
-    const url = await signedUrl(f.storage_path, download)
+    const url = await signOne(f.storage_path, download)
     if (!url) { alert(t('Could not open file', 'Не удалось открыть файл')); return }
     if (download) { window.location.href = url; return }
     if (isImage(f.mime_type) || isPdf(f.mime_type)) {
