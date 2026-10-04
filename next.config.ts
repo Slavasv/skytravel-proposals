@@ -12,6 +12,10 @@ const BUILD_ID =
 const nextConfig: NextConfig = {
   typedRoutes: false,
   serverExternalPackages: ["@sparticuz/chromium-min", "puppeteer-core"],
+  // Загрузка файлов идёт через server action — поднимаем лимит тела запроса.
+  experimental: {
+    serverActions: { bodySizeLimit: "30mb" },
+  },
   env: {
     // Вшивается и в клиент, и в сервер этой сборки — по нему ловим расхождение версий.
     NEXT_PUBLIC_BUILD_ID: BUILD_ID,
