@@ -9,6 +9,7 @@ import {
     type TaskEntityType, type TaskPriority, type TaskStatus,
 } from '@/app/admin/tasks/actions'
 import TaskChecklist from '@/app/admin/tasks/task-checklist'
+import Attachments from '@/app/admin/_components/attachments'
 
 export type TaskContext = {
     entityType?: TaskEntityType
@@ -348,6 +349,11 @@ export default function CreateTaskButton({ context, variant = 'button', label, o
                         {/* Подзадачи-чеклист (только для существующей задачи) */}
                         {isEdit && editTask?.id && (
                             <TaskChecklist taskId={editTask.id} readOnly={readOnly} />
+                        )}
+
+                        {/* Файлы задачи (только для существующей) */}
+                        {isEdit && editTask?.id && (
+                            <Attachments entityType="task" entityId={editTask.id} />
                         )}
 
                         {error && <div style={{ color: 'var(--admin-danger)', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}

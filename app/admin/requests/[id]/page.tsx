@@ -10,6 +10,7 @@ import { getUiLang, getProfile } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import RequestForm from './request-form'
 import EntityTasks from '@/app/admin/_components/entity-tasks'
+import Attachments from '@/app/admin/_components/attachments'
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -47,6 +48,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <RequestForm request={request} clients={clients} destinations={destinations} linked={linked} availableDestinations={availableDestinations} bookings={bookings} offers={offers} simples={simples} />
 
       <EntityTasks entityType="request" entityId={id} currentUserId={profile?.id || ''} />
+
+      <Attachments entityType="request" entityId={id} />
     </div>
   )
 }

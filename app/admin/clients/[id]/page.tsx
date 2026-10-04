@@ -5,6 +5,7 @@ import { getUiLang } from '@/lib/get-profile'
 import { tr } from '@/lib/i18n'
 import { getTravellers, getClientRequests } from '../actions'
 import ClientForm from './client-form'
+import Attachments from '@/app/admin/_components/attachments'
 
 type Params = { id: string }
 
@@ -47,6 +48,8 @@ export default async function ClientPage({
       </div>
 
       <ClientForm client={client} travellers={travellers} requests={requests} returnTo={returnTo} />
+
+      <Attachments entityType="client" entityId={id} />
     </div>
   )
 }
