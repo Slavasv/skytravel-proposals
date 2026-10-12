@@ -183,6 +183,61 @@ export async function resetPassword(id: string, newPassword: string) {
   revalidatePath('/admin/users')
 }
 
+// ---- Доступ сотрудника к брендам (company_members) ----
+
+// Набор брендов, к которым имеет доступ владелец (членства + основной) — им ограничиваем выдачу.
+async function ownerBrandIds(admin: ReturnType<typeof createSupabaseAdmin>, ownerId: string): Promise<Set<string>> {
+  const ids = new Set<string>()
+  const { data: me } = await admin.from('profiles').select('company_id').eq('id', ownerId).single()
+  if (me?.company_id) ids.add(me.company_id as string)
+  const { data: members } = await admin.from('company_members').select('company_id').eq('user_id', ownerId)
+  for (const m of members ?? []) if (m.company_id) ids.add(m.company_id as string)
+  return ids
+}
+
+// Бренды, к которым сейчас имеет доступ пользователь
+export async function getBrandAccess(userId: string): Promise<string[]> {
+  const profile = await getProfile()
+  if (!canManageBrand(profile?.role)) return []
+  const admin = createSupabaseAdmin()
+  const { data } = await admin.from('company_members').select('company_id').eq('user_id', userId)
+  return (data ?? []).map((m) => m.company_id as string)
+}
+
+// Назначить сотруднику набор брендов. Только owner. Основной бренд пользователя всегда остаётся
+// (чтобы не потерял «дом» и my_company_ids() не схлопнулся). Назначать можно только бренды владельца.
+export async function setBrandAccess(userId: string, companyIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  const profile = await getProfile()
+  if (profile?.role !== 'owner') return { ok: false, error: 'Недостаточно прав' }
+  const admin = createSupabaseAdmin()
+
+  const allowed = await ownerBrandIds(admin, profile.id)
+  const target = new Set(companyIds.filter((id) => allowed.has(id)))
+
+  // всегда сохраняем основной бренд сотрудника
+  const { data: tp } = await admin.from('profiles').select('company_id').eq('id', userId).single()
+  if (tp?.company_id) target.add(tp.company_id as string)
+  if (target.size === 0) return { ok: false, error: 'Нужен хотя бы один бренд' }
+
+  // текущее состояние
+  const { data: cur } = await admin.from('company_members').select('company_id').eq('user_id', userId)
+  const current = new Set((cur ?? []).map((m) => m.company_id as string))
+
+  const toAdd = [...target].filter((id) => !current.has(id))
+  const toRemove = [...current].filter((id) => !target.has(id))
+
+  if (toAdd.length) {
+    const { error } = await admin.from('company_members').insert(toAdd.map((company_id) => ({ user_id: userId, company_id })))
+    if (error) return { ok: false, error: error.message }
+  }
+  if (toRemove.length) {
+    const { error } = await admin.from('company_members').delete().eq('user_id', userId).in('company_id', toRemove)
+    if (error) return { ok: false, error: error.message }
+  }
+  revalidatePath('/admin/users')
+  return { ok: true }
+}
+
 export async function toggleRole(id: string, newRole: 'admin' | 'manager' | 'accountant') {
   // Проверяем права вызывающего — менять роли может только owner/admin
   const profile = await getProfile()

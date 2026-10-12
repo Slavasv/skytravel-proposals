@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { deleteUser, resetPassword, toggleRole, updateUserName, updateUserEmail, updateUserMsEmail } from './actions'
+import { useRouter } from 'next/navigation'
+import { deleteUser, resetPassword, toggleRole, updateUserName, updateUserEmail, updateUserMsEmail, setBrandAccess } from './actions'
 import { useT } from '@/lib/i18n-client'
 
 type User = {
@@ -15,14 +16,33 @@ type User = {
   proposal_count: number
 }
 
-export default function UserRow({ user, currentUserId }: { user: User; currentUserId: string }) {
+type BrandLite = { id: string; name: string }
+
+export default function UserRow({ user, currentUserId, brands = [], assignedBrands = [] }: {
+  user: User
+  currentUserId: string
+  brands?: BrandLite[]
+  assignedBrands?: string[]
+}) {
   const t = useT()
+  const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [loading, setLoading] = useState(false)
+  const [brandsOpen, setBrandsOpen] = useState(false)
+  const [sel, setSel] = useState<Set<string>>(new Set(assignedBrands))
   const btnRef = useRef<HTMLButtonElement>(null)
 
   const isSelf = user.id === currentUserId
+  const multiBrand = brands.length > 1
+
+  async function saveBrands() {
+    setLoading(true); setBrandsOpen(false)
+    const res = await setBrandAccess(user.id, Array.from(sel))
+    setLoading(false)
+    if (!res.ok) alert(`${t('Error', 'Ошибка')}: ${res.error || ''}`)
+    else router.refresh()
+  }
 
   function openMenu() {
     const rect = btnRef.current?.getBoundingClientRect()
@@ -124,6 +144,11 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
               <button className="adm-menu-item" onClick={handleRename}>{t('Rename', 'Переименовать')}</button>
               <button className="adm-menu-item" onClick={handleChangeEmail}>{t('Change email / login', 'Сменить email / логин')}</button>
               <button className="adm-menu-item" onClick={handleMsEmail}>{t('Microsoft email (sync)', 'Microsoft email (синхронизация)')}</button>
+              {multiBrand && (
+                <button className="adm-menu-item" onClick={() => { setMenuOpen(false); setSel(new Set(assignedBrands)); setBrandsOpen(true) }}>
+                  {t('Brand access', 'Доступ к брендам')}
+                </button>
+              )}
 
               {/* сброс пароля и удаление — только для других */}
               {!isSelf && (
@@ -136,6 +161,36 @@ export default function UserRow({ user, currentUserId }: { user: User; currentUs
           </>
         )}
       </td>
+
+      {brandsOpen && (
+        <td style={{ position: 'fixed', inset: 0, zIndex: 50, padding: 0 }}>
+          <div onClick={() => setBrandsOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(380px, 92vw)', background: 'var(--admin-card)', border: '1px solid var(--admin-border-card)', borderRadius: '12px', padding: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 600 }}>{t('Brand access', 'Доступ к брендам')}</h3>
+            <p style={{ margin: '0 0 14px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>{user.name || user.email}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {brands.map((b) => {
+                const on = sel.has(b.id)
+                return (
+                  <button key={b.id} type="button"
+                    onClick={() => setSel((s) => { const n = new Set(s); if (n.has(b.id)) n.delete(b.id); else n.add(b.id); return n })}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', border: `1px solid ${on ? 'var(--admin-accent)' : 'var(--admin-border-card)'}`, background: on ? 'var(--admin-hover)' : 'transparent' }}>
+                    <span style={{ width: '18px', height: '18px', borderRadius: '5px', flex: 'none', border: `1.6px solid ${on ? 'var(--admin-accent)' : 'var(--admin-text-faint)'}`, background: on ? 'var(--admin-accent)' : 'transparent', color: '#20242c', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{on ? '✓' : ''}</span>
+                    <span style={{ fontSize: '13.5px', color: 'var(--admin-text)' }}>{b.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <p style={{ margin: '12px 0 0', fontSize: '11px', color: 'var(--admin-text-faint)' }}>
+              {t('The user’s home brand always stays on.', 'Основной бренд сотрудника всегда остаётся включённым.')}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <button type="button" onClick={() => setBrandsOpen(false)} style={{ padding: '9px 14px', fontSize: '13px', background: 'transparent', border: '1px solid var(--admin-border)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--admin-text-muted)' }}>{t('Cancel', 'Отмена')}</button>
+              <button type="button" onClick={saveBrands} style={{ padding: '9px 16px', fontSize: '13px', fontWeight: 600, background: 'var(--admin-text-on-dark)', color: 'var(--admin-dark-panel)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('Save', 'Сохранить')}</button>
+            </div>
+          </div>
+        </td>
+      )}
     </tr>
   )
 }

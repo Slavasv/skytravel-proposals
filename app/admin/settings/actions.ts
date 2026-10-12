@@ -37,9 +37,11 @@ export async function updateCompany(formData: FormData) {
   }
 
   const admin = createSupabaseAdmin()
+  const newName = (formData.get('name') as string)?.trim()
   const { error } = await admin
     .from('companies')
     .update({
+      ...(newName ? { name: newName } : {}),
       logo_url: (formData.get('logo_url') as string)?.trim() || null,
       accent_color: (formData.get('accent_color') as string)?.trim() || null,
       contact_email: (formData.get('contact_email') as string)?.trim() || null,
@@ -57,6 +59,41 @@ export async function updateCompany(formData: FormData) {
 
   if (error) throw new Error(error.message)
   revalidatePath('/admin/settings')
+}
+
+// Удалить бренд владельцем. Безопасно: только ПУСТОЙ бренд (без данных) и не основной
+// бренд владельца. Так закрываем «подчистить дубли», не рискуя каскадным сносом данных.
+export async function deleteOwnerBrand(companyId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const profile = await getProfile()
+    if (profile?.role !== 'owner') return { ok: false, error: 'Недостаточно прав' }
+    await assertOwnerMember(companyId)
+    const admin = createSupabaseAdmin()
+
+    // нельзя удалить свой основной бренд
+    const uid = await currentUserId()
+    const { data: me } = await admin.from('profiles').select('company_id').eq('id', uid).single()
+    if (me?.company_id === companyId) return { ok: false, error: 'Нельзя удалить основной бренд' }
+
+    // бренд должен быть пустым (нет зависимых данных)
+    const tables = ['requests', 'bookings', 'proposals', 'clients', 'partners'] as const
+    for (const tbl of tables) {
+      const { count } = await admin.from(tbl).select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+      if ((count ?? 0) > 0) return { ok: false, error: `В бренде есть данные (${tbl}: ${count}). Удаление разрешено только для пустого бренда.` }
+    }
+    // не должен быть чьим-то основным брендом
+    const { count: primaryCount } = await admin.from('profiles').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+    if ((primaryCount ?? 0) > 0) return { ok: false, error: 'Этот бренд назначен основным у кого-то из пользователей.' }
+
+    await admin.from('company_members').delete().eq('company_id', companyId)
+    const { error } = await admin.from('companies').delete().eq('id', companyId)
+    if (error) return { ok: false, error: error.message }
+
+    revalidatePath('/admin/settings')
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Ошибка' }
+  }
 }
 
 // Владелец сам заводит новый бренд (без нового пользователя): компания + членство.

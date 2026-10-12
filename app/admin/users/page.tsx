@@ -4,6 +4,7 @@ import { tr } from '@/lib/i18n'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import UserRow from './user-row'
 import CreateUserForm from './create-user-form'
+import { getOwnerBrands } from '@/app/admin/settings/brands'
 
 export default async function UsersPage() {
   const profile = await getProfile()
@@ -57,6 +58,19 @@ export default async function UsersPage() {
 
   const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
+  // Мультибренд: владельцу даём управлять доступом сотрудников к брендам
+  const ownerBrands = profile!.role === 'owner' ? await getOwnerBrands() : []
+  const multiBrand = ownerBrands.length > 1
+  const brandLite = ownerBrands.map((b) => ({ id: b.id, name: b.name || b.slug || b.id }))
+  const assignedMap: Record<string, string[]> = {}
+  if (multiBrand) {
+    const { data: mems } = await adminClient.from('company_members').select('user_id, company_id').in('user_id', Array.from(ownIds))
+    for (const m of mems ?? []) {
+      if (!m.user_id) continue
+      ;(assignedMap[m.user_id as string] ??= []).push(m.company_id as string)
+    }
+  }
+
   const enriched = filteredUsers.map((u) => ({
     id: u.id,
     email: u.email ?? '',
@@ -100,7 +114,9 @@ export default async function UsersPage() {
                 </thead>
                 <tbody>
                   {enriched.map((u) => (
-                    <UserRow key={u.id} user={u} currentUserId={profile!.id} />
+                    <UserRow key={u.id} user={u} currentUserId={profile!.id}
+                      brands={multiBrand ? brandLite : []}
+                      assignedBrands={assignedMap[u.id] ?? []} />
                   ))}
                 </tbody>
               </table>

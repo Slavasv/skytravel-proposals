@@ -8,6 +8,7 @@ import GreetingField from './greeting-field'
 import VoucherTemplateField from './voucher-template-field'
 
 type Company = {
+  name?: string | null
   logo_url: string | null
   accent_color: string | null
   contact_email: string | null
@@ -77,6 +78,11 @@ export default function BrandSettingsForm({ company, companyId }: { company: Com
     }}>
       <input type="hidden" name="company_id" value={companyId} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        <div>
+          <label style={labelStyle}>{'Brand name / Название бренда'}</label>
+          <input type="text" name="name" defaultValue={company.name || ''} placeholder="Tigu Travel" style={inputStyle} />
+        </div>
 
         <div>
           <ImageUploader

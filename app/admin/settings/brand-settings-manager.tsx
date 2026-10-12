@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n-client'
 import BrandSettingsForm from './brand-settings-form'
-import { createOwnerBrand } from './actions'
+import { createOwnerBrand, deleteOwnerBrand } from './actions'
 import { type OwnerBrand } from './brands'
 
 export default function BrandSettingsManager({ brands }: { brands: OwnerBrand[] }) {
@@ -18,6 +18,17 @@ export default function BrandSettingsManager({ brands }: { brands: OwnerBrand[] 
   const [isPending, startTransition] = useTransition()
 
   const selected = brands.find((b) => b.id === selectedId) || brands[0]
+
+  function handleDelete() {
+    if (!selected) return
+    if (!confirm(t(`Delete brand “${selected.name || selected.slug}”? Only an empty brand can be deleted.`, `Удалить бренд «${selected.name || selected.slug}»? Удалить можно только пустой бренд.`))) return
+    setError('')
+    startTransition(async () => {
+      const res = await deleteOwnerBrand(selected.id)
+      if (res.ok) { setSelectedId(brands.find((b) => b.id !== selected.id)?.id || ''); router.refresh() }
+      else setError(res.error || 'Ошибка')
+    })
+  }
 
   function submitAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -50,6 +61,11 @@ export default function BrandSettingsManager({ brands }: { brands: OwnerBrand[] 
           <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} style={field}>
             {brands.map((b) => <option key={b.id} value={b.id}>{b.name || b.slug || b.id}</option>)}
           </select>
+          <button type="button" onClick={handleDelete} disabled={isPending}
+            style={{ marginTop: '8px', padding: '7px 12px', fontSize: '12px', background: 'transparent', color: 'var(--admin-danger)', border: '1px solid var(--admin-border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {t('Delete this brand', 'Удалить этот бренд')}
+          </button>
+          {error && <div style={{ color: 'var(--admin-danger)', fontSize: '12.5px', marginTop: '6px' }}>{error}</div>}
         </div>
       )}
 
