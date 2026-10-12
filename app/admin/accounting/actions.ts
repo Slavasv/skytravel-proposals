@@ -130,8 +130,17 @@ export async function addPayment(input: NewPayment): Promise<{ ok: boolean; erro
   const direction = input.kind === 'client' ? 'in' : 'out'
   const category = input.kind === 'client' ? 'client_payment' : 'supplier_payment'
 
+  // company_id берём из брони платежа (бренд брони), а не из основного бренда профиля —
+  // чтобы деньги корректно относились к нужному бренду. Фолбэк — основной бренд.
+  const firstBookingId = allocs.map((a) => a.booking_id ?? (a.invoice_id ? invBooking.get(a.invoice_id) ?? null : null)).find((x) => !!x) as string | undefined
+  let txCompanyId = companyId
+  if (firstBookingId) {
+    const { data: bk } = await supabase.from('bookings').select('company_id').eq('id', firstBookingId).single()
+    if (bk?.company_id) txCompanyId = bk.company_id as string
+  }
+
   const { data: tx, error: txErr } = await supabase.from('transactions').insert({
-    company_id: companyId,
+    company_id: txCompanyId,
     booking_id: null,
     direction,
     category,

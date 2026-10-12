@@ -109,7 +109,9 @@ export async function getEntityClients(entityType: EntityType, entityId: string)
   } else if (entityType === 'booking') {
     const { data } = await supabase.from('bookings').select('client_id').eq('id', entityId).single()
     if (data?.client_id) ids.add(data.client_id as string)
-    // плательщики (разделение счёта) — когда появится booking_payers, добавить сюда
+    // плательщики из разбивки счёта
+    const { data: payers } = await supabase.from('booking_payers').select('client_id').eq('booking_id', entityId)
+    for (const p of payers ?? []) if (p.client_id) ids.add(p.client_id as string)
   } else if (entityType === 'task') {
     const { data } = await supabase.from('tasks').select('client_id').eq('id', entityId).single()
     if (data?.client_id) ids.add(data.client_id as string)
