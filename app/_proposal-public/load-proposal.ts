@@ -144,10 +144,24 @@ export async function loadProposal(slug: string): Promise<LoadedProposal | null>
       .order('day_number', { ascending: true })
 
     const all = sortDays(daysRaw ?? [])
+
+    // перелёты по вариантам (одним запросом)
+    const { data: flightsRaw } = await supabase
+      .from('flight_segments')
+      .select('*')
+      .in('variant_id', ids)
+      .order('sort_order', { ascending: true })
+    const flightsByVariant: Record<string, PublicVariant['flights']> = {}
+    for (const f of flightsRaw ?? []) {
+      const vid = f.variant_id as string
+      ;(flightsByVariant[vid] ??= []).push(f as unknown as PublicVariant['flights'][number])
+    }
+
     variants = variantsRaw.map((v) => ({
-      ...(v as Omit<PublicVariant, 'gallery' | 'days'>),
+      ...(v as Omit<PublicVariant, 'gallery' | 'days' | 'flights'>),
       gallery: normalizeGallery((v as { gallery?: unknown }).gallery),
       days: all.filter((d) => d.variant_id === v.id),
+      flights: flightsByVariant[v.id as string] ?? [],
     }))
   } else {
     // Фолбэк: старое предложение без вариантов — собираем один «Маршрут 1»
@@ -186,6 +200,7 @@ export async function loadProposal(slug: string): Promise<LoadedProposal | null>
         impressions_text_en: null,
         divider_image: null,
         days: sortDays(daysRaw ?? []),
+        flights: [],
       },
     ]
   }
