@@ -7,14 +7,16 @@ import ProposalItinerary from './proposal-itinerary'
 import ProposalAccommodation from './proposal-accommodation'
 import ProposalCosts from './proposal-costs'
 import ProposalTerms from './proposal-terms'
+import ProposalFlights from './proposal-flights'
 import SavePdfButton from './save-pdf-button'
 import type { LoadedProposal, Lang, PublicVariant } from './types'
 
-/* Секции страницы (без «Авиаперелёт» — добавим отдельным этапом). */
+/* Секции страницы. «Авиаперелёт» показываем только если у активного варианта есть рейсы. */
 const SECTIONS: { id: string; ru: string; en: string }[] = [
   { id: 'obzor', ru: 'Обзор', en: 'Overview' },
   { id: 'marshrut', ru: 'Маршрут по дням', en: 'Itinerary' },
   { id: 'prozhivanie', ru: 'Проживание', en: 'Accommodation' },
+  { id: 'aviaperelet', ru: 'Авиаперелёт', en: 'Flights' },
   { id: 'stoimost', ru: 'Стоимость', en: 'Costs' },
   { id: 'usloviya', ru: 'Условия', en: 'Terms' },
 ]
@@ -40,10 +42,6 @@ export default function ProposalView({ data, lang, print = false }: { data: Load
 
   // отельное предложение — без программы по дням: секцию «Маршрут по дням» не показываем
   const isHotel = proposal.layout === 'hotel'
-  const sections = useMemo(
-    () => SECTIONS.filter((s) => !(isHotel && s.id === 'marshrut')),
-    [isHotel]
-  )
 
   // активный вариант: выбранный клиентом, иначе первый
   const initialId = useMemo(() => {
@@ -52,6 +50,18 @@ export default function ProposalView({ data, lang, print = false }: { data: Load
   }, [variants])
 
   const [activeId, setActiveId] = useState(initialId)
+
+  // секции: «Маршрут» прячем у отельного; «Авиаперелёт» — только если у активного варианта есть рейсы
+  const sections = useMemo(() => {
+    const act = variants.find((v) => v.id === activeId) ?? variants[0]
+    const hasFlights = ((act?.flights?.length) ?? 0) > 0
+    return SECTIONS.filter((s) => {
+      if (isHotel && s.id === 'marshrut') return false
+      if (s.id === 'aviaperelet' && !hasFlights) return false
+      return true
+    })
+  }, [isHotel, activeId, variants])
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [burgerOpen, setBurgerOpen] = useState(false)
   const [activeSection, setActiveSection] = useState(sections[0].id)
@@ -265,6 +275,8 @@ export default function ProposalView({ data, lang, print = false }: { data: Load
                 tripEnd={proposal.end_date}
                 lang={lang}
               />
+            ) : s.id === 'aviaperelet' ? (
+              <ProposalFlights key={active.id} variant={active} lang={lang} />
             ) : s.id === 'stoimost' ? (
               <ProposalCosts
                 variants={variants}

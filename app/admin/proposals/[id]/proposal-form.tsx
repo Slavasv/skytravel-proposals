@@ -12,6 +12,7 @@ import { useIsMobile } from '@/lib/use-is-mobile'
 import CostBreakdown from './cost-breakdown'
 import VariantTerms from './variant-terms'
 import VariantImpressions from './variant-impressions'
+import VariantFlights from './variant-flights'
 import { useDays } from './days-context'
 import type { VariantFull } from './variant-actions'
 import HotelsSection from './hotels-section'
@@ -518,7 +519,15 @@ export default function ProposalForm({ proposal, lang, onLangChange, actions, it
         itinerary
       )}
 
-
+      {activeVariant && (
+        <section style={{ paddingTop: '24px', borderTop: '1px solid var(--admin-border-card)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 4px', color: 'var(--admin-text)' }}>{t('Flights', 'Авиаперелёт')}</h2>
+          <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: '0 0 16px' }}>
+            {t('Flight legs for this variant. Price is shown separately and is not added to the route price.', 'Перелёт этого варианта. Цена показывается отдельно и в цену маршрута не входит.')}
+          </p>
+          <VariantFlights key={activeVariant.id} variantId={activeVariant.id} lang={lang} />
+        </section>
+      )}
 
       <section>
         <h2 style={{ fontSize: '15px', fontWeight: 500, margin: '0 0 16px', color: 'var(--admin-text)' }}>

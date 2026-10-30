@@ -65,6 +65,24 @@ export type GalleryItem = {
   caption_en: string
 }
 
+export type PublicFlight = {
+  id: string
+  sort_order: number
+  kind: 'outbound' | 'return' | 'internal'
+  flight_date: string | null
+  from_place: string | null
+  to_place: string | null
+  airline: string | null
+  flight_no: string | null
+  depart_time: string | null
+  arrive_time: string | null
+  stops: string | null
+  travel_class: 'economy' | 'premium' | 'business' | 'first' | 'charter'
+  price: number | null
+  price_currency: string | null
+  note: string | null
+}
+
 export type PublicVariant = {
   id: string
   proposal_id: string
@@ -92,6 +110,7 @@ export type PublicVariant = {
   impressions_text_en: string | null
   divider_image: string | null
   days: PublicDay[]
+  flights: PublicFlight[]
 }
 
 export type PublicProposal = {
